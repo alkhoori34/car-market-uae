@@ -134,6 +134,36 @@ function resizeImage(file, maxW = 640, quality = 0.62) {
   });
 }
 
+
+async function uploadImage(file, userId) {
+  const canvasBlob = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1200 / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("فشل تحويل الصورة")), "image/jpeg", 0.82);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const path = `${userId}/${Date.now()}.jpg`;
+  const { error } = await supabase.storage
+    .from("car-images")
+    .upload(path, canvasBlob, { contentType: "image/jpeg" });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("car-images").getPublicUrl(path);
+  return data.publicUrl;
+}
 // All colors/effects are implemented as plain named CSS classes below (never as
 // Tailwind arbitrary-bracket utilities), since this environment renders a fixed
 // pre-built Tailwind stylesheet without a JIT compiler for arbitrary values.
