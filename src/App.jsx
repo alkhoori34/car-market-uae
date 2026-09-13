@@ -134,7 +134,7 @@ function resizeImage(file, maxW = 640, quality = 0.62) {
   });
 }
 
-
+// Uploads a photo to Supabase Storage at full display quality and returns its public URL.
 async function uploadImage(file, userId) {
   const canvasBlob = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -146,7 +146,7 @@ async function uploadImage(file, userId) {
         canvas.width = img.width * scale;
         canvas.height = img.height * scale;
         canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("فشل تحويل الصورة")), "image/jpeg", 0.82);
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("فشل تحويل الصورة"))), "image/jpeg", 0.82);
       };
       img.onerror = reject;
       img.src = e.target.result;
@@ -164,6 +164,7 @@ async function uploadImage(file, userId) {
   const { data } = supabase.storage.from("car-images").getPublicUrl(path);
   return data.publicUrl;
 }
+
 // All colors/effects are implemented as plain named CSS classes below (never as
 // Tailwind arbitrary-bracket utilities), since this environment renders a fixed
 // pre-built Tailwind stylesheet without a JIT compiler for arbitrary values.
@@ -208,7 +209,7 @@ export default function CarMarket() {
     make: MAKES[0], makeOther: "", model: MODELS[MAKES[0]][0], modelOther: "",
     bodyType: BODY_TYPES[0], year: new Date().getFullYear(), price: "", mileage: "",
     city: CITIES[0], fuel: FUELS[0], trans: TRANS[0], condition: CONDITIONS[1],
-    description: "", phone: "", sellerName: "", image: null,
+    description: "", phone: "", sellerName: "", image: null, imageFile: null,
   };
   const [form, setForm] = useState(emptyForm);
   const fileRef = useRef(null);
@@ -329,7 +330,7 @@ export default function CarMarket() {
     if (!file) return;
     try {
       const dataUrl = await resizeImage(file);
-      setForm((f) => ({ ...f, image: dataUrl }));
+      setForm((f) => ({ ...f, image: dataUrl, imageFile: file }));
     } catch {
       showToast("تعذر تحميل الصورة", "red");
     }
@@ -349,6 +350,19 @@ export default function CarMarket() {
       return;
     }
     setSaving(true);
+
+    // Upload the picked photo to Supabase Storage and keep only its URL in the row.
+    let imageUrl = null;
+    if (form.imageFile) {
+      try {
+        imageUrl = await uploadImage(form.imageFile, session.user.id);
+      } catch (err) {
+        showToast("تعذر رفع الصورة: " + err.message, "red");
+        setSaving(false);
+        return;
+      }
+    }
+
     const row = {
       seller_id: session.user.id,
       make: finalMake,
@@ -364,7 +378,7 @@ export default function CarMarket() {
       description: form.description,
       phone: form.phone,
       seller_name: form.sellerName || session.user.email,
-      image: form.image,
+      image: imageUrl,
     };
     try {
       const { error } = await supabase.from("listings").insert(row);
