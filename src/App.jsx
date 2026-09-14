@@ -138,6 +138,72 @@ function resizeImage(file, maxW = 640, quality = 0.62) {
   });
 }
 
+
+// ---------------------------------------------------------------------------
+// Vehicle check. Runs entirely in the visitor's browser with MobileNet, loaded
+// on demand from a CDN the first time someone picks a photo. It only answers
+// "is there a vehicle in this picture" — it cannot tell a real car from a car
+// in a video game. If the model fails to load we let the photo through rather
+// than blocking a genuine seller.
+// ---------------------------------------------------------------------------
+const VEHICLE_LABELS = [
+  "sports car", "convertible", "limousine", "cab", "jeep", "minivan", "beach wagon",
+  "pickup", "racer", "car wheel", "grille", "tow truck", "moving van", "police van",
+  "ambulance", "fire engine", "garbage truck", "trailer truck", "school bus", "minibus",
+  "recreational vehicle", "golfcart", "go-kart", "snowplow", "forklift", "half track",
+  "motor scooter", "moped", "mountain bike", "tricycle", "unicycle", "amphibian",
+  "model t", "streetcar", "trolleybus", "tractor", "thresher", "harvester",
+];
+
+let mobilenetModel = null;
+let mobilenetFailed = false;
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const el = document.createElement("script");
+    el.src = src;
+    el.onload = resolve;
+    el.onerror = () => reject(new Error("script failed"));
+    document.head.appendChild(el);
+  });
+}
+
+async function getVehicleModel() {
+  if (mobilenetModel || mobilenetFailed) return mobilenetModel;
+  try {
+    await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js");
+    await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js");
+    mobilenetModel = await window.mobilenet.load({ version: 2, alpha: 1.0 });
+  } catch {
+    mobilenetFailed = true;
+  }
+  return mobilenetModel;
+}
+
+// Returns true when the picture appears to contain a vehicle, or when the check
+// could not run at all.
+async function looksLikeVehicle(dataUrl) {
+  const model = await getVehicleModel();
+  if (!model) return true;
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.crossOrigin = "anonymous";
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = dataUrl;
+    });
+    const results = await model.classify(img, 5);
+    return results.some((r) =>
+      r.probability > 0.12 &&
+      r.className.toLowerCase().split(",").some((name) => VEHICLE_LABELS.includes(name.trim()))
+    );
+  } catch {
+    return true;
+  }
+}
+
 // Uploads a photo to Supabase Storage at full display quality and returns its public URL.
 async function uploadImage(file, userId) {
   const canvasBlob = await new Promise((resolve, reject) => {
@@ -201,6 +267,7 @@ export default function CarMarket() {
   const [authLoading, setAuthLoading] = useState(false);
   const [active, setActive] = useState(null);
   const [photoIdx, setPhotoIdx] = useState(0);
+  const [checking, setChecking] = useState(false);
   const [toast, setToast] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -344,14 +411,33 @@ export default function CarMarket() {
     const picked = files.slice(0, room);
     if (files.length > room) showToast(`تمت إضافة ${room} صور فقط (الحد ${MAX_IMAGES})`, "red");
     try {
+      setChecking(true);
       const previews = await Promise.all(picked.map((f) => resizeImage(f)));
+
+      const verdicts = await Promise.all(previews.map((p) => looksLikeVehicle(p)));
+      const keptPreviews = previews.filter((_, i) => verdicts[i]);
+      const keptFiles = picked.filter((_, i) => verdicts[i]);
+      const rejected = verdicts.filter((v) => !v).length;
+
+      if (rejected) {
+        showToast(
+          rejected === picked.length
+            ? "لم نتعرف على سيارة في الصورة. يرجى رفع صورة واضحة للسيارة."
+            : `تم تجاهل ${rejected} صورة لم نتعرف فيها على سيارة`,
+          "red"
+        );
+      }
+      if (!keptFiles.length) return;
+
       setForm((f) => ({
         ...f,
-        previews: [...(f.previews || []), ...previews],
-        imageFiles: [...(f.imageFiles || []), ...picked],
+        previews: [...(f.previews || []), ...keptPreviews],
+        imageFiles: [...(f.imageFiles || []), ...keptFiles],
       }));
     } catch {
       showToast("تعذر تحميل الصورة", "red");
+    } finally {
+      setChecking(false);
     }
     e.target.value = "";
   }
@@ -681,7 +767,12 @@ export default function CarMarket() {
             <form onSubmit={submitListing} className="space-y-4">
               <div>
                 <div onClick={() => fileRef.current?.click()} className="cm-aspect-16-9 rounded-xl cm-upload flex flex-col items-center justify-center cursor-pointer overflow-hidden transition">
-                  {form.previews?.length ? (
+                  {checking ? (
+                    <>
+                      <Loader2 size={26} className="cm-text-muted mb-2 animate-spin" />
+                      <span className="text-sm cm-text-muted">جاري فحص الصور…</span>
+                    </>
+                  ) : form.previews?.length ? (
                     <img src={form.previews[0]} className="w-full h-full object-cover" alt="preview" />
                   ) : (
                     <>
