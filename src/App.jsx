@@ -236,7 +236,10 @@ export default function CarMarket() {
 
     loadListings();
     // Light polling so new listings from other visitors show up without a manual refresh.
-    const id = setInterval(loadListings, 15000);
+    // Skips the fetch while the tab is in the background — no point loading for nobody.
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") loadListings();
+    }, 60000);
     return () => { clearInterval(id); listener.subscription.unsubscribe(); };
   }, []);
 
