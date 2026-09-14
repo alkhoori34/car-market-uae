@@ -204,6 +204,13 @@ async function looksLikeVehicle(dataUrl) {
   }
 }
 
+// Older listings stored the seller's account email as their name. Never show an
+// email address publicly: fall back to a neutral label instead.
+function sellerLabel(name) {
+  if (!name || name.includes("@")) return "البائع";
+  return name;
+}
+
 // Uploads a photo to Supabase Storage at full display quality and returns its public URL.
 async function uploadImage(file, userId) {
   const canvasBlob = await new Promise((resolve, reject) => {
@@ -493,7 +500,7 @@ export default function CarMarket() {
       condition: form.condition,
       description: form.description,
       phone: form.phone,
-      seller_name: form.sellerName || session.user.email,
+      seller_name: form.sellerName.trim() || "البائع",
       image: imageUrls[0] || null,
       images: imageUrls,
     };
@@ -1010,7 +1017,7 @@ export default function CarMarket() {
 
               <div className="cm-divider flex items-center justify-between pt-4 gap-2">
                 <div>
-                  <p className="text-xs cm-text-muted">{active.seller_name || "البائع"}</p>
+                  <p className="text-xs cm-text-muted">{sellerLabel(active.seller_name)}</p>
                   {session ? (
                     <p className="text-sm font-bold cm-tabular">{active.phone}</p>
                   ) : (
