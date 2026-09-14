@@ -103,7 +103,10 @@ function formatNumber(n) {
 }
 
 function timeAgo(ts) {
-  const diff = Date.now() - ts;
+  if (!ts) return "";
+  const parsed = typeof ts === "number" ? ts : Date.parse(ts);
+  if (Number.isNaN(parsed)) return "";
+  const diff = Date.now() - parsed;
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "الآن";
   if (mins < 60) return `منذ ${mins} د`;
@@ -893,7 +896,7 @@ export default function CarMarket() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="cm-display font-extrabold text-xl">{active.make} {active.model}</h3>
-                  <p className="text-xs cm-text-muted mt-1">{timeAgo(active.createdAt)} · {active.city}</p>
+                  <p className="text-xs cm-text-muted mt-1">{timeAgo(active.created_at)} · {active.city}</p>
                 </div>
                 <Badge tone={active.condition === "جديدة" ? "mint" : "muted"}>{active.condition}</Badge>
               </div>
