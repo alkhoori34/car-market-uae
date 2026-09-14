@@ -920,12 +920,25 @@ export default function CarMarket() {
               <div className="cm-divider flex items-center justify-between pt-4 gap-2">
                 <div>
                   <p className="text-xs cm-text-muted">{active.seller_name || "البائع"}</p>
-                  <p className="text-sm font-bold cm-tabular">{active.phone}</p>
+                  {session ? (
+                    <p className="text-sm font-bold cm-tabular">{active.phone}</p>
+                  ) : (
+                    <p className="text-sm font-bold cm-tabular cm-text-muted">•••• ••• ••••</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
-                  <a href={`tel:${active.phone}`} className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
-                    <Phone size={15} /> اتصال
-                  </a>
+                  {session ? (
+                    <a href={`tel:${active.phone}`} className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
+                      <Phone size={15} /> اتصال
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => setAuthOpen(true)}
+                      className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg"
+                    >
+                      <LogIn size={15} /> سجّل الدخول لعرض الرقم
+                    </button>
+                  )}
                   {session && active.seller_id === session.user.id && (
                     <button onClick={() => deleteListing(active.id)} title="حذف الإعلان" className="flex items-center justify-center cm-danger-outline px-3 py-2 rounded-lg">
                       <Trash2 size={15} />
