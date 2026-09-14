@@ -15,6 +15,7 @@ const TRANS = ["أوتوماتيك", "مانيوال"];
 const CONDITIONS = ["جديدة", "مستعملة"];
 const BODY_TYPES = ["سيدان", "دفع رباعي (SUV)", "بيك أب", "هاتشباك", "كوبيه", "فان", "رياضية"];
 const OTHER = "__OTHER__";
+const MAX_IMAGES = 8;
 
 const MODELS = {
   "تويوتا": ["كامري", "كورولا", "يارس", "راف فور", "لاند كروزر", "برادو", "هايلكس", "أفالون", "سيكويا", "فورتشنر", "هايس"],
@@ -196,6 +197,7 @@ export default function CarMarket() {
   const [authForm, setAuthForm] = useState({ email: "", password: "" });
   const [authLoading, setAuthLoading] = useState(false);
   const [active, setActive] = useState(null);
+  const [photoIdx, setPhotoIdx] = useState(0);
   const [toast, setToast] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -209,7 +211,7 @@ export default function CarMarket() {
     make: MAKES[0], makeOther: "", model: MODELS[MAKES[0]][0], modelOther: "",
     bodyType: BODY_TYPES[0], year: new Date().getFullYear(), price: "", mileage: "",
     city: CITIES[0], fuel: FUELS[0], trans: TRANS[0], condition: CONDITIONS[1],
-    description: "", phone: "", sellerName: "", image: null, imageFile: null,
+    description: "", phone: "", sellerName: "", previews: [], imageFiles: [],
   };
   const [form, setForm] = useState(emptyForm);
   const fileRef = useRef(null);
@@ -329,14 +331,34 @@ export default function CarMarket() {
   const phoneVerified = otp.verifiedFor && otp.verifiedFor === form.phone;
 
   async function handleImage(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const room = MAX_IMAGES - (form.imageFiles?.length || 0);
+    if (room <= 0) {
+      showToast(`الحد الأقصى ${MAX_IMAGES} صور للإعلان`, "red");
+      return;
+    }
+    const picked = files.slice(0, room);
+    if (files.length > room) showToast(`تمت إضافة ${room} صور فقط (الحد ${MAX_IMAGES})`, "red");
     try {
-      const dataUrl = await resizeImage(file);
-      setForm((f) => ({ ...f, image: dataUrl, imageFile: file }));
+      const previews = await Promise.all(picked.map((f) => resizeImage(f)));
+      setForm((f) => ({
+        ...f,
+        previews: [...(f.previews || []), ...previews],
+        imageFiles: [...(f.imageFiles || []), ...picked],
+      }));
     } catch {
       showToast("تعذر تحميل الصورة", "red");
     }
+    e.target.value = "";
+  }
+
+  function removeImage(index) {
+    setForm((f) => ({
+      ...f,
+      previews: f.previews.filter((_, i) => i !== index),
+      imageFiles: f.imageFiles.filter((_, i) => i !== index),
+    }));
   }
 
   async function submitListing(e) {
@@ -354,13 +376,15 @@ export default function CarMarket() {
     }
     setSaving(true);
 
-    // Upload the picked photo to Supabase Storage and keep only its URL in the row.
-    let imageUrl = null;
-    if (form.imageFile) {
+    // Upload every picked photo to Storage; the row keeps only their URLs.
+    let imageUrls = [];
+    if (form.imageFiles?.length) {
       try {
-        imageUrl = await uploadImage(form.imageFile, session.user.id);
+        imageUrls = await Promise.all(
+          form.imageFiles.map((f) => uploadImage(f, session.user.id))
+        );
       } catch (err) {
-        showToast("تعذر رفع الصورة: " + err.message, "red");
+        showToast("تعذر رفع الصور: " + err.message, "red");
         setSaving(false);
         return;
       }
@@ -381,7 +405,8 @@ export default function CarMarket() {
       description: form.description,
       phone: form.phone,
       seller_name: form.sellerName || session.user.email,
-      image: imageUrl,
+      image: imageUrls[0] || null,
+      images: imageUrls,
     };
     try {
       const { error } = await supabase.from("listings").insert(row);
@@ -529,9 +554,9 @@ export default function CarMarket() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {listings.slice(0, 4).map((l) => (
-                  <button key={l.id} onClick={() => { setActive(l); setView("browse"); }} className="text-right cm-card rounded-xl overflow-hidden transition">
+                  <button key={l.id} onClick={() => { setActive(l); setPhotoIdx(0); setView("browse"); }} className="text-right cm-card rounded-xl overflow-hidden transition">
                     <div className="cm-aspect-4-3 cm-media flex items-center justify-center">
-                      {l.image ? <img src={l.image} className="w-full h-full object-cover" alt="" /> : <Car size={26} className="cm-icon-empty" />}
+                      {(l.image || l.images?.[0]) ? <img src={l.image || l.images[0]} className="w-full h-full object-cover" alt="" /> : <Car size={26} className="cm-icon-empty" />}
                     </div>
                     <div className="p-2">
                       <p className="text-xs font-bold truncate">{l.make} {l.model}</p>
@@ -605,10 +630,10 @@ export default function CarMarket() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((l) => (
-                <button key={l.id} onClick={() => setActive(l)} className="text-right cm-card rounded-xl overflow-hidden transition group">
+                <button key={l.id} onClick={() => { setActive(l); setPhotoIdx(0); }} className="text-right cm-card rounded-xl overflow-hidden transition group">
                   <div className="cm-aspect-16-10 cm-media flex items-center justify-center overflow-hidden">
-                    {l.image ? (
-                      <img src={l.image} alt={l.model} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                    {(l.image || l.images?.[0]) ? (
+                      <img src={l.image || l.images[0]} alt={l.model} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                     ) : (
                       <Car size={44} className="cm-icon-empty" />
                     )}
@@ -651,16 +676,50 @@ export default function CarMarket() {
             <p className="text-sm cm-text-muted mb-6">إعلانك سيظهر مباشرة لجميع الزوار في الإمارات. لا رسوم على النشر.</p>
 
             <form onSubmit={submitListing} className="space-y-4">
-              <div onClick={() => fileRef.current?.click()} className="cm-aspect-16-9 rounded-xl cm-upload flex flex-col items-center justify-center cursor-pointer overflow-hidden transition">
-                {form.image ? (
-                  <img src={form.image} className="w-full h-full object-cover" alt="preview" />
-                ) : (
+              <div>
+                <div onClick={() => fileRef.current?.click()} className="cm-aspect-16-9 rounded-xl cm-upload flex flex-col items-center justify-center cursor-pointer overflow-hidden transition">
+                  {form.previews?.length ? (
+                    <img src={form.previews[0]} className="w-full h-full object-cover" alt="preview" />
+                  ) : (
+                    <>
+                      <ImagePlus size={28} className="cm-text-muted mb-2" />
+                      <span className="text-sm cm-text-muted">اضغط لإضافة صور السيارة (حتى {MAX_IMAGES})</span>
+                    </>
+                  )}
+                  <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleImage} className="hidden" />
+                </div>
+
+                {form.previews?.length > 0 && (
                   <>
-                    <ImagePlus size={28} className="cm-text-muted mb-2" />
-                    <span className="text-sm cm-text-muted">اضغط لإضافة صورة السيارة</span>
+                    <div className="grid grid-cols-4 gap-2 mt-2">
+                      {form.previews.map((src, i) => (
+                        <div key={i} className="relative rounded-lg overflow-hidden cm-media aspect-square">
+                          <img src={src} className="w-full h-full object-cover" alt="" />
+                          {i === 0 && (
+                            <span className="absolute bottom-0 inset-x-0 text-[10px] text-center text-white bg-black/60 py-0.5">الرئيسية</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(i)}
+                            className="absolute top-1 left-1 bg-black/60 hover:bg-black/80 rounded-full p-1 text-white"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {form.previews.length < MAX_IMAGES && (
+                        <button
+                          type="button"
+                          onClick={() => fileRef.current?.click()}
+                          className="rounded-lg cm-upload aspect-square flex items-center justify-center"
+                        >
+                          <Plus size={20} className="cm-text-muted" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs cm-text-muted mt-2">الصورة الأولى هي الرئيسية التي تظهر في نتائج البحث.</p>
                   </>
                 )}
-                <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -798,7 +857,34 @@ export default function CarMarket() {
         <div className="cm-modal-backdrop flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setActive(null)}>
           <div onClick={(e) => e.stopPropagation()} className="cm-card-solid rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg overflow-y-auto cm-scroll" style={{ maxHeight: "92vh" }}>
             <div className="cm-aspect-16-9 cm-media flex items-center justify-center relative">
-              {active.image ? <img src={active.image} className="w-full h-full object-cover" alt="" /> : <Car size={56} className="cm-icon-empty" />}
+              {(() => {
+                const gallery = (active.images?.length ? active.images : [active.image]).filter(Boolean);
+                if (!gallery.length) return <Car size={56} className="cm-icon-empty" />;
+                return (
+                  <>
+                    <img src={gallery[Math.min(photoIdx, gallery.length - 1)]} className="w-full h-full object-cover" alt="" />
+                    {gallery.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setPhotoIdx((i) => (i - 1 + gallery.length) % gallery.length)}
+                          className="absolute top-1/2 -translate-y-1/2 right-3 bg-black/50 hover:bg-black/70 rounded-full p-1.5 text-white"
+                        >
+                          <ChevronRight size={18} />
+                        </button>
+                        <button
+                          onClick={() => setPhotoIdx((i) => (i + 1) % gallery.length)}
+                          className="absolute top-1/2 -translate-y-1/2 left-3 bg-black/50 hover:bg-black/70 rounded-full p-1.5 text-white rotate-180"
+                        >
+                          <ChevronRight size={18} />
+                        </button>
+                        <span className="absolute bottom-3 right-3 bg-black/60 text-white text-xs rounded-full px-2 py-0.5">
+                          {Math.min(photoIdx, gallery.length - 1) + 1} / {gallery.length}
+                        </span>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
               <button onClick={() => setActive(null)} className="absolute top-3 left-3 bg-black/50 hover:bg-black/70 rounded-full p-1.5 text-white">
                 <X size={18} />
               </button>
