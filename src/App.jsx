@@ -294,7 +294,7 @@ export default function CarMarket() {
   const fileRef = useRef(null);
 
   // Mock OTP verification (no SMS backend connected in this prototype)
-  const [otp, setOtp] = useState({ sent: false, code: "", input: "", verifiedFor: "" });
+  const [otp, setOtp] = useState({ sent: false, code: "", input: "", verifiedFor: "", sending: false });
 
   async function loadListings() {
     try {
@@ -385,23 +385,52 @@ export default function CarMarket() {
     setForm((f) => ({ ...f, make, makeOther: "", model: opts ? opts[0] : OTHER, modelOther: "" }));
   }
 
-  function sendOtp() {
-    if (!form.phone || form.phone.replace(/\D/g, "").length < 9) {
-      showToast("أدخل رقم جوال صحيح أولًا", "red");
-      return;
-    }
-    const code = String(Math.floor(1000 + Math.random() * 9000));
-    setOtp({ sent: true, code, input: "", verifiedFor: "" });
-    // Demo only: no SMS provider is connected, so the code is shown here instead of being texted.
-    showToast(`(تجريبي) رمز التحقق: ${code}`, "mint");
+  // Turns local UAE formats (05x, 5x, 9715x) into the +9715xxxxxxxx form Twilio needs.
+  function toE164(raw) {
+    const digits = String(raw || "").replace(/\D/g, "");
+    if (digits.startsWith("971")) return "+" + digits;
+    if (digits.startsWith("0")) return "+971" + digits.slice(1);
+    if (digits.length === 9) return "+971" + digits;
+    return "+" + digits;
   }
 
-  function confirmOtp() {
-    if (otp.input === otp.code) {
-      setOtp((o) => ({ ...o, verifiedFor: form.phone }));
+  async function sendOtp() {
+    const phone = toE164(form.phone);
+    if (!/^\+971\d{9}$/.test(phone)) {
+      showToast("أدخل رقم جوال إماراتي صحيح (مثال: 0501234567)", "red");
+      return;
+    }
+    if (!session) { showToast("سجّل الدخول أولًا", "red"); setAuthOpen(true); return; }
+    setOtp({ sent: false, code: "", input: "", verifiedFor: "", sending: true });
+    try {
+      // Attaches the number to the signed-in account and texts a code.
+      const { error } = await supabase.auth.updateUser({ phone });
+      if (error) throw error;
+      setOtp({ sent: true, code: "", input: "", verifiedFor: "", sending: false });
+      showToast("أرسلنا رمز التحقق إلى جوالك");
+    } catch (err) {
+      setOtp({ sent: false, code: "", input: "", verifiedFor: "", sending: false });
+      showToast("تعذر إرسال الرمز: " + err.message, "red");
+    }
+  }
+
+  async function confirmOtp() {
+    const phone = toE164(form.phone);
+    if (!otp.input || otp.input.length < 4) {
+      showToast("أدخل الرمز المرسل إليك", "red");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        phone,
+        token: otp.input,
+        type: "phone_change",
+      });
+      if (error) throw error;
+      setOtp((o) => ({ ...o, verifiedFor: form.phone, sending: false }));
       showToast("تم تأكيد رقم الجوال");
-    } else {
-      showToast("رمز التحقق غير صحيح", "red");
+    } catch (err) {
+      showToast("رمز التحقق غير صحيح أو منتهي", "red");
     }
   }
 
@@ -499,7 +528,7 @@ export default function CarMarket() {
       trans: form.trans,
       condition: form.condition,
       description: form.description,
-      phone: form.phone,
+      phone: toE164(form.phone),
       seller_name: form.sellerName.trim() || "البائع",
       image: imageUrls[0] || null,
       images: imageUrls,
@@ -533,7 +562,16 @@ export default function CarMarket() {
       if (error) throw error;
 
       // Best effort: a failure here leaves unused files behind but the listing is gone.
-      if (paths.length) await supabase.storage.from("car-images").remove(paths);
+      if (paths.length) {
+        const { data: removed, error: rmError } = await supabase.storage
+          .from("car-images")
+          .remove(paths);
+        if (rmError) {
+          showToast("حُذف الإعلان، لكن تعذر حذف الصور: " + rmError.message, "red");
+        } else if (!removed?.length) {
+          showToast("حُذف الإعلان، لكن لم تُحذف أي صورة (تحقق من الصلاحيات)", "red");
+        }
+      }
 
       await loadListings();
       setActive(null);
@@ -908,7 +946,7 @@ export default function CarMarket() {
                   <input
                     required
                     value={form.phone}
-                    onChange={(e) => { setForm({ ...form, phone: e.target.value.replace(/[^\d+]/g, "") }); setOtp({ sent: false, code: "", input: "", verifiedFor: "" }); }}
+                    onChange={(e) => { setForm({ ...form, phone: e.target.value.replace(/[^\d+]/g, "") }); setOtp({ sent: false, code: "", input: "", verifiedFor: "", sending: false }); }}
                     placeholder="05xxxxxxxx"
                     className="cm-input cm-tabular"
                   />
@@ -925,8 +963,8 @@ export default function CarMarket() {
                   <>
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="text-xs font-bold cm-text-muted flex items-center gap-1.5"><ShieldCheck size={14} /> تأكيد رقم الجوال برمز OTP</span>
-                      <button type="button" onClick={sendOtp} className="text-xs font-bold cm-link">
-                        {otp.sent ? "إعادة إرسال الرمز" : "إرسال رمز التحقق"}
+                      <button type="button" onClick={sendOtp} disabled={otp.sending} className="text-xs font-bold cm-link">
+                        {otp.sending ? "جارِ الإرسال…" : otp.sent ? "إعادة إرسال الرمز" : "إرسال رمز التحقق"}
                       </button>
                     </div>
                     {otp.sent && (
@@ -934,7 +972,7 @@ export default function CarMarket() {
                         <input
                           value={otp.input}
                           onChange={(e) => setOtp({ ...otp, input: e.target.value.replace(/\D/g, "") })}
-                          placeholder="أدخل الرمز المكوّن من 4 أرقام"
+                          placeholder="أدخل الرمز المكوّن من 6 أرقام"
                           className="cm-input cm-tabular"
                           style={{ flex: 1 }}
                         />
@@ -942,7 +980,7 @@ export default function CarMarket() {
                       </div>
                     )}
                     <p className="text-xs cm-text-muted mt-2">
-                      وضع تجريبي: الرمز يظهر هنا مباشرة لعدم وجود مزوّد رسائل SMS مربوط بعد. عند الإطلاق الفعلي يجب ربط خدمة مثل Twilio Verify أو Firebase Phone Auth لإرسال الرمز فعليًا.
+                      سنرسل رمزًا برسالة نصية إلى رقمك للتأكد من صحته. الرقم المؤكد هو ما يظهر للمشترين.
                     </p>
                   </>
                 )}
