@@ -521,8 +521,20 @@ export default function CarMarket() {
 
   async function deleteListing(id) {
     try {
+      // Work out which files in Storage belong to this listing before the row goes.
+      const row = listings.find((l) => l.id === id);
+      const urls = (row?.images?.length ? row.images : [row?.image]).filter(Boolean);
+      const paths = urls
+        .map((u) => u.split("/car-images/")[1])
+        .filter(Boolean)
+        .map((p) => decodeURIComponent(p));
+
       const { error } = await supabase.from("listings").delete().eq("id", id);
       if (error) throw error;
+
+      // Best effort: a failure here leaves unused files behind but the listing is gone.
+      if (paths.length) await supabase.storage.from("car-images").remove(paths);
+
       await loadListings();
       setActive(null);
       showToast("تم حذف الإعلان", "muted");
