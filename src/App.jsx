@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
 // Environment variables are injected at build time by Vite from .env.local
@@ -16,6 +16,8 @@ const CONDITIONS = ["جديدة", "مستعملة"];
 const BODY_TYPES = ["سيدان", "دفع رباعي (SUV)", "بيك أب", "هاتشباك", "كوبيه", "فان", "رياضية"];
 const OTHER = "__OTHER__";
 const MAX_IMAGES = 8;
+// A listing disappears from the site once this many people report it, pending review.
+const REPORT_THRESHOLD = 3;
 
 const MODELS = {
   "تويوتا": ["كامري", "كورولا", "يارس", "راف فور", "لاند كروزر", "برادو", "هايلكس", "أفالون", "سيكويا", "فورتشنر", "هايس"],
@@ -298,7 +300,11 @@ export default function CarMarket() {
 
   async function loadListings() {
     try {
-      const { data, error } = await supabase.from("listings").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("listings")
+        .select("*")
+        .lt("reports_count", REPORT_THRESHOLD)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       setListings(data || []);
     } catch (e) {
@@ -545,6 +551,29 @@ export default function CarMarket() {
       showToast("تعذر نشر الإعلان: " + err.message, "red");
     } finally {
       setSaving(false);
+    }
+  }
+
+
+  async function reportListing(id) {
+    if (!session) { showToast("سجّل الدخول للإبلاغ", "red"); setAuthOpen(true); return; }
+    const reason = window.prompt("ما سبب الإبلاغ؟ (مثال: رقم تواصل خاطئ)");
+    if (reason === null) return;
+    try {
+      const { error } = await supabase.from("reports").insert({
+        listing_id: id,
+        reporter_id: session.user.id,
+        reason: reason.trim() || null,
+      });
+      if (error) {
+        if (error.code === "23505") { showToast("سبق أن أبلغت عن هذا الإعلان", "muted"); return; }
+        throw error;
+      }
+      showToast("تم استلام بلاغك، شكرًا لك");
+      setActive(null);
+      await loadListings();
+    } catch (err) {
+      showToast("تعذر إرسال البلاغ: " + err.message, "red");
     }
   }
 
@@ -1087,9 +1116,13 @@ export default function CarMarket() {
                       <LogIn size={15} /> سجّل الدخول لعرض الرقم
                     </button>
                   )}
-                  {session && active.seller_id === session.user.id && (
+                  {session && active.seller_id === session.user.id ? (
                     <button onClick={() => deleteListing(active.id)} title="حذف الإعلان" className="flex items-center justify-center cm-danger-outline px-3 py-2 rounded-lg">
                       <Trash2 size={15} />
+                    </button>
+                  ) : (
+                    <button onClick={() => reportListing(active.id)} title="إبلاغ عن الإعلان" className="flex items-center justify-center cm-btn-ghost px-3 py-2 rounded-lg">
+                      <Flag size={15} />
                     </button>
                   )}
                 </div>
