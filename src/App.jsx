@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
 // Environment variables are injected at build time by Vite from .env.local
@@ -12,12 +12,17 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const CITIES = ["دبي", "أبوظبي", "الشارقة", "عجمان", "رأس الخيمة", "الفجيرة", "أم القيوين", "العين"];
 const FUELS = ["بنزين", "ديزل", "هجين", "كهربائي"];
 const TRANS = ["أوتوماتيك", "مانيوال"];
+const SPECS = ["خليجي", "أمريكي", "أوروبي", "ياباني", "كندي", "أخرى"];
+const STEERING = ["يسار", "يمين"];
 const CONDITIONS = ["جديدة", "مستعملة"];
 const BODY_TYPES = ["سيدان", "دفع رباعي (SUV)", "بيك أب", "هاتشباك", "كوبيه", "فان", "رياضية"];
 const OTHER = "__OTHER__";
 const MAX_IMAGES = 8;
 // A listing disappears from the site once this many people report it, pending review.
 const REPORT_THRESHOLD = 3;
+// Twilio blocks SMS to unverified UAE numbers until the account has an approved
+// compliance profile. Until then, verification is offered but not required.
+const REQUIRE_PHONE_VERIFICATION = false;
 
 const MODELS = {
   "تويوتا": ["كامري", "كورولا", "يارس", "راف فور", "لاند كروزر", "برادو", "هايلكس", "أفالون", "سيكويا", "فورتشنر", "هايس"],
@@ -91,7 +96,24 @@ const MODELS = {
   "بولستار": ["Polestar 2", "Polestar 3", "Polestar 4"],
   "نيو": ["ET5", "ES6", "EC6"],
   "زيكر": ["001", "X"],
-  "تسلا": ["Model 3", "Model Y", "Model S", "Model X"],
+  "تسلا": ["Model 3", "Model Y", "Model S", "Model X", "Cybertruck"],
+  "جيتور": ["X70", "X90", "داشينغ", "T2", "تريفل"],
+  "إكسيد": ["TXL", "VX", "LX", "RX", "إكسلانتكس"],
+  "أومودا": ["5", "7", "C5"],
+  "جايكو": ["7", "8", "5"],
+  "تانك": ["300", "400", "500", "700"],
+  "وي": ["05", "80V"],
+  "لينك آند كو": ["01", "03", "05", "06", "09"],
+  "هونشي": ["H5", "H9", "HS5", "HS7", "E-HS9"],
+  "دونغفنغ": ["T5", "580", "AX7", "نامي"],
+  "فاو": ["بيستون T77", "بيستون T99", "T9"],
+  "لوسيد": ["إير", "غرافيتي"],
+  "ريفيان": ["R1T", "R1S"],
+  "هامر": ["H1", "H2", "H3", "EV"],
+  "ماهيندرا": ["سكوربيو", "XUV700", "ثار"],
+  "تاتا": ["نيكسون", "هارير", "سافاري"],
+  "بوغاتي": ["شيرون", "فيرون"],
+  "كوينيغسيغ": ["جيسكو", "ريجيرا"],
 };
 
 const MAKES = [...Object.keys(MODELS), "أخرى"];
@@ -285,11 +307,17 @@ export default function CarMarket() {
   const [cityFilter, setCityFilter] = useState("الكل");
   const [bodyTypeFilter, setBodyTypeFilter] = useState("الكل");
   const [maxPrice, setMaxPrice] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [specsFilter, setSpecsFilter] = useState("الكل");
+  const [favorites, setFavorites] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
   const emptyForm = {
     make: MAKES[0], makeOther: "", model: MODELS[MAKES[0]][0], modelOther: "",
     bodyType: BODY_TYPES[0], year: new Date().getFullYear(), price: "", mileage: "",
     city: CITIES[0], fuel: FUELS[0], trans: TRANS[0], condition: CONDITIONS[1],
+    specs: SPECS[0], steering: STEERING[0],
     description: "", phone: "", sellerName: "", previews: [], imageFiles: [],
   };
   const [form, setForm] = useState(emptyForm);
@@ -320,6 +348,7 @@ export default function CarMarket() {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
 
     loadListings();
+    loadFavorites();
     // Light polling so new listings from other visitors show up without a manual refresh.
     // Skips the fetch while the tab is in the background — no point loading for nobody.
     const id = setInterval(() => {
@@ -339,6 +368,7 @@ export default function CarMarket() {
   }
 
   function goAdd() {
+    setEditingId(null);
     if (!requireAuth()) { showToast("سجّل الدخول أولًا لإضافة سيارتك", "red"); return; }
     setView("add");
   }
@@ -501,7 +531,7 @@ export default function CarMarket() {
       showToast("يرجى تعبئة الماركة والموديل والسعر ورقم الجوال", "red");
       return;
     }
-    if (!phoneVerified) {
+    if (REQUIRE_PHONE_VERIFICATION && !phoneVerified) {
       showToast("يرجى تأكيد رقم الجوال عبر رمز التحقق أولًا", "red");
       return;
     }
@@ -535,25 +565,85 @@ export default function CarMarket() {
       condition: form.condition,
       description: form.description,
       phone: toE164(form.phone),
+      phone_verified: phoneVerified,
+      specs: form.specs,
+      steering: form.steering,
       seller_name: form.sellerName.trim() || "البائع",
       image: imageUrls[0] || null,
       images: imageUrls,
     };
     try {
-      const { error } = await supabase.from("listings").insert(row);
-      if (error) throw error;
+      if (editingId) {
+        // Keep the existing photos when the seller didn't pick new ones.
+        const patch = { ...row };
+        if (!imageUrls.length) { delete patch.image; delete patch.images; }
+        delete patch.seller_id;
+        const { error } = await supabase.from("listings").update(patch).eq("id", editingId);
+        if (error) throw error;
+        showToast("تم تحديث الإعلان");
+      } else {
+        const { error } = await supabase.from("listings").insert(row);
+        if (error) throw error;
+        showToast("تم نشر إعلانك بنجاح");
+      }
       await loadListings();
       setForm(emptyForm);
-      setOtp({ sent: false, code: "", input: "", verifiedFor: "" });
-      showToast("تم نشر إعلانك بنجاح");
+      setEditingId(null);
+      setOtp({ sent: false, code: "", input: "", verifiedFor: "", sending: false });
       setView("browse");
     } catch (err) {
-      showToast("تعذر نشر الإعلان: " + err.message, "red");
+      showToast((editingId ? "تعذر تحديث الإعلان: " : "تعذر نشر الإعلان: ") + err.message, "red");
     } finally {
       setSaving(false);
     }
   }
 
+
+
+  async function loadFavorites() {
+    const { data: s } = await supabase.auth.getSession();
+    if (!s.session) { setFavorites([]); return; }
+    const { data } = await supabase.from("favorites").select("listing_id");
+    setFavorites((data || []).map((r) => r.listing_id));
+  }
+
+  async function toggleFavorite(id) {
+    if (!session) { showToast("سجّل الدخول لحفظ المفضلة", "red"); setAuthOpen(true); return; }
+    const isFav = favorites.includes(id);
+    setFavorites((f) => (isFav ? f.filter((x) => x !== id) : [...f, id]));
+    try {
+      if (isFav) {
+        await supabase.from("favorites").delete().eq("listing_id", id).eq("user_id", session.user.id);
+      } else {
+        await supabase.from("favorites").insert({ listing_id: id, user_id: session.user.id });
+      }
+    } catch {
+      loadFavorites();
+      showToast("تعذر تحديث المفضلة", "red");
+    }
+  }
+
+  // Loads an existing listing back into the form for editing.
+  function startEdit(l) {
+    const known = MODELS[l.make];
+    setForm({
+      make: known ? l.make : OTHER,
+      makeOther: known ? "" : l.make,
+      model: known?.includes(l.model) ? l.model : OTHER,
+      modelOther: known?.includes(l.model) ? "" : l.model,
+      bodyType: l.body_type || BODY_TYPES[0],
+      year: l.year, price: String(l.price), mileage: String(l.mileage || ""),
+      city: l.city || CITIES[0], fuel: l.fuel || FUELS[0], trans: l.trans || TRANS[0],
+      condition: l.condition || CONDITIONS[1],
+      specs: l.specs || SPECS[0], steering: l.steering || STEERING[0],
+      description: l.description || "", phone: l.phone || "", sellerName: l.seller_name || "",
+      previews: (l.images?.length ? l.images : [l.image]).filter(Boolean),
+      imageFiles: [],
+    });
+    setEditingId(l.id);
+    setActive(null);
+    setView("add");
+  }
 
   async function reportListing(id) {
     if (!session) { showToast("سجّل الدخول للإبلاغ", "red"); setAuthOpen(true); return; }
@@ -612,19 +702,30 @@ export default function CarMarket() {
 
 
   const filtered = useMemo(() => {
-    return listings.filter((l) => {
+    const rows = listings.filter((l) => {
       const text = `${l.make} ${l.model}`.toLowerCase();
       if (q && !text.includes(q.toLowerCase())) return false;
       if (makeFilter !== "الكل" && l.make !== makeFilter) return false;
       if (cityFilter !== "الكل" && l.city !== cityFilter) return false;
       if (bodyTypeFilter !== "الكل" && l.body_type !== bodyTypeFilter) return false;
       if (maxPrice && l.price > Number(maxPrice)) return false;
+      if (minPrice && l.price < Number(minPrice)) return false;
+      if (specsFilter !== "الكل" && l.specs !== specsFilter) return false;
       return true;
     });
-  }, [listings, q, makeFilter, cityFilter, bodyTypeFilter, maxPrice]);
 
-  const clearFilters = () => { setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setQ(""); };
-  const filtersActive = makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || q;
+    const sorters = {
+      newest: (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+      priceAsc: (a, b) => a.price - b.price,
+      priceDesc: (a, b) => b.price - a.price,
+      yearDesc: (a, b) => b.year - a.year,
+      kmAsc: (a, b) => (a.mileage || 0) - (b.mileage || 0),
+    };
+    return rows.sort(sorters[sortBy] || sorters.newest);
+  }, [listings, q, makeFilter, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter]);
+
+  const clearFilters = () => { setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setQ(""); };
+  const filtersActive = makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || q;
   const modelOptions = MODELS[form.make];
 
   return (
@@ -652,6 +753,22 @@ export default function CarMarket() {
             >
               <Search size={15} /> <span className="hidden sm:inline">تصفح وابحث</span>
             </button>
+            {session && (
+              <button
+                onClick={() => setView("mine")}
+                className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "mine" ? "cm-navbtn-active" : ""}`}
+              >
+                <Store size={15} /> <span className="hidden sm:inline">إعلاناتي</span>
+              </button>
+            )}
+            {session && (
+              <button
+                onClick={() => setView("saved")}
+                className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "saved" ? "cm-navbtn-active" : ""}`}
+              >
+                <Heart size={15} /> <span className="hidden sm:inline">المفضلة</span>
+              </button>
+            )}
             <button
               onClick={goAdd}
               className={`flex items-center gap-1.5 font-bold text-sm px-3.5 py-2 rounded-lg transition ${view === "add" ? "cm-btn-primary" : "cm-btn-ghost"}`}
@@ -728,7 +845,7 @@ export default function CarMarket() {
                 <button onClick={() => setView("browse")} className="text-xs cm-text-accent font-bold">عرض الكل</button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {listings.slice(0, 4).map((l) => (
+                {listings.slice(0, 8).map((l) => (
                   <button key={l.id} onClick={() => { setActive(l); setPhotoIdx(0); setView("browse"); }} className="text-right cm-card rounded-xl overflow-hidden transition">
                     <div className="cm-aspect-4-3 cm-media flex items-center justify-center">
                       {(l.image || l.images?.[0]) ? <img src={l.image || l.images[0]} className="w-full h-full object-cover" alt="" /> : <Car size={26} className="cm-icon-empty" />}
@@ -746,6 +863,67 @@ export default function CarMarket() {
       )}
 
       {/* BUYER / BROWSE PAGE */}
+      {(view === "mine" || view === "saved") && (
+        <main className="max-w-6xl mx-auto px-4 py-6">
+          {(() => {
+            const rows = view === "mine"
+              ? listings.filter((l) => session && l.seller_id === session.user.id)
+              : listings.filter((l) => favorites.includes(l.id));
+            return (
+              <>
+                <div className="rounded-2xl cm-card p-5 sm:p-6 mb-6">
+                  <h1 className="cm-display font-extrabold text-xl sm:text-2xl mb-1">
+                    {view === "mine" ? "إعلاناتي" : "المفضلة"}
+                  </h1>
+                  <p className="cm-text-muted text-sm">{rows.length} إعلان</p>
+                </div>
+
+                {rows.length === 0 ? (
+                  <div className="text-center py-20 rounded-2xl cm-card">
+                    <Car size={40} className="cm-icon-empty mx-auto mb-3" />
+                    <p className="cm-text-muted text-sm mb-4">
+                      {view === "mine" ? "لم تنشر أي إعلان بعد." : "لم تضف أي إعلان إلى المفضلة بعد."}
+                    </p>
+                    <button onClick={() => setView(view === "mine" ? "add" : "browse")} className="cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
+                      {view === "mine" ? "أضف سيارتك" : "تصفح السيارات"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {rows.map((l) => (
+                      <div key={l.id} className="cm-card rounded-xl overflow-hidden">
+                        <button onClick={() => { setActive(l); setPhotoIdx(0); }} className="w-full text-right">
+                          <div className="cm-aspect-4-3 cm-media flex items-center justify-center">
+                            {(l.image || l.images?.[0])
+                              ? <img src={l.image || l.images[0]} className="w-full h-full object-cover" alt="" />
+                              : <Car size={26} className="cm-icon-empty" />}
+                          </div>
+                          <div className="p-3">
+                            <p className="text-sm font-bold truncate">{l.make} {l.model}</p>
+                            <p className="text-xs cm-text-muted mt-0.5">{l.year} · {formatNumber(l.mileage)} كم · {l.city}</p>
+                            <p className="text-sm cm-text-accent font-bold cm-tabular mt-1">{formatNumber(l.price)} د.إ</p>
+                          </div>
+                        </button>
+                        {view === "mine" && (
+                          <div className="flex gap-2 px-3 pb-3">
+                            <button onClick={() => startEdit(l)} className="flex-1 flex items-center justify-center gap-1.5 cm-btn-ghost text-xs font-bold py-2 rounded-lg">
+                              <Pencil size={13} /> تعديل
+                            </button>
+                            <button onClick={() => deleteListing(l.id)} className="flex items-center justify-center cm-danger-outline px-3 py-2 rounded-lg">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </main>
+      )}
+
       {view === "browse" && (
         <main className="max-w-6xl mx-auto px-4 py-6 relative">
           <div className="relative overflow-hidden rounded-2xl cm-card p-5 sm:p-6 mb-6">
@@ -777,12 +955,30 @@ export default function CarMarket() {
                 {CITIES.map((c) => <option key={c}>{c}</option>)}
               </select>
               <input
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value.replace(/\D/g, ""))}
+                placeholder="السعر من (د.إ)"
+                className="cm-input cm-tabular"
+                style={{ width: "8rem" }}
+              />
+              <input
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value.replace(/\D/g, ""))}
-                placeholder="السعر الأقصى (د.إ)"
+                placeholder="السعر إلى (د.إ)"
                 className="cm-input cm-tabular"
-                style={{ width: "9rem" }}
+                style={{ width: "8rem" }}
               />
+              <select value={specsFilter} onChange={(e) => setSpecsFilter(e.target.value)} className="cm-input" style={{ width: "auto" }}>
+                <option>الكل</option>
+                {SPECS.map((x) => <option key={x}>{x}</option>)}
+              </select>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="cm-input" style={{ width: "auto" }}>
+                <option value="newest">الأحدث</option>
+                <option value="priceAsc">الأقل سعرًا</option>
+                <option value="priceDesc">الأعلى سعرًا</option>
+                <option value="yearDesc">الأحدث موديلًا</option>
+                <option value="kmAsc">الأقل ممشى</option>
+              </select>
               {filtersActive && (
                 <button onClick={clearFilters} className="text-xs cm-link">مسح الفلاتر</button>
               )}
@@ -807,6 +1003,11 @@ export default function CarMarket() {
               {filtered.map((l) => (
                 <button key={l.id} onClick={() => { setActive(l); setPhotoIdx(0); }} className="text-right cm-card rounded-xl overflow-hidden transition group">
                   <div className="cm-aspect-16-10 cm-media flex items-center justify-center overflow-hidden">
+                    {l.images?.length > 1 && (
+                      <span className="absolute top-2 right-2 z-10 bg-black/60 text-white text-[10px] rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
+                        <ImagePlus size={10} /> {l.images.length}
+                      </span>
+                    )}
                     {(l.image || l.images?.[0]) ? (
                       <img src={l.image || l.images[0]} alt={l.model} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                     ) : (
@@ -953,6 +1154,16 @@ export default function CarMarket() {
                 <Field label="السعر (د.إ)">
                   <input required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value.replace(/\D/g, "") })} placeholder="85000" className="cm-input cm-tabular" />
                 </Field>
+                <Field label="المواصفات">
+                  <select value={form.specs} onChange={(e) => setForm({ ...form, specs: e.target.value })} className="cm-input">
+                    {SPECS.map((x) => <option key={x}>{x}</option>)}
+                  </select>
+                </Field>
+                <Field label="جهة المقود">
+                  <select value={form.steering} onChange={(e) => setForm({ ...form, steering: e.target.value })} className="cm-input">
+                    {STEERING.map((x) => <option key={x}>{x}</option>)}
+                  </select>
+                </Field>
                 <Field label="الممشى (كم)">
                   <input value={form.mileage} onChange={(e) => setForm({ ...form, mileage: e.target.value.replace(/\D/g, "") })} placeholder="45000" className="cm-input cm-tabular" />
                 </Field>
@@ -1009,7 +1220,7 @@ export default function CarMarket() {
                       </div>
                     )}
                     <p className="text-xs cm-text-muted mt-2">
-                      سنرسل رمزًا برسالة نصية إلى رقمك للتأكد من صحته. الرقم المؤكد هو ما يظهر للمشترين.
+                      تأكيد الرقم اختياري حاليًا ويمنح إعلانك شارة "رقم موثّق" تزيد ثقة المشترين.
                     </p>
                   </>
                 )}
@@ -1096,7 +1307,14 @@ export default function CarMarket() {
 
               <div className="cm-divider flex items-center justify-between pt-4 gap-2">
                 <div>
-                  <p className="text-xs cm-text-muted">{sellerLabel(active.seller_name)}</p>
+                  <p className="text-xs cm-text-muted flex items-center gap-1">
+                    {sellerLabel(active.seller_name)}
+                    {active.phone_verified && (
+                      <span className="inline-flex items-center gap-0.5 cm-text-mint" title="تم تأكيد رقم البائع">
+                        <BadgeCheck size={12} /> رقم موثّق
+                      </span>
+                    )}
+                  </p>
                   {session ? (
                     <p className="text-sm font-bold cm-tabular">{active.phone}</p>
                   ) : (
@@ -1125,6 +1343,13 @@ export default function CarMarket() {
                       <Flag size={15} />
                     </button>
                   )}
+                  <button
+                    onClick={() => toggleFavorite(active.id)}
+                    title={favorites.includes(active.id) ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
+                    className="flex items-center justify-center cm-btn-ghost px-3 py-2 rounded-lg"
+                  >
+                    <Heart size={15} className={favorites.includes(active.id) ? "cm-text-accent" : ""} />
+                  </button>
                 </div>
               </div>
             </div>
