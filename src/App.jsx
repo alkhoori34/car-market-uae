@@ -12,7 +12,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const CITIES = ["دبي", "أبوظبي", "الشارقة", "عجمان", "رأس الخيمة", "الفجيرة", "أم القيوين", "العين"];
 const FUELS = ["بنزين", "ديزل", "هجين", "كهربائي"];
 const TRANS = ["أوتوماتيك", "مانيوال"];
-const SPECS = ["خليجي", "أمريكي", "أوروبي", "ياباني", "كندي", "أخرى"];
+const SPECS = ["خليجي", "أمريكي", "أوروبي", "ياباني", "كندي", "صيني", "كوري", "أخرى"];
 const STEERING = ["يسار", "يمين"];
 const CONDITIONS = ["جديدة", "مستعملة"];
 const BODY_TYPES = ["سيدان", "دفع رباعي (SUV)", "بيك أب", "هاتشباك", "كوبيه", "فان", "رياضية"];
@@ -114,6 +114,52 @@ const MODELS = {
   "تاتا": ["نيكسون", "هارير", "سافاري"],
   "بوغاتي": ["شيرون", "فيرون"],
   "كوينيغسيغ": ["جيسكو", "ريجيرا"],
+  "روكس": ["01", "أداماس"],
+  "شاومي": ["SU7", "YU7"],
+  "لي أوتو": ["L7", "L8", "L9", "ميغا"],
+  "أفاتر": ["11", "12"],
+  "إكس بينغ": ["G6", "G9", "P7"],
+  "دينزا": ["D9", "N7", "Z9"],
+  "فوياه": ["فري", "دريم", "باشن"],
+  "ليب موتور": ["C10", "C11", "T03"],
+  "ديبال": ["S05", "S07", "L07"],
+  "سكاي ويل": ["ET5"],
+  "أيتو": ["M5", "M7", "M9"],
+  "سيريس": ["3", "5"],
+  "يانغ وانغ": ["U8", "U9"],
+  "إم هيرو": ["917"],
+  "باو": ["212"],
+  "إنيوس": ["غرينادير"],
+  "بيستون": ["T77", "T99", "B70"],
+  "جي دبليو إم": ["بوير", "وينغل"],
+  "سوي إيست": ["S06", "S07"],
+  "كايي": ["X3", "X7"],
+  "ماكسوس": ["T60", "D90", "G50"],
+  "آركفوكس": ["ألفا S", "ألفا T"],
+  "رووي": ["RX5", "i5"],
+  "فورثينغ": ["T5", "U-Tour"],
+  "دي إف إس كيه": ["غلوري 500", "غلوري 580"],
+  "فينغون": ["ix5", "ix7"],
+  "كاري": ["يويا"],
+  "ريدارا": ["RD6"],
+  "سايك": ["MG RX5"],
+  "أيون": ["Y", "S", "V"],
+  "بريليانس": ["V5", "H330"],
+  "أبارث": ["595", "695", "500e"],
+  "برابوس": ["G800", "700", "900"],
+  "شيلبي": ["GT500", "كوبرا"],
+  "مرسيدس مايباخ": ["S580", "GLS600"],
+  "بي إم دبليو ألبينا": ["B7", "XB7", "B8"],
+  "فيكتوري": ["VS"],
+  "سبروس": ["S3"],
+  "هينو": ["300", "500", "700"],
+  "فوسو": ["كانتر", "فايتر"],
+  "إيفيكو": ["دايلي", "ستراليس"],
+  "أشوك ليلاند": ["دوست", "بارتنر"],
+  "كاترهام": ["سفن"],
+  "كان-آم": ["مافريك", "أوتلاندر"],
+  "فورس": ["غوركا", "ترافلر"],
+  "زد إكس أوتو": ["تيرالورد", "غراند تايغر"],
 };
 
 const MAKES = [...Object.keys(MODELS), "أخرى"];
@@ -946,10 +992,9 @@ export default function CarMarket() {
                 <option>الكل</option>
                 {BODY_TYPES.map((t) => <option key={t}>{t}</option>)}
               </select>
-              <select value={makeFilter} onChange={(e) => setMakeFilter(e.target.value)} className="cm-input" style={{ width: "auto" }}>
-                <option>الكل</option>
-                {MAKES.map((m) => <option key={m}>{m}</option>)}
-              </select>
+              <div style={{ width: "10rem" }}>
+                <ComboBox value={makeFilter} options={["الكل", ...MAKES]} onChange={setMakeFilter} placeholder="الماركة" />
+              </div>
               <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="cm-input" style={{ width: "auto" }}>
                 <option>الكل</option>
                 {CITIES.map((c) => <option key={c}>{c}</option>)}
@@ -1105,17 +1150,17 @@ export default function CarMarket() {
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="الماركة">
-                  <select value={form.make} onChange={(e) => onMakeChange(e.target.value)} className="cm-input">
-                    {MAKES.map((m) => <option key={m}>{m}</option>)}
-                  </select>
+                  <ComboBox value={form.make} options={MAKES} onChange={onMakeChange} placeholder="ابحث عن الماركة…" />
                 </Field>
 
                 <Field label="الموديل">
                   {modelOptions ? (
-                    <select value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} className="cm-input">
-                      {modelOptions.map((m) => <option key={m}>{m}</option>)}
-                      <option value={OTHER}>موديل آخر (اكتب يدويًا)</option>
-                    </select>
+                    <ComboBox
+                      value={form.model === OTHER ? "موديل آخر" : form.model}
+                      options={[...modelOptions, "موديل آخر"]}
+                      onChange={(v) => setForm({ ...form, model: v === "موديل آخر" ? OTHER : v })}
+                      placeholder="ابحث عن الموديل…"
+                    />
                   ) : (
                     <input required value={form.modelOther} onChange={(e) => setForm({ ...form, modelOther: e.target.value })} placeholder="اكتب اسم الموديل" className="cm-input" />
                   )}
@@ -1384,6 +1429,46 @@ export default function CarMarket() {
               </button>
             </p>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// A text field that filters a long option list as you type, so a 135-item make
+// list stays usable on a phone. Falls back to free text when nothing matches.
+function ComboBox({ value, options, onChange, placeholder }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options.slice(0, 40);
+    return options.filter((o) => o.toLowerCase().includes(q)).slice(0, 40);
+  }, [query, options]);
+
+  return (
+    <div className="relative">
+      <input
+        value={open ? query : value}
+        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+        onFocus={() => { setQuery(""); setOpen(true); }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        className="cm-input"
+      />
+      {open && matches.length > 0 && (
+        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-lg cm-card shadow-lg">
+          {matches.map((o) => (
+            <button
+              key={o}
+              type="button"
+              onMouseDown={() => { onChange(o); setOpen(false); }}
+              className="w-full text-right px-3 py-2 text-sm hover:bg-white/5 transition"
+            >
+              {o}
+            </button>
+          ))}
         </div>
       )}
     </div>
