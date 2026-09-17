@@ -470,7 +470,7 @@ export default function CarMarket() {
     }
   }
 
-  const phoneVerified = otp.verifiedFor && otp.verifiedFor === form.phone;
+  const phoneVerified = Boolean(otp.verifiedFor) && otp.verifiedFor === form.phone;
 
   async function handleImage(e) {
     const files = Array.from(e.target.files || []);
