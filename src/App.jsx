@@ -1193,39 +1193,6 @@ export default function CarMarket() {
                 </Field>
               </div>
 
-              {/* Phone OTP verification (demo — see note below the button) */}
-              <div className="cm-spec p-3">
-                {phoneVerified ? (
-                  <div className="flex items-center gap-2 cm-text-mint text-sm font-bold">
-                    <CheckCircle2 size={16} /> تم تأكيد رقم الجوال
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-xs font-bold cm-text-muted flex items-center gap-1.5"><ShieldCheck size={14} /> تأكيد رقم الجوال برمز OTP</span>
-                      <button type="button" onClick={sendOtp} disabled={otp.sending} className="text-xs font-bold cm-link">
-                        {otp.sending ? "جارِ الإرسال…" : otp.sent ? "إعادة إرسال الرمز" : "إرسال رمز التحقق"}
-                      </button>
-                    </div>
-                    {otp.sent && (
-                      <div className="flex items-center gap-2">
-                        <input
-                          value={otp.input}
-                          onChange={(e) => setOtp({ ...otp, input: e.target.value.replace(/\D/g, "") })}
-                          placeholder="أدخل الرمز المكوّن من 6 أرقام"
-                          className="cm-input cm-tabular"
-                          style={{ flex: 1 }}
-                        />
-                        <button type="button" onClick={confirmOtp} className="cm-btn-primary text-xs font-bold px-3 py-2 rounded-lg shrink-0">تأكيد</button>
-                      </div>
-                    )}
-                    <p className="text-xs cm-text-muted mt-2">
-                      تأكيد الرقم اختياري حاليًا ويمنح إعلانك شارة "رقم موثّق" تزيد ثقة المشترين.
-                    </p>
-                  </>
-                )}
-              </div>
-
               <Field label="اسم البائع (اختياري)">
                 <input value={form.sellerName} onChange={(e) => setForm({ ...form, sellerName: e.target.value })} placeholder="اسمك" className="cm-input" />
               </Field>
