@@ -860,6 +860,25 @@ export default function CarMarket() {
             </p>
           </div>
 
+          <form
+            onSubmit={(e) => { e.preventDefault(); setView("browse"); }}
+            className="flex gap-2 mb-6"
+          >
+            <div className="relative flex-1">
+              <Search size={18} className="absolute top-1/2 -translate-y-1/2 right-3 cm-text-muted" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="ابحث عن ماركة أو موديل… مثال: تويوتا كامري"
+                className="cm-input"
+                style={{ paddingRight: "2.5rem" }}
+              />
+            </div>
+            <button type="submit" className="cm-btn-primary font-bold text-sm px-6 rounded-lg whitespace-nowrap">
+              بحث
+            </button>
+          </form>
+
           <div className="grid sm:grid-cols-2 gap-5">
             <button onClick={() => setView("browse")} className="text-right cm-card rounded-2xl p-6 transition group">
               <div className="w-12 h-12 rounded-xl cm-icon-tile-blue flex items-center justify-center mb-4">
@@ -890,7 +909,12 @@ export default function CarMarket() {
                 <p className="cm-display font-bold text-sm cm-text-muted">أحدث الإعلانات</p>
                 <button onClick={() => setView("browse")} className="text-xs cm-text-accent font-bold">عرض الكل</button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className={`grid gap-3 ${
+                listings.length === 1 ? "grid-cols-1 sm:grid-cols-2"
+                : listings.length === 2 ? "grid-cols-2"
+                : listings.length === 3 ? "grid-cols-2 sm:grid-cols-3"
+                : "grid-cols-2 sm:grid-cols-4"
+              }`}>
                 {listings.slice(0, 8).map((l) => (
                   <button key={l.id} onClick={() => { setActive(l); setPhotoIdx(0); setView("browse"); }} className="text-right cm-card rounded-xl overflow-hidden transition">
                     <div className="cm-aspect-4-3 cm-media flex items-center justify-center">
