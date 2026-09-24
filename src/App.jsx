@@ -358,6 +358,7 @@ export default function CarMarket() {
   const [specsFilter, setSpecsFilter] = useState("الكل");
   const [favorites, setFavorites] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const emptyForm = {
     make: MAKES[0], makeOther: "", model: MODELS[MAKES[0]][0], modelOther: "",
@@ -428,8 +429,8 @@ export default function CarMarket() {
   // browsers show, and what someone sees in their history.
   useEffect(() => {
     document.title = active
-      ? `${active.make} ${active.model} ${active.year} — ${formatNumber(active.price)} د.إ | مزآب`
-      : "مزآب — سوق السيارات في الإمارات";
+      ? `${active.make} ${active.model} ${active.year} — ${formatNumber(active.price)} د.إ | مرآب`
+      : "مرآب — سوق السيارات في الإمارات";
   }, [active]);
 
   function showToast(msg, tone = "mint") {
@@ -604,6 +605,11 @@ export default function CarMarket() {
     const finalModel = form.model === OTHER ? form.modelOther.trim() : form.model;
     if (!finalMake || !finalModel || !form.price || !form.phone) {
       showToast("يرجى تعبئة الماركة والموديل والسعر ورقم الجوال", "red");
+      return;
+    }
+    const priceNum = Number(form.price);
+    if (priceNum < 1000 || priceNum > 5000000) {
+      showToast("يجب أن يكون السعر بين 1,000 و5,000,000 د.إ", "red");
       return;
     }
     if (REQUIRE_PHONE_VERIFICATION && !phoneVerified) {
@@ -883,11 +889,25 @@ export default function CarMarket() {
               <span className="hidden sm:inline">أضف سيارتك</span>
             </button>
             {session ? (
-              <button onClick={handleLogout} title={session.user.email} className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-3 py-2 rounded-lg transition">
-                <User size={15} className="cm-text-accent" />
-                <span className="hidden md:inline text-xs cm-text-muted" style={{ maxWidth: "8rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{session.user.email}</span>
-                <LogOut size={15} />
-              </button>
+              <div className="relative">
+                <button onClick={() => setMenuOpen((o) => !o)} className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-3 py-2 rounded-lg transition">
+                  <User size={15} className="cm-text-accent" />
+                  <span className="hidden md:inline text-xs" style={{ maxWidth: "8rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {session.user.user_metadata?.full_name || session.user.email.split("@")[0]}
+                  </span>
+                </button>
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                    <div className="absolute left-0 mt-2 w-56 cm-card-solid rounded-xl shadow-xl p-2 z-50">
+                      <p className="text-xs cm-text-muted px-2 py-1.5 truncate">{session.user.email}</p>
+                      <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2 rounded-lg hover:bg-white/5">
+                        <LogOut size={15} /> تسجيل الخروج
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             ) : (
               <button onClick={() => setAuthOpen(true)} className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-3 py-2 rounded-lg transition">
                 <LogIn size={15} />
@@ -981,6 +1001,7 @@ export default function CarMarket() {
                     </div>
                     <div className="p-2">
                       <p className="text-xs font-bold truncate">{l.make} {l.model}</p>
+                      <p className="text-[11px] cm-text-muted mt-0.5 truncate">{l.year} · {formatNumber(l.mileage)} كم · {l.city}</p>
                       <p className="text-xs cm-text-accent font-bold cm-tabular mt-0.5">{formatNumber(l.price)} د.إ</p>
                     </div>
                   </button>
@@ -1439,7 +1460,7 @@ export default function CarMarket() {
                     </button>
                   )}
                   <a
-                    href={`https://wa.me/${toE164(active.phone).replace("+", "")}?text=${encodeURIComponent(`مرحبًا، أنا مهتم بـ ${active.make} ${active.model} ${active.year} المعروضة على مزآب: ${listingUrl(active.id)}`)}`}
+                    href={`https://wa.me/${toE164(active.phone).replace("+", "")}?text=${encodeURIComponent(`مرحبًا، أنا مهتم بـ ${active.make} ${active.model} ${active.year} المعروضة على مرآب: ${listingUrl(active.id)}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="مراسلة البائع على واتساب"
