@@ -910,8 +910,7 @@ export default function CarMarket() {
                 <button onClick={() => setView("browse")} className="text-xs cm-text-accent font-bold">عرض الكل</button>
               </div>
               <div className={`grid gap-3 ${
-                listings.length === 1 ? "grid-cols-1 sm:grid-cols-2"
-                : listings.length === 2 ? "grid-cols-2"
+                listings.length <= 2 ? "grid-cols-2"
                 : listings.length === 3 ? "grid-cols-2 sm:grid-cols-3"
                 : "grid-cols-2 sm:grid-cols-4"
               }`}>
