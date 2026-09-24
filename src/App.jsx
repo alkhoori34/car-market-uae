@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
 // Environment variables are injected at build time by Vite from .env.local
@@ -403,6 +403,35 @@ export default function CarMarket() {
     return () => { clearInterval(id); listener.subscription.unsubscribe(); };
   }, []);
 
+
+  // Deep links: #/car/<id> opens that listing directly, including on a fresh visit.
+  useEffect(() => {
+    function applyHash() {
+      const match = window.location.hash.match(/^#\/car\/(.+)$/);
+      if (!match) { setActive(null); return; }
+      const found = listings.find((l) => l.id === match[1]);
+      if (found) { setActive(found); setPhotoIdx(0); return; }
+      // Not in the loaded set (reports-hidden or a direct visit mid-load): fetch it.
+      supabase.from("listings").select("*").eq("id", match[1]).maybeSingle()
+        .then(({ data }) => { if (data) { setActive(data); setPhotoIdx(0); } });
+    }
+    applyHash();
+    window.addEventListener("popstate", applyHash);
+    window.addEventListener("hashchange", applyHash);
+    return () => {
+      window.removeEventListener("popstate", applyHash);
+      window.removeEventListener("hashchange", applyHash);
+    };
+  }, [listings]);
+
+  // Keep the tab title useful when a listing is open — it's what WhatsApp and
+  // browsers show, and what someone sees in their history.
+  useEffect(() => {
+    document.title = active
+      ? `${active.make} ${active.model} ${active.year} — ${formatNumber(active.price)} د.إ | مزآب`
+      : "مزآب — سوق السيارات في الإمارات";
+  }, [active]);
+
   function showToast(msg, tone = "mint") {
     setToast({ msg, tone });
     setTimeout(() => setToast(null), 2600);
@@ -645,6 +674,37 @@ export default function CarMarket() {
   }
 
 
+
+
+  // Opening a listing puts its id in the URL so the page can be shared or bookmarked.
+  function openListing(l) {
+    setActive(l);
+    setPhotoIdx(0);
+    window.history.pushState({}, "", `#/car/${l.id}`);
+  }
+
+  function closeListing() {
+    setActive(null);
+    window.history.pushState({}, "", window.location.pathname);
+  }
+
+  function listingUrl(id) {
+    return `${window.location.origin}${window.location.pathname}#/car/${id}`;
+  }
+
+  async function shareListing(l) {
+    const url = listingUrl(l.id);
+    const title = `${l.make} ${l.model} ${l.year} — ${formatNumber(l.price)} د.إ`;
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); return; } catch { /* user cancelled */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("تم نسخ رابط الإعلان");
+    } catch {
+      showToast("تعذر نسخ الرابط", "red");
+    }
+  }
 
   async function loadFavorites() {
     const { data: s } = await supabase.auth.getSession();
@@ -915,7 +975,7 @@ export default function CarMarket() {
                 : "grid-cols-2 sm:grid-cols-4"
               }`}>
                 {listings.slice(0, 8).map((l) => (
-                  <button key={l.id} onClick={() => { setActive(l); setPhotoIdx(0); setView("browse"); }} className="text-right cm-card rounded-xl overflow-hidden transition">
+                  <button key={l.id} onClick={() => { setView("browse"); openListing(l); }} className="text-right cm-card rounded-xl overflow-hidden transition">
                     <div className="cm-aspect-4-3 cm-media flex items-center justify-center">
                       {(l.image || l.images?.[0]) ? <img src={l.image || l.images[0]} className="w-full h-full object-cover" alt="" /> : <Car size={26} className="cm-icon-empty" />}
                     </div>
@@ -961,7 +1021,7 @@ export default function CarMarket() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rows.map((l) => (
                       <div key={l.id} className="cm-card rounded-xl overflow-hidden">
-                        <button onClick={() => { setActive(l); setPhotoIdx(0); }} className="w-full text-right">
+                        <button onClick={() => openListing(l)} className="w-full text-right">
                           <div className="cm-aspect-4-3 cm-media flex items-center justify-center">
                             {(l.image || l.images?.[0])
                               ? <img src={l.image || l.images[0]} className="w-full h-full object-cover" alt="" />
@@ -1069,7 +1129,7 @@ export default function CarMarket() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((l) => (
-                <button key={l.id} onClick={() => { setActive(l); setPhotoIdx(0); }} className="text-right cm-card rounded-xl overflow-hidden transition group">
+                <button key={l.id} onClick={() => openListing(l)} className="text-right cm-card rounded-xl overflow-hidden transition group">
                   <div className="cm-aspect-16-10 cm-media flex items-center justify-center overflow-hidden">
                     {l.images?.length > 1 && (
                       <span className="absolute top-2 right-2 z-10 bg-black/60 text-white text-[10px] rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
@@ -1280,7 +1340,7 @@ export default function CarMarket() {
 
       {/* Detail modal */}
       {active && (
-        <div className="cm-modal-backdrop flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setActive(null)}>
+        <div className="cm-modal-backdrop flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={closeListing}>
           <div onClick={(e) => e.stopPropagation()} className="cm-card-solid rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg overflow-y-auto cm-scroll" style={{ maxHeight: "92vh" }}>
             <div className="cm-aspect-16-9 cm-media flex items-center justify-center relative">
               {(() => {
@@ -1311,7 +1371,7 @@ export default function CarMarket() {
                   </>
                 );
               })()}
-              <button onClick={() => setActive(null)} className="absolute top-3 left-3 bg-black/50 hover:bg-black/70 rounded-full p-1.5 text-white">
+              <button onClick={closeListing} className="absolute top-3 left-3 bg-black/50 hover:bg-black/70 rounded-full p-1.5 text-white">
                 <X size={18} />
               </button>
             </div>
@@ -1378,6 +1438,22 @@ export default function CarMarket() {
                       <Flag size={15} />
                     </button>
                   )}
+                  <a
+                    href={`https://wa.me/${toE164(active.phone).replace("+", "")}?text=${encodeURIComponent(`مرحبًا، أنا مهتم بـ ${active.make} ${active.model} ${active.year} المعروضة على مزآب: ${listingUrl(active.id)}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="مراسلة البائع على واتساب"
+                    className="flex items-center justify-center cm-btn-ghost px-3 py-2 rounded-lg"
+                  >
+                    <MessageCircle size={15} />
+                  </a>
+                  <button
+                    onClick={() => shareListing(active)}
+                    title="مشاركة الإعلان"
+                    className="flex items-center justify-center cm-btn-ghost px-3 py-2 rounded-lg"
+                  >
+                    <Share2 size={15} />
+                  </button>
                   <button
                     onClick={() => toggleFavorite(active.id)}
                     title={favorites.includes(active.id) ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
