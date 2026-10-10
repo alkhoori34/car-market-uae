@@ -76,3 +76,43 @@
 .cm-aspect-4-3 { aspect-ratio:4/3; }
 
 .cm-tabular { font-variant-numeric:tabular-nums; }
+
+/* Red badge for price cuts */
+.cm-badge-red { background:rgba(255,93,115,0.16); color:#FF8595; border-color:rgba(255,93,115,0.35); }
+
+/* Small labels on listing photos and cards */
+.cm-tag { display:inline-flex; align-items:center; font-size:10.5px; font-weight:700; padding:3px 7px; border-radius:6px; white-space:nowrap; line-height:1.2; }
+.cm-tag-mint { background:#22D3A9; color:#0A0E17; }
+.cm-tag-red { background:#FF5D73; color:#fff; }
+.cm-tag-dark { background:rgba(0,0,0,0.6); color:#fff; }
+.cm-tag-blue { background:rgba(91,141,255,0.16); color:#8FADFF; border:1px solid rgba(91,141,255,0.32); }
+.cm-heart-on { color:#FF5D73; fill:#FF5D73; }
+
+/* Quick filter chips */
+.cm-chip-row { scrollbar-width:none; }
+.cm-chip-row::-webkit-scrollbar { display:none; }
+.cm-chip { display:inline-flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap; font-size:12.5px; font-weight:700; padding:6px 12px; border-radius:9999px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#C9CFDD; transition:border-color .15s, background .15s; }
+.cm-chip:hover { border-color:rgba(91,141,255,0.45); color:#EEF1F8; }
+.cm-chip-active { background:rgba(91,141,255,0.18); border-color:rgba(91,141,255,0.55); color:#8FADFF; }
+.cm-chip-count { font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:9999px; background:rgba(255,255,255,0.08); color:#8A93AB; }
+.cm-chip-active .cm-chip-count { background:rgba(91,141,255,0.25); color:#C5D5FF; }
+
+/* Red badge for price cuts */
+.cm-badge-red { background:rgba(255,93,115,0.16); color:#FF8595; border-color:rgba(255,93,115,0.35); }
+
+/* Small labels on listing photos and cards */
+.cm-tag { display:inline-flex; align-items:center; font-size:10.5px; font-weight:700; padding:3px 7px; border-radius:6px; white-space:nowrap; line-height:1.2; }
+.cm-tag-mint { background:#22D3A9; color:#0A0E17; }
+.cm-tag-red { background:#FF5D73; color:#fff; }
+.cm-tag-dark { background:rgba(0,0,0,0.6); color:#fff; }
+.cm-tag-blue { background:rgba(91,141,255,0.16); color:#8FADFF; border:1px solid rgba(91,141,255,0.32); }
+.cm-heart-on { color:#FF5D73; fill:#FF5D73; }
+
+/* Quick filter chips */
+.cm-chip-row { scrollbar-width:none; }
+.cm-chip-row::-webkit-scrollbar { display:none; }
+.cm-chip { display:inline-flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap; font-size:12.5px; font-weight:700; padding:6px 12px; border-radius:9999px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#C9CFDD; transition:border-color .15s, background .15s; }
+.cm-chip:hover { border-color:rgba(91,141,255,0.45); color:#EEF1F8; }
+.cm-chip-active { background:rgba(91,141,255,0.18); border-color:rgba(91,141,255,0.55); color:#8FADFF; }
+.cm-chip-count { font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:9999px; background:rgba(255,255,255,0.08); color:#8A93AB; }
+.cm-chip-active .cm-chip-count { background:rgba(91,141,255,0.25); color:#C5D5FF; }
