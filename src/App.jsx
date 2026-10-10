@@ -367,12 +367,10 @@ function Badge({ children, tone = "blue" }) {
 }
 
 function PricePlate({ price, size = "md" }) {
-  const big = size === "lg";
   return (
-    <div className="cm-price-chip" style={{ padding: big ? "0.5rem 0.75rem" : "0.375rem 0.75rem" }}>
-      <span className={`cm-tabular cm-grad-text cm-glow-text font-black ${big ? "text-3xl" : "text-lg"}`}>{formatNumber(price)}</span>
-      <span className={`cm-text-accent font-bold ${big ? "text-sm" : "text-xs"}`}>د.إ</span>
-    </div>
+    <span className={`cm-price ${size === "lg" ? "text-3xl" : "text-xl"}`}>
+      {formatNumber(price)} <small>د.إ</small>
+    </span>
   );
 }
 
@@ -416,6 +414,7 @@ export default function CarMarket() {
   const [minYear, setMinYear] = useState("");
   const [maxKm, setMaxKm] = useState("");
   const [negotiableOnly, setNegotiableOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [favorites, setFavorites] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1045,6 +1044,18 @@ export default function CarMarket() {
   const clearFilters = () => { setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setMinYear(""); setMaxKm(""); setNegotiableOnly(false); setQ(""); };
   const filtersActive = makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || minYear || maxKm || negotiableOnly || q;
 
+  // Filters inside the "more filters" panel that are in use, shown on its button.
+  const extraFilterCount = [
+    makeFilter !== "الكل" && !QUICK_MAKES.includes(makeFilter),
+    bodyTypeFilter !== "الكل",
+    specsFilter !== "الكل",
+    Boolean(minYear),
+    Boolean(maxKm),
+    Boolean(minPrice),
+    Boolean(maxPrice) && !BUDGETS.some((b) => String(b.max) === maxPrice),
+    negotiableOnly,
+  ].filter(Boolean).length;
+
   // Shortcut chips: tapping the active one again turns it off.
   const pickMake = (m) => { setMakeFilter((cur) => (cur === m ? "الكل" : m)); setView("browse"); };
   const pickCity = (c) => { setCityFilter((cur) => (cur === c ? "الكل" : c)); setView("browse"); };
@@ -1061,11 +1072,6 @@ export default function CarMarket() {
   return (
     <div dir="rtl" className="cm-root cm-scroll">
 
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="cm-blob cm-blob-blue" style={{ top: "-10rem", right: "-10rem" }} />
-        <div className="cm-blob cm-blob-violet" style={{ top: "33%", left: "-10rem" }} />
-      </div>
-
       {/* Header */}
       <header className="cm-header">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3 relative">
@@ -1081,7 +1087,7 @@ export default function CarMarket() {
               onClick={() => setView("browse")}
               className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "browse" ? "cm-navbtn-active" : ""}`}
             >
-              <Search size={15} /> <span className="hidden sm:inline">تصفح وابحث</span>
+              <Search size={15} /> <span className="hidden sm:inline">السيارات</span>
             </button>
             {session && (
               <button
@@ -1101,10 +1107,10 @@ export default function CarMarket() {
             )}
             <button
               onClick={goAdd}
-              className={`flex items-center gap-1.5 font-bold text-sm px-3.5 py-2 rounded-lg transition ${view === "add" ? "cm-btn-primary" : "cm-btn-ghost"}`}
+              className="flex items-center gap-1.5 font-bold text-sm px-3.5 py-2 rounded-lg transition cm-btn-primary"
             >
               <Plus size={16} />
-              <span className="hidden sm:inline">أضف سيارتك</span>
+              <span>بيع سيارتك</span>
             </button>
             {session ? (
               <div className="relative">
@@ -1119,7 +1125,7 @@ export default function CarMarket() {
                     <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                     <div className="absolute left-0 mt-2 w-56 cm-card-solid rounded-xl shadow-xl p-2 z-50">
                       <p className="text-xs cm-text-muted px-2 py-1.5 truncate">{session.user.email}</p>
-                      <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2 rounded-lg hover:bg-white/5">
+                      <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2 rounded-lg cm-navbtn">
                         <LogOut size={15} /> تسجيل الخروج
                       </button>
                     </div>
@@ -1145,107 +1151,92 @@ export default function CarMarket() {
         </div>
       )}
 
-      {/* HOME */}
+      {/* HOME: search first, then shortcuts, then the newest cars. */}
       {view === "home" && (
-        <main className="max-w-6xl mx-auto px-4 py-10 sm:py-16 relative">
-          <div className="relative overflow-hidden rounded-2xl cm-card p-6 sm:p-10 text-center mb-10">
-            <Sparkles size={18} className="cm-text-accent mx-auto mb-3" />
-            <h1 className="cm-display font-extrabold text-3xl sm:text-4xl">
-              سوق السيارات <span className="cm-grad-text">في الإمارات</span>
-            </h1>
-            <p className="cm-text-muted mt-3 max-w-xl mx-auto text-sm sm:text-base">
-              منصة تجمع البائعين والمشترين مباشرة، بدون وسيط. انشر سيارتك مجانًا، أو تصفح آلاف السيارات في دبي وأبوظبي وباقي الإمارات.
-            </p>
-          </div>
-
-          <form
-            onSubmit={(e) => { e.preventDefault(); setView("browse"); }}
-            className="flex gap-2 mb-6"
-          >
-            <div className="relative flex-1">
-              <Search size={18} className="absolute top-1/2 -translate-y-1/2 right-3 cm-text-muted" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="ابحث عن ماركة أو موديل… مثال: تويوتا كامري"
-                className="cm-input"
-                style={{ paddingRight: "2.5rem" }}
-              />
+        <>
+          <section className="cm-hero">
+            <div className="max-w-6xl mx-auto px-4 py-10 sm:py-16">
+              <h1 className="cm-display font-extrabold text-3xl sm:text-4xl mb-2">ابحث عن سيارتك</h1>
+              <p className="cm-text-muted mb-6">سيارات مستعملة للبيع في كل الإمارات، من البائع مباشرة.</p>
+              <form onSubmit={(e) => { e.preventDefault(); setView("browse"); }} className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search size={20} className="absolute top-1/2 -translate-y-1/2 right-3 cm-text-muted" />
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="مثال: تويوتا كامري"
+                    className="cm-input cm-input-lg"
+                    style={{ paddingRight: "2.75rem" }}
+                  />
+                </div>
+                <button type="submit" className="cm-btn-primary cm-btn-lg font-bold whitespace-nowrap">بحث</button>
+              </form>
             </div>
-            <button type="submit" className="cm-btn-primary font-bold text-sm px-6 rounded-lg whitespace-nowrap">
-              بحث
-            </button>
-          </form>
+          </section>
 
-          <div className="space-y-3 mb-8">
-            <ChipRow label="أشهر الماركات">
-              {QUICK_MAKES.map((m) => (
-                <Chip key={m} onClick={() => pickMake(m)} count={makeCounts[m]}>{m}</Chip>
-              ))}
-            </ChipRow>
-            <ChipRow label="حسب الميزانية">
-              {BUDGETS.map((b) => (
-                <Chip key={b.max} onClick={() => pickBudget(b.max)}>{b.label}</Chip>
-              ))}
-            </ChipRow>
-            <ChipRow label="حسب الإمارة">
-              {CITIES.map((c) => (
-                <Chip key={c} onClick={() => pickCity(c)}>{c}</Chip>
-              ))}
-            </ChipRow>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-5">
-            <button onClick={() => setView("browse")} className="text-right cm-card rounded-2xl p-6 transition group">
-              <div className="w-12 h-12 rounded-xl cm-icon-tile-blue flex items-center justify-center mb-4">
-                <Search size={22} className="cm-text-accent" />
-              </div>
-              <h2 className="cm-display font-bold text-lg mb-1.5 flex items-center gap-2">
-                أنا مشتري
-                <ChevronRight size={18} className="cm-text-muted group-hover:-translate-x-1 transition rotate-180" />
-              </h2>
-              <p className="text-sm cm-text-muted">ابحث بالماركة أو الموديل، وفلتر حسب الإمارة والسعر لتجد سيارتك.</p>
-            </button>
-
-            <button onClick={goAdd} className="text-right cm-card rounded-2xl p-6 transition group">
-              <div className="w-12 h-12 rounded-xl cm-icon-tile-violet flex items-center justify-center mb-4">
-                <Store size={22} className="cm-text-accent2" />
-              </div>
-              <h2 className="cm-display font-bold text-lg mb-1.5 flex items-center gap-2">
-                أنا بائع
-                <ChevronRight size={18} className="cm-text-muted group-hover:-translate-x-1 transition rotate-180" />
-              </h2>
-              <p className="text-sm cm-text-muted">أضف صور سيارتك وتفاصيلها وانشرها مباشرة خلال دقيقة.</p>
-            </button>
-          </div>
-
-          {loaded && listings.length > 0 && (
-            <div className="mt-10">
-              <div className="flex items-center justify-between mb-3">
-                <p className="cm-display font-bold text-sm cm-text-muted">أحدث الإعلانات</p>
-                <button onClick={() => setView("browse")} className="text-xs cm-text-accent font-bold">عرض الكل</button>
-              </div>
-              <div className={`grid gap-3 ${
-                listings.length <= 2 ? "grid-cols-2"
-                : listings.length === 3 ? "grid-cols-2 sm:grid-cols-3"
-                : "grid-cols-2 sm:grid-cols-4"
-              }`}>
-                {listings.slice(0, 8).map((l) => (
-                  <button key={l.id} onClick={() => { setView("browse"); openListing(l); }} className="text-right cm-card rounded-xl overflow-hidden transition">
-                    <div className="cm-aspect-4-3 cm-media flex items-center justify-center">
-                      {(l.image || l.images?.[0]) ? <img src={l.image || l.images[0]} className="w-full h-full object-cover" alt="" /> : <Car size={26} className="cm-icon-empty" />}
-                    </div>
-                    <div className="p-2">
-                      <p className="text-xs font-bold truncate">{l.make} {l.model}</p>
-                      <p className="text-[11px] cm-text-muted mt-0.5 truncate">{l.year} · {formatNumber(l.mileage)} كم · {l.city}</p>
-                      <p className="text-xs cm-text-accent font-bold cm-tabular mt-0.5">{formatNumber(l.price)} د.إ</p>
-                    </div>
-                  </button>
+          <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+            <div className="space-y-4">
+              <ChipRow label="الماركات">
+                {QUICK_MAKES.map((m) => (
+                  <Chip key={m} onClick={() => pickMake(m)} count={makeCounts[m]}>{m}</Chip>
                 ))}
-              </div>
+              </ChipRow>
+              <ChipRow label="الإمارة">
+                {CITIES.map((c) => (
+                  <Chip key={c} onClick={() => pickCity(c)}>{c}</Chip>
+                ))}
+              </ChipRow>
+              <ChipRow label="الميزانية">
+                {BUDGETS.map((b) => (
+                  <Chip key={b.max} onClick={() => pickBudget(b.max)}>{b.label}</Chip>
+                ))}
+              </ChipRow>
             </div>
-          )}
-        </main>
+
+            <div className="cm-sell-banner p-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="cm-section-title">عندك سيارة للبيع؟</p>
+                <p className="text-sm cm-text-muted mt-1">انشر إعلانك مجانًا خلال دقيقة.</p>
+              </div>
+              <button onClick={goAdd} className="cm-btn-primary font-bold text-sm px-5 py-2.5 rounded-lg flex items-center gap-1.5">
+                <Plus size={16} /> بيع سيارتك
+              </button>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="cm-section-title">أحدث السيارات</h2>
+                {listings.length > 0 && (
+                  <button onClick={() => setView("browse")} className="text-sm cm-link font-bold">عرض الكل</button>
+                )}
+              </div>
+              {!loaded ? (
+                <div className="flex items-center justify-center py-16 cm-text-muted">
+                  <Loader2 className="animate-spin ml-2" size={18} /> جارِ التحميل...
+                </div>
+              ) : listings.length === 0 ? (
+                <div className="text-center py-16 rounded-xl cm-soft">
+                  <Car size={36} className="cm-icon-empty mx-auto mb-3" />
+                  <p className="font-bold mb-1">لا توجد سيارات معروضة بعد</p>
+                  <p className="text-sm cm-text-muted mb-4">كن أول من ينشر سيارته.</p>
+                  <button onClick={goAdd} className="cm-btn-primary font-bold text-sm px-5 py-2.5 rounded-lg">بيع سيارتك</button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {listings.slice(0, 6).map((l) => (
+                    <ListingCard
+                      key={l.id}
+                      l={l}
+                      onOpen={() => { setView("browse"); openListing(l); }}
+                      isFav={favorites.includes(l.id)}
+                      onFav={() => toggleFavorite(l.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </main>
+        </>
       )}
 
       {/* BUYER / BROWSE PAGE */}
@@ -1257,16 +1248,16 @@ export default function CarMarket() {
               : listings.filter((l) => favorites.includes(l.id));
             return (
               <>
-                <div className="rounded-2xl cm-card p-5 sm:p-6 mb-6">
-                  <h1 className="cm-display font-extrabold text-xl sm:text-2xl mb-1">
+                <div className="mb-5">
+                  <h1 className="cm-display font-extrabold text-2xl">
                     {view === "mine" ? "إعلاناتي" : "المفضلة"}
                   </h1>
-                  <p className="cm-text-muted text-sm">{rows.length} إعلان</p>
+                  <p className="cm-text-muted text-sm mt-1">{rows.length} إعلان</p>
                 </div>
 
                 {rows.length === 0 ? (
-                  <div className="text-center py-20 rounded-2xl cm-card">
-                    <Car size={40} className="cm-icon-empty mx-auto mb-3" />
+                  <div className="text-center py-16 rounded-xl cm-soft">
+                    <Car size={36} className="cm-icon-empty mx-auto mb-3" />
                     <p className="cm-text-muted text-sm mb-4">
                       {view === "mine" ? "لم تنشر أي إعلان بعد." : "لم تضف أي إعلان إلى المفضلة بعد."}
                     </p>
@@ -1305,108 +1296,119 @@ export default function CarMarket() {
       )}
 
       {view === "browse" && (
-        <main className="max-w-6xl mx-auto px-4 py-6 relative">
-          <div className="relative overflow-hidden rounded-2xl cm-card p-5 sm:p-6 mb-6">
-            <h1 className="cm-display font-extrabold text-xl sm:text-2xl mb-1">{categoryCopy(sectionRoute).h1}</h1>
-            <p className="cm-text-muted text-sm mb-4">{filtered.length} سيارة متاحة الآن</p>
+        <main className="max-w-6xl mx-auto px-4 py-6">
+          <h1 className="cm-display font-extrabold text-2xl mb-4">{categoryCopy(sectionRoute).h1}</h1>
 
-            <div className="relative mb-3">
-              <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 cm-text-muted" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="ابحث عن ماركة أو موديل، مثال: تويوتا كامري"
-                className="cm-input"
-                style={{ paddingRight: "2.25rem" }}
-              />
-            </div>
+          <div className="relative mb-4">
+            <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 cm-text-muted" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="ابحث عن ماركة أو موديل"
+              className="cm-input cm-input-lg"
+              style={{ paddingRight: "2.5rem" }}
+            />
+          </div>
 
-            <div className="space-y-2 mb-3">
-              <ChipRow>
-                {QUICK_MAKES.map((m) => (
-                  <Chip key={m} active={makeFilter === m} onClick={() => pickMake(m)} count={makeCounts[m]}>{m}</Chip>
-                ))}
-              </ChipRow>
-              <ChipRow>
-                {BUDGETS.map((b) => (
-                  <Chip key={b.max} active={maxPrice === String(b.max) && !minPrice} onClick={() => pickBudget(b.max)}>{b.label}</Chip>
-                ))}
-                {CITIES.map((c) => (
-                  <Chip key={c} active={cityFilter === c} onClick={() => pickCity(c)}>{c}</Chip>
-                ))}
-              </ChipRow>
-            </div>
+          <div className="space-y-2 mb-4">
+            <ChipRow>
+              {QUICK_MAKES.map((m) => (
+                <Chip key={m} active={makeFilter === m} onClick={() => pickMake(m)} count={makeCounts[m]}>{m}</Chip>
+              ))}
+            </ChipRow>
+            <ChipRow>
+              {CITIES.map((c) => (
+                <Chip key={c} active={cityFilter === c} onClick={() => pickCity(c)}>{c}</Chip>
+              ))}
+            </ChipRow>
+            <ChipRow>
+              {BUDGETS.map((b) => (
+                <Chip key={b.max} active={maxPrice === String(b.max) && !minPrice} onClick={() => pickBudget(b.max)}>{b.label}</Chip>
+              ))}
+            </ChipRow>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <select value={bodyTypeFilter} onChange={(e) => setBodyTypeFilter(e.target.value)} className="cm-input" style={{ width: "auto" }}>
-                <option value="الكل">كل الأنواع</option>
-                {BODY_TYPES.map((t) => <option key={t}>{t}</option>)}
-              </select>
-              <div style={{ width: "10rem" }}>
-                <ComboBox value={makeFilter} options={["الكل", ...MAKES]} onChange={setMakeFilter} placeholder="الماركة" />
-              </div>
-              <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="cm-input" style={{ width: "auto" }}>
-                <option value="الكل">كل الإمارات</option>
-                {CITIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-              <input
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value.replace(/\D/g, ""))}
-                placeholder="السعر من (د.إ)"
-                className="cm-input cm-tabular"
-                style={{ width: "8rem" }}
-              />
-              <input
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value.replace(/\D/g, ""))}
-                placeholder="السعر إلى (د.إ)"
-                className="cm-input cm-tabular"
-                style={{ width: "8rem" }}
-              />
-              <select value={specsFilter} onChange={(e) => setSpecsFilter(e.target.value)} className="cm-input" style={{ width: "auto" }}>
-                <option value="الكل">كل المواصفات</option>
-                {SPECS.map((x) => <option key={x}>{x}</option>)}
-              </select>
-              <select value={minYear} onChange={(e) => setMinYear(e.target.value)} className="cm-input cm-tabular" style={{ width: "auto" }}>
-                <option value="">أي سنة</option>
-                {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y} وأحدث</option>)}
-              </select>
-              <select value={maxKm} onChange={(e) => setMaxKm(e.target.value)} className="cm-input cm-tabular" style={{ width: "auto" }}>
-                <option value="">أي ممشى</option>
-                {MILEAGE_OPTIONS.map((k) => <option key={k} value={k}>أقل من {formatNumber(k)} كم</option>)}
-              </select>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setNegotiableOnly((v) => !v)}
-                className={`cm-chip ${negotiableOnly ? "cm-chip-active" : ""}`}
+                onClick={() => setShowFilters((v) => !v)}
+                className="cm-btn-ghost font-bold text-sm px-3.5 py-2 rounded-lg flex items-center gap-1.5"
               >
-                قابل للتفاوض
+                <Settings2 size={15} /> فلاتر إضافية
+                {extraFilterCount > 0 && <span className="cm-filter-count">{extraFilterCount}</span>}
               </button>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="cm-input" style={{ width: "auto" }}>
+              {filtersActive && (
+                <button onClick={clearFilters} className="text-sm cm-link">مسح الكل</button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm cm-text-muted">{formatNumber(filtered.length)} سيارة</span>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="cm-input" style={{ width: "auto" }} aria-label="الترتيب">
                 <option value="newest">الأحدث</option>
                 <option value="priceAsc">الأقل سعرًا</option>
                 <option value="priceDesc">الأعلى سعرًا</option>
                 <option value="yearDesc">الأحدث موديلًا</option>
                 <option value="kmAsc">الأقل ممشى</option>
               </select>
-              {filtersActive && (
-                <button onClick={clearFilters} className="text-xs cm-link">مسح الفلاتر</button>
-              )}
             </div>
           </div>
+
+          {showFilters && (
+            <div className="cm-filter-panel mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Field label="الماركة">
+                <ComboBox value={makeFilter} options={["الكل", ...MAKES]} onChange={setMakeFilter} placeholder="كل الماركات" />
+              </Field>
+              <Field label="نوع السيارة">
+                <select value={bodyTypeFilter} onChange={(e) => setBodyTypeFilter(e.target.value)} className="cm-input">
+                  <option value="الكل">الكل</option>
+                  {BODY_TYPES.map((t) => <option key={t}>{t}</option>)}
+                </select>
+              </Field>
+              <Field label="السعر من (د.إ)">
+                <input value={minPrice} onChange={(e) => setMinPrice(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="0" className="cm-input cm-tabular" />
+              </Field>
+              <Field label="السعر إلى (د.إ)">
+                <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="بدون حد" className="cm-input cm-tabular" />
+              </Field>
+              <Field label="سنة الصنع">
+                <select value={minYear} onChange={(e) => setMinYear(e.target.value)} className="cm-input cm-tabular">
+                  <option value="">أي سنة</option>
+                  {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y} وأحدث</option>)}
+                </select>
+              </Field>
+              <Field label="الممشى">
+                <select value={maxKm} onChange={(e) => setMaxKm(e.target.value)} className="cm-input cm-tabular">
+                  <option value="">أي ممشى</option>
+                  {MILEAGE_OPTIONS.map((k) => <option key={k} value={k}>أقل من {formatNumber(k)} كم</option>)}
+                </select>
+              </Field>
+              <Field label="المواصفات">
+                <select value={specsFilter} onChange={(e) => setSpecsFilter(e.target.value)} className="cm-input">
+                  <option value="الكل">الكل</option>
+                  {SPECS.map((x) => <option key={x}>{x}</option>)}
+                </select>
+              </Field>
+              <label className="flex items-center gap-2 cm-input cursor-pointer" style={{ alignSelf: "end" }}>
+                <input type="checkbox" checked={negotiableOnly} onChange={(e) => setNegotiableOnly(e.target.checked)} className="w-4 h-4" />
+                <span className="text-sm">قابل للتفاوض فقط</span>
+              </label>
+            </div>
+          )}
 
           {!loaded ? (
             <div className="flex items-center justify-center py-24 cm-text-muted">
               <Loader2 className="animate-spin ml-2" size={18} /> جارِ التحميل...
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-20 rounded-2xl cm-card">
-              <Car className="mx-auto mb-3 cm-icon-empty" size={40} />
-              <p className="font-bold mb-1">لا توجد إعلانات مطابقة</p>
-              <p className="text-sm cm-text-muted mb-4">جرّب تغيير الفلاتر، أو كن أول من ينشر سيارته هنا</p>
-              <button onClick={goAdd} className="cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
-                أضف سيارتك الآن
-              </button>
+            <div className="text-center py-16 rounded-xl cm-soft">
+              <Car className="mx-auto mb-3 cm-icon-empty" size={36} />
+              <p className="font-bold mb-1">لا توجد سيارات مطابقة</p>
+              <p className="text-sm cm-text-muted mb-4">جرّب تغيير البحث أو الفلاتر.</p>
+              <div className="flex justify-center gap-2">
+                {filtersActive && <button onClick={clearFilters} className="cm-btn-ghost font-bold text-sm px-4 py-2 rounded-lg">مسح الفلاتر</button>}
+                <button onClick={goAdd} className="cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">بيع سيارتك</button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1676,9 +1678,8 @@ export default function CarMarket() {
                   {active.negotiable && <Badge tone="blue">قابل للتفاوض</Badge>}
                   {active.specs && <Badge tone="muted">مواصفات {active.specs}</Badge>}
                 </div>
-                <p className="text-xs cm-text-muted mt-2">
-                  قسط تقديري: <span className="font-bold cm-text-accent cm-tabular">{formatNumber(monthlyInstallment(active.price))} د.إ/شهر</span>
-                  {" "}(دفعة أولى 20%، 5 سنوات، فائدة ثابتة 3% سنويًا — للاسترشاد فقط)
+                <p className="text-sm cm-text-muted mt-2" title="دفعة أولى 20%، 5 سنوات، فائدة ثابتة 3% سنويًا. للاسترشاد فقط.">
+                  قسط تقريبي من <span className="font-bold cm-text-accent cm-tabular">{formatNumber(monthlyInstallment(active.price))} د.إ</span> شهريًا
                 </p>
               </div>
 
@@ -1897,7 +1898,7 @@ function ComboBox({ value, options, onChange, placeholder }) {
               key={o}
               type="button"
               onMouseDown={() => { onChange(o); setOpen(false); }}
-              className="w-full text-right px-3 py-2 text-sm hover:bg-white/5 transition"
+              className="w-full text-right px-3 py-2 text-sm cm-navbtn transition"
             >
               {o}
             </button>
@@ -1947,31 +1948,26 @@ function ListingCard({ l, onOpen, isFav, onFav }) {
             type="button"
             onClick={(e) => { e.stopPropagation(); onFav(); }}
             title={isFav ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
-            className="absolute top-2 left-2 z-10 bg-black/55 hover:bg-black/75 rounded-full p-1.5 text-white"
+            className="absolute top-2 left-2 z-10 rounded-full p-2 cm-fav-btn"
           >
-            <Heart size={14} className={isFav ? "cm-heart-on" : ""} />
+            <Heart size={16} className={isFav ? "cm-heart-on" : ""} />
           </button>
         )}
       </div>
 
       <div className="p-3.5 flex flex-col flex-1">
-        <p className="cm-display font-bold text-sm leading-tight truncate">{l.make} {l.model}</p>
-        <p className="text-xs cm-text-muted mt-1 cm-tabular truncate">{facts.join(" · ")}</p>
+        <p className="font-bold leading-tight truncate">{l.make} {l.model}</p>
+        <p className="text-sm cm-text-muted mt-1 cm-tabular truncate">{facts.join(" · ")}</p>
 
-        <div className="flex items-end justify-between gap-2 mt-3">
-          <div>
-            {discount > 0 && (
-              <p className="text-[11px] cm-text-muted line-through cm-tabular">{formatNumber(l.previous_price)} د.إ</p>
-            )}
-            <PricePlate price={l.price} />
-          </div>
+        <div className="flex items-center gap-2 mt-2.5">
+          <PricePlate price={l.price} />
+          {discount > 0 && (
+            <span className="text-xs cm-text-muted line-through cm-tabular">{formatNumber(l.previous_price)}</span>
+          )}
           {l.negotiable && <span className="cm-tag cm-tag-blue">قابل للتفاوض</span>}
         </div>
 
-        <div className="flex items-center justify-between mt-2.5 pt-2.5 cm-divider text-[11px] cm-text-muted">
-          <span className="cm-tabular">قسط من {formatNumber(monthlyInstallment(l.price))} د.إ/شهر</span>
-          <span className="flex items-center gap-1"><MapPin size={11} />{l.city}</span>
-        </div>
+        <p className="text-xs cm-text-muted flex items-center gap-1 mt-2"><MapPin size={12} />{l.city}</p>
       </div>
     </div>
   );
