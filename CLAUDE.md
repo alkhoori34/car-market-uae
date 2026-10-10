@@ -39,6 +39,11 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
 - Photos go to the Storage bucket `car-images` under `<user_id>/…`; the row
   keeps `image` (first photo) and `images` (all, up to 8).
 - A browser-side MobileNet check rejects photos with no vehicle in them.
+- Email sign-up sends a confirmation link (via Resend, sender "Cars UAE")
+  that returns to `window.location.origin`; the dialog then shows a "check your
+  inbox" screen with a resend button. Supabase Site URL is
+  `https://carsuae.net`, with `carsuae.net/**` and the vercel.app domain in
+  the redirect allow list. Verified working end to end on 2026-10-10.
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is
   approved.
@@ -67,8 +72,6 @@ of the SQL in the repo root (see `listings-*.sql`).
 
 ## Open work
 
-- Signup confirmation emails are not reaching users (check Resend logs and
-  Supabase Auth SMTP settings / templates).
 - SEO: needs real URLs and pre-rendered pages per make, model, city and
   budget before Google can index anything.
 - Apple sign-in button exists but needs an Apple Developer account.
