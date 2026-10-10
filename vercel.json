@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/car/:id",
+      "destination": "/api/page?route=/car/:id"
+    },
+    {
+      "source": "/used-cars",
+      "destination": "/api/page?route=/used-cars"
+    },
+    {
+      "source": "/used-cars/:a",
+      "destination": "/api/page?route=/used-cars/:a"
+    },
+    {
+      "source": "/used-cars/:a/:b",
+      "destination": "/api/page?route=/used-cars/:a/:b"
+    },
+    {
+      "source": "/((?!api/|assets/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

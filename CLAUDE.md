@@ -31,8 +31,17 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   `cm-btn-primary`, `cm-chip`, `cm-tag-*`, `cm-badge-*` …) defined in
   `index.css`. Use standard Tailwind utilities only for layout/spacing. Do not
   use Tailwind arbitrary-value brackets like `bg-[#0A0E17]`.
-- **Routing:** hash routes only. `#/car/<id>` opens a listing. There is no
-  server rendering, so Google cannot index individual pages yet.
+- **Routing / SEO:** real paths, defined once in `src/seo-data.js` (slugs for
+  every make and city, `parsePath`, `paths`, page copy) and shared by the app
+  and the server:
+  `/used-cars`, `/used-cars/<make>`, `/used-cars/in/<city>`,
+  `/used-cars/under/<max>`, `/car/<id>`. The browse page's URL follows its
+  make/city/budget filters. Old `/#/car/<id>` links are rewritten on load.
+  `vercel.json` sends those paths to `api/page.js`, which returns the built
+  `index.html` with real `<title>`/meta/canonical/OG tags, JSON-LD and the
+  page content in `#root` (React then takes over). `api/sitemap.js` serves
+  `/sitemap.xml`; `public/robots.txt` points to it. Pages are edge-cached for
+  5 minutes. A new make added to `MODELS` also needs a slug in `seo-data.js`.
 - **Data:** `MODELS` holds ~135 makes with their models (Arabic names).
   `CITIES` = the seven emirates plus العين. Currency is د.إ, numbers formatted
   with `ar-AE`.
@@ -75,7 +84,8 @@ of the SQL in the repo root (see `listings-*.sql`).
 
 ## Open work
 
-- SEO: needs real URLs and pre-rendered pages per make, model, city and
-  budget before Google can index anything.
+- SEO next steps: add the site to Google Search Console and submit
+  `https://carsuae.net/sitemap.xml`; model-level pages
+  (`/used-cars/<make>/<model>`) are not built yet.
 - Apple sign-in button exists but needs an Apple Developer account.
 - Phone OTP: waiting on Twilio compliance approval.

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+import { paths, parsePath, makeSlug, citySlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -376,9 +377,17 @@ function PricePlate({ price, size = "md" }) {
 }
 
 export default function CarMarket() {
+  // The page the visitor landed on, e.g. /used-cars/toyota (null for "/").
+  const [initialRoute] = useState(() => {
+    if (typeof window === "undefined") return null;
+    // Links shared before the switch to real paths looked like /#/car/<id>.
+    const legacy = window.location.hash.match(/^#\/car\/([^&/]+)$/);
+    if (legacy) window.history.replaceState({}, "", paths.car(legacy[1]));
+    return parsePath(window.location.pathname);
+  });
   const [listings, setListings] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [view, setView] = useState("home"); // home | browse | add
+  const [view, setView] = useState(initialRoute ? "browse" : "home"); // home | browse | mine | saved | add
 
   // Auth (Supabase email/password accounts)
   const [session, setSession] = useState(null);
@@ -397,10 +406,10 @@ export default function CarMarket() {
   const [saving, setSaving] = useState(false);
 
   const [q, setQ] = useState("");
-  const [makeFilter, setMakeFilter] = useState("الكل");
-  const [cityFilter, setCityFilter] = useState("الكل");
+  const [makeFilter, setMakeFilter] = useState(initialRoute?.kind === "make" ? initialRoute.make : "الكل");
+  const [cityFilter, setCityFilter] = useState(initialRoute?.kind === "city" ? initialRoute.city : "الكل");
   const [bodyTypeFilter, setBodyTypeFilter] = useState("الكل");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState(initialRoute?.kind === "budget" ? String(initialRoute.max) : "");
   const [minPrice, setMinPrice] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [specsFilter, setSpecsFilter] = useState("الكل");
@@ -456,33 +465,97 @@ export default function CarMarket() {
   }, []);
 
 
-  // Deep links: #/car/<id> opens that listing directly, including on a fresh visit.
+  // --- URL routing ---------------------------------------------------------
+  // Real paths (see src/seo-data.js): /used-cars, /used-cars/<make>,
+  // /used-cars/in/<city>, /used-cars/under/<max>, /car/<id>. The same paths
+  // are rendered on the server for Google (api/page.js).
+  const [pendingCarId, setPendingCarId] = useState(() => (initialRoute?.kind === "car" ? initialRoute.id : null));
+  const activeRef = useRef(null);
   useEffect(() => {
-    function applyHash() {
-      const match = window.location.hash.match(/^#\/car\/(.+)$/);
-      if (!match) { setActive(null); return; }
-      const found = listings.find((l) => l.id === match[1]);
-      if (found) { setActive(found); setPhotoIdx(0); return; }
-      // Not in the loaded set (reports-hidden or a direct visit mid-load): fetch it.
-      supabase.from("listings").select("*").eq("id", match[1]).maybeSingle()
-        .then(({ data }) => { if (data) { setActive(data); setPhotoIdx(0); } });
+    activeRef.current = active;
+    if (!active) openedInApp.current = false;
+  }, [active]);
+  // True when the open listing was opened from inside the app, so closing it
+  // can simply step back in history to the list it came from.
+  const openedInApp = useRef(false);
+  const prevViewRef = useRef(view);
+
+  function applyRoute(route) {
+    if (!route) { setActive(null); setView("home"); return; }
+    if (route.kind === "car") { setView("browse"); setPendingCarId(route.id); return; }
+    setActive(null);
+    setMakeFilter(route.kind === "make" ? route.make : "الكل");
+    setCityFilter(route.kind === "city" ? route.city : "الكل");
+    setMinPrice("");
+    setMaxPrice(route.kind === "budget" ? String(route.max) : "");
+    setBodyTypeFilter("الكل"); setSpecsFilter("الكل"); setMinYear(""); setMaxKm(""); setNegotiableOnly(false); setQ("");
+    setView("browse");
+  }
+
+  useEffect(() => {
+    function onPop() {
+      const route = parsePath(window.location.pathname);
+      // Back from a listing to its list: close it but keep the visitor's filters.
+      if (activeRef.current && route && route.kind !== "car") {
+        openedInApp.current = false;
+        setActive(null);
+        return;
+      }
+      applyRoute(route);
     }
-    applyHash();
-    window.addEventListener("popstate", applyHash);
-    window.addEventListener("hashchange", applyHash);
-    return () => {
-      window.removeEventListener("popstate", applyHash);
-      window.removeEventListener("hashchange", applyHash);
-    };
-  }, [listings]);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // Opens the listing named in the URL once it is available.
+  useEffect(() => {
+    if (!pendingCarId) return;
+    const found = listings.find((l) => l.id === pendingCarId);
+    if (found) { setActive(found); setPhotoIdx(0); setPendingCarId(null); return; }
+    if (!loaded) return;
+    // Not in the loaded set (hidden by reports, or a direct visit): fetch it.
+    const id = pendingCarId;
+    supabase.from("listings").select("*").eq("id", id).maybeSingle().then(({ data }) => {
+      if (data) { setActive(data); setPhotoIdx(0); }
+      else showToast("الإعلان غير موجود، ربما بيعت السيارة", "muted");
+      setPendingCarId((cur) => (cur === id ? null : cur));
+    });
+  }, [pendingCarId, listings, loaded]);
+
+  // The browse page's address follows its make / city / budget filters, so it
+  // can be bookmarked and shared, and matches the page Google indexed.
+  function browsePath() {
+    const make = makeFilter !== "الكل" ? makeFilter : null;
+    const city = cityFilter !== "الكل" ? cityFilter : null;
+    if (make && !city && !minPrice && !maxPrice && makeSlug(make)) return paths.make(make);
+    if (city && !make && !minPrice && !maxPrice && citySlug(city)) return paths.city(city);
+    if (!make && !city && !minPrice && BUDGET_STEPS.includes(Number(maxPrice))) return paths.budget(Number(maxPrice));
+    return paths.all();
+  }
+
+  // The section the browse page currently matches, for its heading and tab title.
+  const sectionRoute = parsePath(browsePath()) || { kind: "all" };
+  const sectionTitle = categoryCopy(sectionRoute).title;
+
+  useEffect(() => {
+    const viewChanged = prevViewRef.current !== view;
+    prevViewRef.current = view;
+    if (active || pendingCarId) return;
+    const target = view === "browse" ? browsePath() : "/";
+    if (target === window.location.pathname) return;
+    if (viewChanged) window.history.pushState({}, "", target);
+    else window.history.replaceState({}, "", target);
+  }, [view, makeFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
 
   // Keep the tab title useful when a listing is open — it's what WhatsApp and
   // browsers show, and what someone sees in their history.
   useEffect(() => {
     document.title = active
       ? `${active.make} ${active.model} ${active.year} — ${formatNumber(active.price)} د.إ | CarsUAE`
-      : "CarsUAE — سوق السيارات في الإمارات";
-  }, [active]);
+      : view === "browse"
+        ? sectionTitle
+        : "CarsUAE — سوق السيارات المستعملة في الإمارات";
+  }, [active, view, sectionTitle]);
 
   function showToast(msg, tone = "mint") {
     setToast({ msg, tone });
@@ -805,20 +878,26 @@ export default function CarMarket() {
 
 
 
-  // Opening a listing puts its id in the URL so the page can be shared or bookmarked.
+  // Opening a listing puts /car/<id> in the address bar so it can be shared or bookmarked.
   function openListing(l) {
     setActive(l);
     setPhotoIdx(0);
-    window.history.pushState({}, "", `#/car/${l.id}`);
+    openedInApp.current = true;
+    window.history.pushState({}, "", paths.car(l.id));
   }
 
   function closeListing() {
+    if (openedInApp.current) {
+      // Step back to the list it was opened from; the popstate handler closes it.
+      window.history.back();
+      return;
+    }
+    // Landed straight on /car/<id>: close and let the URL follow the list.
     setActive(null);
-    window.history.pushState({}, "", window.location.pathname);
   }
 
   function listingUrl(id) {
-    return `${window.location.origin}${window.location.pathname}#/car/${id}`;
+    return `${window.location.origin}${paths.car(id)}`;
   }
 
   async function shareListing(l) {
@@ -1228,7 +1307,7 @@ export default function CarMarket() {
       {view === "browse" && (
         <main className="max-w-6xl mx-auto px-4 py-6 relative">
           <div className="relative overflow-hidden rounded-2xl cm-card p-5 sm:p-6 mb-6">
-            <h1 className="cm-display font-extrabold text-xl sm:text-2xl mb-1">تصفح السيارات</h1>
+            <h1 className="cm-display font-extrabold text-xl sm:text-2xl mb-1">{categoryCopy(sectionRoute).h1}</h1>
             <p className="cm-text-muted text-sm mb-4">{filtered.length} سيارة متاحة الآن</p>
 
             <div className="relative mb-3">
