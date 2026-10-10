@@ -165,9 +165,7 @@ const MODELS = {
 
 const MAKES = [...Object.keys(MODELS), "أخرى"];
 
-// One-tap shortcuts above the results. These are the makes UAE buyers search
-// for most; the full list is still in the make filter.
-const QUICK_MAKES = ["تويوتا", "نيسان", "لكزس", "مرسيدس", "بي إم دبليو", "لاند روفر", "فورد", "هيونداي", "كيا", "جيتور"];
+// Budget choices in the filters (and /used-cars/under/<max> pages).
 const BUDGETS = [
   { label: "تحت 25 ألف", max: 25000 },
   { label: "تحت 50 ألف", max: 50000 },
@@ -1044,29 +1042,18 @@ export default function CarMarket() {
   const clearFilters = () => { setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setMinYear(""); setMaxKm(""); setNegotiableOnly(false); setQ(""); };
   const filtersActive = makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || minYear || maxKm || negotiableOnly || q;
 
-  // Filters inside the "more filters" panel that are in use, shown on its button.
-  const extraFilterCount = [
-    makeFilter !== "الكل" && !QUICK_MAKES.includes(makeFilter),
+  // Filters in use, shown as a number on the filters button.
+  const filterCount = [
+    makeFilter !== "الكل",
+    cityFilter !== "الكل",
+    Boolean(maxPrice) || Boolean(minPrice),
     bodyTypeFilter !== "الكل",
     specsFilter !== "الكل",
     Boolean(minYear),
     Boolean(maxKm),
-    Boolean(minPrice),
-    Boolean(maxPrice) && !BUDGETS.some((b) => String(b.max) === maxPrice),
     negotiableOnly,
   ].filter(Boolean).length;
 
-  // Shortcut chips: tapping the active one again turns it off.
-  const pickMake = (m) => { setMakeFilter((cur) => (cur === m ? "الكل" : m)); setView("browse"); };
-  const pickCity = (c) => { setCityFilter((cur) => (cur === c ? "الكل" : c)); setView("browse"); };
-  const pickBudget = (max) => { setMinPrice(""); setMaxPrice((cur) => (cur === String(max) ? "" : String(max))); setView("browse"); };
-
-  // How many live listings each quick make has, so the chips double as a guide.
-  const makeCounts = useMemo(() => {
-    const counts = {};
-    listings.forEach((l) => { counts[l.make] = (counts[l.make] || 0) + 1; });
-    return counts;
-  }, [listings]);
   const modelOptions = MODELS[form.make];
 
   return (
@@ -1175,24 +1162,6 @@ export default function CarMarket() {
           </section>
 
           <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-            <div className="space-y-4">
-              <ChipRow label="الماركات">
-                {QUICK_MAKES.map((m) => (
-                  <Chip key={m} onClick={() => pickMake(m)} count={makeCounts[m]}>{m}</Chip>
-                ))}
-              </ChipRow>
-              <ChipRow label="الإمارة">
-                {CITIES.map((c) => (
-                  <Chip key={c} onClick={() => pickCity(c)}>{c}</Chip>
-                ))}
-              </ChipRow>
-              <ChipRow label="الميزانية">
-                {BUDGETS.map((b) => (
-                  <Chip key={b.max} onClick={() => pickBudget(b.max)}>{b.label}</Chip>
-                ))}
-              </ChipRow>
-            </div>
-
             <div className="cm-sell-banner p-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="cm-section-title">عندك سيارة للبيع؟</p>
@@ -1310,24 +1279,6 @@ export default function CarMarket() {
             />
           </div>
 
-          <div className="space-y-2 mb-4">
-            <ChipRow>
-              {QUICK_MAKES.map((m) => (
-                <Chip key={m} active={makeFilter === m} onClick={() => pickMake(m)} count={makeCounts[m]}>{m}</Chip>
-              ))}
-            </ChipRow>
-            <ChipRow>
-              {CITIES.map((c) => (
-                <Chip key={c} active={cityFilter === c} onClick={() => pickCity(c)}>{c}</Chip>
-              ))}
-            </ChipRow>
-            <ChipRow>
-              {BUDGETS.map((b) => (
-                <Chip key={b.max} active={maxPrice === String(b.max) && !minPrice} onClick={() => pickBudget(b.max)}>{b.label}</Chip>
-              ))}
-            </ChipRow>
-          </div>
-
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
               <button
@@ -1335,8 +1286,8 @@ export default function CarMarket() {
                 onClick={() => setShowFilters((v) => !v)}
                 className="cm-btn-ghost font-bold text-sm px-3.5 py-2 rounded-lg flex items-center gap-1.5"
               >
-                <Settings2 size={15} /> فلاتر إضافية
-                {extraFilterCount > 0 && <span className="cm-filter-count">{extraFilterCount}</span>}
+                <Settings2 size={15} /> الفلاتر
+                {filterCount > 0 && <span className="cm-filter-count">{filterCount}</span>}
               </button>
               {filtersActive && (
                 <button onClick={clearFilters} className="text-sm cm-link">مسح الكل</button>
@@ -1359,17 +1310,23 @@ export default function CarMarket() {
               <Field label="الماركة">
                 <ComboBox value={makeFilter} options={["الكل", ...MAKES]} onChange={setMakeFilter} placeholder="كل الماركات" />
               </Field>
+              <Field label="الإمارة">
+                <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="cm-input">
+                  <option value="الكل">كل الإمارات</option>
+                  {CITIES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="الميزانية">
+                <select value={minPrice ? "" : maxPrice} onChange={(e) => { setMinPrice(""); setMaxPrice(e.target.value); }} className="cm-input">
+                  <option value="">أي سعر</option>
+                  {BUDGETS.map((b) => <option key={b.max} value={String(b.max)}>{b.label} درهم</option>)}
+                </select>
+              </Field>
               <Field label="نوع السيارة">
                 <select value={bodyTypeFilter} onChange={(e) => setBodyTypeFilter(e.target.value)} className="cm-input">
                   <option value="الكل">الكل</option>
                   {BODY_TYPES.map((t) => <option key={t}>{t}</option>)}
                 </select>
-              </Field>
-              <Field label="السعر من (د.إ)">
-                <input value={minPrice} onChange={(e) => setMinPrice(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="0" className="cm-input cm-tabular" />
-              </Field>
-              <Field label="السعر إلى (د.إ)">
-                <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="بدون حد" className="cm-input cm-tabular" />
               </Field>
               <Field label="سنة الصنع">
                 <select value={minYear} onChange={(e) => setMinYear(e.target.value)} className="cm-input cm-tabular">
@@ -1970,24 +1927,6 @@ function ListingCard({ l, onOpen, isFav, onFav }) {
         <p className="text-xs cm-text-muted flex items-center gap-1 mt-2"><MapPin size={12} />{l.city}</p>
       </div>
     </div>
-  );
-}
-
-function ChipRow({ label, children }) {
-  return (
-    <div>
-      {label && <p className="text-xs font-bold cm-text-muted mb-1.5">{label}</p>}
-      <div className="flex gap-1.5 overflow-x-auto cm-scroll pb-1 cm-chip-row">{children}</div>
-    </div>
-  );
-}
-
-function Chip({ children, active, onClick, count }) {
-  return (
-    <button type="button" onClick={onClick} className={`cm-chip ${active ? "cm-chip-active" : ""}`}>
-      {children}
-      {count > 0 && <span className="cm-chip-count cm-tabular">{count}</span>}
-    </button>
   );
 }
 
