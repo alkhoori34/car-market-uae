@@ -27,10 +27,16 @@ Almost everything lives in `src/App.jsx` (one large component plus small
 helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
 `Spec`). Styles are in `src/index.css`.
 
-- **Styling rule:** colours and effects are named CSS classes (`cm-card`,
-  `cm-btn-primary`, `cm-chip`, `cm-tag-*`, `cm-badge-*` …) defined in
-  `index.css`. Use standard Tailwind utilities only for layout/spacing. Do not
-  use Tailwind arbitrary-value brackets like `bg-[#0A0E17]`.
+- **Design:** light and plain (since 2026-10-10, at the owner's request):
+  white background, dark text, one blue accent (`--cm-accent`) for actions
+  and links, no gradients or glows. Keep pages simple: home is search, a
+  "sell your car" banner and the newest cars; on the browse page every filter
+  (make, emirate, budget, body, year, km, specs, negotiable) sits in one
+  folded "الفلاتر" panel, not as chips on the page.
+- **Styling rule:** colours are CSS variables and named classes (`cm-card`,
+  `cm-btn-primary`, `cm-price`, `cm-tag-*`, `cm-badge-*` …) in `index.css`.
+  Use standard Tailwind utilities only for layout/spacing. Do not use Tailwind
+  arbitrary-value brackets like `bg-[#0A0E17]`.
 - **Routing / SEO:** real paths, defined once in `src/seo-data.js` (slugs for
   every make and city, `parsePath`, `paths`, page copy) and shared by the app
   and the server:
