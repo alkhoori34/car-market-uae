@@ -84,8 +84,8 @@ of the SQL in the repo root (see `listings-*.sql`).
 
 ## Open work
 
-- SEO next steps: add the site to Google Search Console and submit
-  `https://carsuae.net/sitemap.xml`; model-level pages
-  (`/used-cars/<make>/<model>`) are not built yet.
+- SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
+  record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
+  2026-10-10. Model-level pages (`/used-cars/<make>/<model>`) are not built yet.
 - Apple sign-in button exists but needs an Apple Developer account.
 - Phone OTP: waiting on Twilio compliance approval.
