@@ -1,0 +1,106 @@
+<!--
+  Supabase → Authentication → Email Templates → "Confirm signup"
+  Subject: أكّد بريدك الإلكتروني | مِرْآب
+  Paste everything below this comment into "Message body".
+  Email clients ignore <style> blocks and web fonts, so everything is inline
+  and built from tables.
+-->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>أكّد بريدك الإلكتروني</title>
+</head>
+<body style="margin:0; padding:0; background-color:#EEF1F8;" dir="rtl">
+  <!-- Preview text shown next to the subject in the inbox -->
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+    خطوة واحدة باقية: اضغط الزر لتفعيل حسابك في مِرْآب.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EEF1F8;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px; background-color:#FFFFFF; border-radius:16px; overflow:hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td align="center" bgcolor="#5B8DFF" style="background-color:#5B8DFF; background-image:linear-gradient(120deg,#5B8DFF 0%,#9B6BFF 100%); padding:28px 24px;">
+              <div style="font-family:Tahoma, Arial, sans-serif; font-size:26px; font-weight:bold; color:#FFFFFF; letter-spacing:0.5px;">مِرْآب</div>
+              <div style="font-family:Tahoma, Arial, sans-serif; font-size:13px; color:#E6ECFF; margin-top:4px;">سوق السيارات في الإمارات</div>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td dir="rtl" style="padding:32px 28px 8px 28px; text-align:right; font-family:Tahoma, Arial, sans-serif; color:#0A0E17;">
+              <h1 style="margin:0 0 12px 0; font-size:21px; line-height:1.4; font-weight:bold; color:#0A0E17;">أهلًا بك في مِرْآب 👋</h1>
+              <p style="margin:0 0 8px 0; font-size:15px; line-height:1.8; color:#33394A;">
+                شكرًا لتسجيلك. اضغط الزر بالأسفل لتأكيد بريدك الإلكتروني وتفعيل حسابك.
+              </p>
+              <p style="margin:0; font-size:15px; line-height:1.8; color:#33394A;">
+                بعد التفعيل تقدر تنشر سيارتك مجانًا، وتحفظ الإعلانات في المفضلة، وتتواصل مع البائعين.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Button -->
+          <tr>
+            <td align="center" style="padding:24px 28px 8px 28px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#5B8DFF" style="border-radius:10px; background-color:#5B8DFF;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank"
+                       style="display:inline-block; padding:14px 36px; font-family:Tahoma, Arial, sans-serif; font-size:16px; font-weight:bold; color:#FFFFFF; text-decoration:none; border-radius:10px;">
+                      تأكيد البريد الإلكتروني
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Fallback link -->
+          <tr>
+            <td dir="rtl" style="padding:20px 28px 0 28px; text-align:right; font-family:Tahoma, Arial, sans-serif;">
+              <p style="margin:0 0 6px 0; font-size:13px; line-height:1.7; color:#6B7286;">
+                إذا لم يعمل الزر، انسخ هذا الرابط والصقه في المتصفح:
+              </p>
+              <p dir="ltr" style="margin:0; font-size:12px; line-height:1.6; text-align:left; word-break:break-all;">
+                <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#5B8DFF; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Safety note -->
+          <tr>
+            <td dir="rtl" style="padding:24px 28px 28px 28px; text-align:right; font-family:Tahoma, Arial, sans-serif;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F5F7FC; border-radius:10px;">
+                <tr>
+                  <td dir="rtl" style="padding:14px 16px; font-size:13px; line-height:1.7; color:#6B7286; text-align:right;">
+                    لم تنشئ حسابًا في مِرْآب؟ تجاهل هذه الرسالة، ولن يتم تفعيل أي حساب بهذا البريد.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+        <!-- Footer -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+          <tr>
+            <td align="center" style="padding:20px 16px 0 16px; font-family:Tahoma, Arial, sans-serif; font-size:12px; line-height:1.7; color:#8A93AB;">
+              <a href="https://carsuae.net" target="_blank" style="color:#8A93AB; text-decoration:none;">carsuae.net</a>
+              &nbsp;·&nbsp; سوق السيارات في الإمارات
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
