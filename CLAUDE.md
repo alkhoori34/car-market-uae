@@ -44,6 +44,9 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   inbox" screen with a resend button. Supabase Site URL is
   `https://carsuae.net`, with `carsuae.net/**` and the vercel.app domain in
   the redirect allow list. Verified working end to end on 2026-10-10.
+  The Arabic email body lives in `email-templates/confirm-signup.html` and is
+  pasted by hand into Supabase → Auth → Email Templates (subject
+  "أكّد بريدك الإلكتروني | CarsUAE"); keep the two in sync.
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is
   approved.
