@@ -306,6 +306,18 @@ async function looksLikeVehicle(dataUrl) {
   }
 }
 
+// Supabase Auth answers in English; turn the common cases into plain Arabic.
+function authErrorMessage(err) {
+  const m = (err && err.message) || "";
+  if (/invalid login credentials/i.test(m)) return "البريد أو كلمة المرور غير صحيحة";
+  if (/already registered|already exists/i.test(m)) return "هذا البريد مسجّل مسبقًا. جرّب تسجيل الدخول.";
+  if (/password should be at least/i.test(m)) return "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
+  if (/rate limit|too many|security purposes|seconds/i.test(m)) return "محاولات كثيرة. انتظر دقيقة ثم حاول مرة أخرى.";
+  if (/sending|smtp|email.*(send|deliver)/i.test(m)) return "تعذر إرسال رسالة التأكيد الآن. حاول بعد قليل.";
+  if (/valid email|invalid email|email address/i.test(m)) return "اكتب بريدًا إلكترونيًا صحيحًا";
+  return m || "حدث خطأ، حاول مرة أخرى";
+}
+
 // Older listings stored the seller's account email as their name. Never show an
 // email address publicly: fall back to a neutral label instead.
 function sellerLabel(name) {
@@ -374,6 +386,10 @@ export default function CarMarket() {
   const [authMode, setAuthMode] = useState("login"); // login | signup
   const [authForm, setAuthForm] = useState({ email: "", password: "" });
   const [authLoading, setAuthLoading] = useState(false);
+  // Set after sign-up (or a login blocked by an unconfirmed email): the address
+  // waiting for its confirmation link.
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [resendWait, setResendWait] = useState(0);
   const [active, setActive] = useState(null);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [checking, setChecking] = useState(false);
@@ -484,26 +500,78 @@ export default function CarMarket() {
     setView("add");
   }
 
+  // The confirmation link brings people back to whichever address they signed
+  // up on (carsuae.net, or a preview URL), not Supabase's default Site URL.
+  const authRedirect = () => window.location.origin;
+
   async function handleAuthSubmit(e) {
     e.preventDefault();
     setAuthLoading(true);
+    const email = authForm.email.trim();
     try {
       if (authMode === "signup") {
-        const { error } = await supabase.auth.signUp({ email: authForm.email, password: authForm.password });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password: authForm.password,
+          options: { emailRedirectTo: authRedirect() },
+        });
         if (error) throw error;
-        showToast("تم إنشاء الحساب. إذا طُلب تأكيد بريدك، تحقق من إيميلك قبل الدخول.");
+        if (data.session) {
+          // Email confirmation is switched off: the account is ready now.
+          showToast("تم إنشاء الحساب وتسجيل دخولك");
+          setAuthOpen(false);
+        } else {
+          // Keep the dialog open on a "check your inbox" screen with a resend button.
+          setPendingEmail(email);
+        }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: authForm.email, password: authForm.password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password: authForm.password });
         if (error) throw error;
         showToast("تم تسجيل الدخول بنجاح");
+        setAuthOpen(false);
       }
-      setAuthOpen(false);
       setAuthForm({ email: "", password: "" });
     } catch (err) {
-      showToast(err.message || "حدث خطأ، حاول مرة أخرى", "red");
+      if (/not confirmed/i.test(err.message || "")) {
+        setPendingEmail(email);
+        showToast("لم يتم تأكيد بريدك بعد. أرسلنا لك خيار إعادة إرسال رابط التأكيد.", "red");
+      } else {
+        showToast(authErrorMessage(err), "red");
+      }
     } finally {
       setAuthLoading(false);
     }
+  }
+
+  async function resendConfirmation() {
+    if (!pendingEmail || resendWait > 0) return;
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: pendingEmail,
+        options: { emailRedirectTo: authRedirect() },
+      });
+      if (error) throw error;
+      showToast("أعدنا إرسال رابط التأكيد إلى بريدك");
+      setResendWait(60);
+    } catch (err) {
+      showToast(authErrorMessage(err), "red");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  // Count down the resend cooldown so people can't hammer the button.
+  useEffect(() => {
+    if (resendWait <= 0) return;
+    const t = setTimeout(() => setResendWait((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendWait]);
+
+  function closeAuth() {
+    setAuthOpen(false);
+    setPendingEmail("");
   }
 
   async function handleLogout() {
@@ -1623,13 +1691,45 @@ export default function CarMarket() {
 
       {/* Auth modal */}
       {authOpen && (
-        <div className="cm-modal-backdrop flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setAuthOpen(false)}>
+        <div className="cm-modal-backdrop flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={closeAuth}>
           <div onClick={(e) => e.stopPropagation()} className="cm-card-solid rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="cm-display font-extrabold text-lg">{authMode === "signup" ? "إنشاء حساب" : "تسجيل الدخول"}</h3>
-              <button onClick={() => setAuthOpen(false)} className="cm-icon-empty"><X size={20} /></button>
+              <h3 className="cm-display font-extrabold text-lg">
+                {pendingEmail ? "أكّد بريدك الإلكتروني" : authMode === "signup" ? "إنشاء حساب" : "تسجيل الدخول"}
+              </h3>
+              <button onClick={closeAuth} className="cm-icon-empty"><X size={20} /></button>
             </div>
 
+            {pendingEmail ? (
+              <div className="text-center">
+                <CheckCircle2 size={36} className="cm-text-mint mx-auto mb-3" />
+                <p className="text-sm leading-relaxed">
+                  أرسلنا رابط التأكيد إلى
+                  <br />
+                  <span className="font-bold" dir="ltr">{pendingEmail}</span>
+                </p>
+                <p className="text-xs cm-text-muted mt-2 leading-relaxed">
+                  افتح الرسالة واضغط الرابط، ثم سجّل الدخول. إذا لم تجدها خلال دقيقتين، تحقق من مجلد الرسائل غير المرغوب فيها (Spam).
+                </p>
+                <button
+                  type="button"
+                  onClick={resendConfirmation}
+                  disabled={authLoading || resendWait > 0}
+                  className="w-full cm-btn-ghost font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 mt-4"
+                >
+                  {authLoading ? <Loader2 className="animate-spin" size={16} /> : null}
+                  {resendWait > 0 ? `إعادة الإرسال بعد ${resendWait} ثانية` : "إعادة إرسال رابط التأكيد"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPendingEmail(""); setAuthMode("login"); }}
+                  className="text-xs cm-link font-bold mt-3"
+                >
+                  أكّدت بريدي، سجّل الدخول
+                </button>
+              </div>
+            ) : (
+            <>
             <form onSubmit={handleAuthSubmit} className="space-y-3">
               <Field label="البريد الإلكتروني">
                 <input required type="email" value={authForm.email} onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })} placeholder="you@example.com" className="cm-input" />
@@ -1680,6 +1780,8 @@ export default function CarMarket() {
                 {authMode === "signup" ? "سجّل الدخول" : "أنشئ حساب جديد"}
               </button>
             </p>
+            </>
+            )}
           </div>
         </div>
       )}
