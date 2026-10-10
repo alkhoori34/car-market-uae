@@ -1,8 +1,8 @@
 # carsuae.net — project notes for Claude
 
 Arabic (RTL) used-car marketplace for the UAE, dubizzle-style: sellers post
-listings for free, buyers browse and contact them. The in-app brand name is
-"مِرْآب"; the public domain is **carsuae.net**.
+listings for free, buyers browse and contact them. The brand name is **CarsUAE** (it replaced
+the earlier name "مِرْآب" on 2026-10-10); the public domain is **carsuae.net**.
 
 **Talk to the owner in Arabic.** He is not a developer: give plain,
 step-by-step instructions, and do the technical work yourself wherever the

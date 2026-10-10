@@ -480,8 +480,8 @@ export default function CarMarket() {
   // browsers show, and what someone sees in their history.
   useEffect(() => {
     document.title = active
-      ? `${active.make} ${active.model} ${active.year} — ${formatNumber(active.price)} د.إ | مرآب`
-      : "مرآب — سوق السيارات في الإمارات";
+      ? `${active.make} ${active.model} ${active.year} — ${formatNumber(active.price)} د.إ | CarsUAE`
+      : "CarsUAE — سوق السيارات في الإمارات";
   }, [active]);
 
   function showToast(msg, tone = "mint") {
@@ -994,7 +994,7 @@ export default function CarMarket() {
             <div className="w-9 h-9 rounded-lg cm-logo flex items-center justify-center">
               <Car size={20} className="text-white" strokeWidth={2.5} />
             </div>
-            <span className="cm-display font-extrabold text-lg tracking-tight hidden sm:block">مِرْآب</span>
+            <span dir="ltr" className="cm-display font-extrabold text-lg tracking-tight hidden sm:block">Cars<span className="cm-grad-text">UAE</span></span>
           </button>
 
           <nav className="flex items-center gap-2">
@@ -1660,7 +1660,7 @@ export default function CarMarket() {
                     </button>
                   )}
                   <a
-                    href={`https://wa.me/${toE164(active.phone).replace("+", "")}?text=${encodeURIComponent(`مرحبًا، أنا مهتم بـ ${active.make} ${active.model} ${active.year} المعروضة على مرآب: ${listingUrl(active.id)}`)}`}
+                    href={`https://wa.me/${toE164(active.phone).replace("+", "")}?text=${encodeURIComponent(`مرحبًا، أنا مهتم بـ ${active.make} ${active.model} ${active.year} المعروضة على CarsUAE: ${listingUrl(active.id)}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="مراسلة البائع على واتساب"
