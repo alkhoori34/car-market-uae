@@ -22,6 +22,10 @@
       "destination": "/api/page?route=/used-cars/:a/:b"
     },
     {
+      "source": "/dealer/:slug",
+      "destination": "/api/page?route=/dealer/:slug"
+    },
+    {
       "source": "/((?!api/|assets/).*)",
       "destination": "/index.html"
     }

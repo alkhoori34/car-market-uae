@@ -4,16 +4,18 @@
 //   /used-cars/<make>         e.g. /used-cars/toyota
 //   /used-cars/in/<city>      e.g. /used-cars/in/dubai
 //   /used-cars/under/<max>    e.g. /used-cars/under/50000
+//   /used-cars/<make>/<model> e.g. /used-cars/lexus/ls
+//   /dealer/<slug>            one dealer's cars
 // vercel.json rewrites those paths here as ?route=<path>. Each response is the
 // normal app shell with real <head> tags and the page content already in
 // #root; the React app then takes over in the browser.
 
 import {
   SITE_URL, SITE_NAME, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS,
-  parsePath, paths, categoryCopy, carCopy, carTitle,
+  parsePath, paths, categoryCopy, carCopy, carTitle, modelSlug,
 } from "../src/seo-data.js";
 import {
-  LISTING_FIELDS, queryListings, getShell, fillShell, send, esc, jsonLd, fmt, photo,
+  LISTING_FIELDS, queryListings, queryTable, getShell, fillShell, send, esc, jsonLd, fmt, photo,
 } from "./_lib.js";
 
 const PAGE_SIZE = 48;
@@ -65,7 +67,7 @@ export default async function handler(req, res) {
 async function carPage(shell, route) {
   // Listing ids are UUIDs; anything else cannot match, so skip the query.
   if (!/^[0-9a-f-]{8,40}$/i.test(route.id)) return [404, notFound(shell, paths.car(route.id))];
-  const { rows } = await queryListings([["select", LISTING_FIELDS], ["id", `eq.${route.id}`], ["limit", "1"]]);
+  const { rows } = await queryListings([["select", LISTING_FIELDS], ["id", `eq.${route.id}`], ["limit", "1"]], { live: false });
   const l = rows[0];
   if (!l) return [404, notFound(shell, paths.car(route.id))];
 
@@ -88,6 +90,7 @@ async function carPage(shell, route) {
     ["الرئيسية", "/"],
     ["سيارات مستعملة", paths.all()],
     MAKE_SLUGS[l.make] ? [l.make, paths.make(l.make)] : null,
+    MAKE_SLUGS[l.make] && modelSlug(l.model) ? [`${l.make} ${l.model}`, paths.model(l.make, l.model)] : null,
     [carTitle(l), paths.car(l.id)],
   ].filter(Boolean);
 
@@ -110,7 +113,7 @@ async function carPage(shell, route) {
       "@type": "Offer",
       price: Number(l.price),
       priceCurrency: "AED",
-      availability: "https://schema.org/InStock",
+      availability: l.sold ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
       url,
       areaServed: l.city || "الإمارات العربية المتحدة",
     },
@@ -123,7 +126,7 @@ ${siteHeader()}
   <article class="cm-card rounded-2xl overflow-hidden">
     ${gallery.length ? `<img src="${esc(gallery[0])}" alt="${esc(carTitle(l))}" class="w-full object-cover cm-aspect-16-9">` : ""}
     <div class="p-5">
-      <h1 class="cm-display font-extrabold text-2xl">${esc(carTitle(l))} للبيع</h1>
+      ${l.sold ? `<p class="cm-badge cm-badge-red mb-2">تم بيع هذه السيارة</p>` : ""}<h1 class="cm-display font-extrabold text-2xl">${esc(carTitle(l))}${l.sold ? "" : " للبيع"}</h1>
       <p class="text-2xl font-black mt-2">${fmt(l.price)} د.إ${l.negotiable ? ` <span class="cm-badge cm-badge-blue">قابل للتفاوض</span>` : ""}</p>
       ${l.previous_price && Number(l.previous_price) > Number(l.price) ? `<p class="text-sm cm-text-muted">السعر السابق: <s>${fmt(l.previous_price)} د.إ</s></p>` : ""}
       <dl class="grid grid-cols-2 gap-2 mt-4 text-sm">
@@ -154,7 +157,24 @@ ${siteHeader()}
 // --- Category pages --------------------------------------------------------
 
 async function categoryPage(shell, route) {
+  // Model pages: find the model's display name among this make's listings.
+  let models = [];
+  if (route.kind === "model" || route.kind === "make") {
+    ({ rows: models } = await queryListings([["select", "model"], ["make", `eq.${route.make}`], ["limit", "2000"]]));
+  }
+  if (route.kind === "model") {
+    const hit = models.find((r) => modelSlug(r.model) === route.modelSlug);
+    if (!hit) return notFound(shell, `/used-cars/${encodeURIComponent(route.modelSlug)}`);
+    route = { ...route, model: hit.model };
+  }
+  if (route.kind === "dealer") {
+    const [dealer] = await queryTable("dealers", [["select", "*"], ["slug", `eq.${route.slug}`], ["limit", "1"]]);
+    if (!dealer) return notFound(shell, paths.dealer(route.slug));
+    route = { ...route, id: dealer.id, name: dealer.name, verified: dealer.verified, instagram: dealer.instagram };
+  }
   const filters = [];
+  if (route.kind === "model") filters.push(["make", `eq.${route.make}`], ["model", `eq.${route.model}`]);
+  if (route.kind === "dealer") filters.push(["dealer_id", `eq.${route.id}`]);
   if (route.kind === "make") filters.push(["make", `eq.${route.make}`]);
   if (route.kind === "city") filters.push(["city", `eq.${route.city}`]);
   if (route.kind === "budget") filters.push(["price", `lte.${route.max}`]);
@@ -167,7 +187,9 @@ async function categoryPage(shell, route) {
     getFacets(),
   ]);
 
-  const path = route.kind === "make" ? paths.make(route.make)
+  const path = route.kind === "model" ? paths.model(route.make, route.model)
+    : route.kind === "dealer" ? paths.dealer(route.slug)
+    : route.kind === "make" ? paths.make(route.make)
     : route.kind === "city" ? paths.city(route.city)
     : route.kind === "budget" ? paths.budget(route.max)
     : paths.all();
@@ -178,21 +200,34 @@ async function categoryPage(shell, route) {
   const crumbs = [
     ["الرئيسية", "/"],
     ["سيارات مستعملة", paths.all()],
+    route.kind === "model" ? [route.make, paths.make(route.make)] : null,
     route.kind !== "all" ? [copy.h1, path] : null,
   ].filter(Boolean);
 
   const intro = total
     ? `يوجد حاليًا ${fmt(total)} إعلان${prices.length ? `، بأسعار تبدأ من ${fmt(Math.min(...prices))} وتصل إلى ${fmt(Math.max(...prices))} درهم` : ""}. كل الإعلانات من البائعين مباشرة، بدون وسيط.`
     : "لا توجد إعلانات في هذا القسم حاليًا. تصفح باقي السيارات أو انشر سيارتك مجانًا.";
+  const dealerIntro = route.kind === "dealer"
+    ? `<p class="text-sm mb-5">${route.verified ? `<span class="cm-badge cm-badge-mint">وسيط معتمد</span> ` : ""}${route.instagram ? `<a class="cm-link" href="https://instagram.com/${esc(route.instagram.replace(/^@/, ""))}" rel="noopener">@${esc(route.instagram.replace(/^@/, ""))}</a>` : ""}</p>`
+    : "";
+  // Links to this make's model pages (other models when on a model page).
+  const modelTally = {};
+  models.forEach((r) => { if (r.model && modelSlug(r.model)) modelTally[r.model] = (modelTally[r.model] || 0) + 1; });
+  const modelChips = Object.entries(modelTally)
+    .filter(([m]) => !(route.kind === "model" && m === route.model))
+    .sort((a, b) => b[1] - a[1]).slice(0, 30)
+    .map(([m, n]) => `<li><a class="cm-chip" href="${paths.model(route.make, m)}">${esc(`${route.make} ${m}`)} (${fmt(n)})</a></li>`);
 
   const body = `
 ${siteHeader()}
 <main class="max-w-6xl mx-auto px-4 py-6">
   ${breadcrumbs(crumbs)}
   <h1 class="cm-display font-extrabold text-2xl mb-2">${esc(copy.h1)}</h1>
-  <p class="cm-text-muted text-sm mb-5">${esc(intro)}</p>
+  <p class="cm-text-muted text-sm mb-5">${esc(route.kind === "dealer" ? intro.replace("كل الإعلانات من البائعين مباشرة، بدون وسيط.", "") : intro)}</p>
+  ${dealerIntro}
   ${rows.length ? `<ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${rows.map(card).join("")}</ul>` : ""}
   ${total > rows.length ? `<p class="text-sm cm-text-muted mt-4">نعرض أحدث ${fmt(rows.length)} إعلان. <a class="cm-link" href="${path}">افتح الصفحة</a> لتصفح الكل والفلترة.</p>` : ""}
+  ${modelChips.length ? `<section class="mt-8 text-sm"><h2 class="font-bold">موديلات ${esc(route.make)}</h2><ul class="flex flex-wrap gap-2 mt-2">${modelChips.join("")}</ul></section>` : ""}
   ${relatedLinks(facets, route)}
 </main>`;
 
