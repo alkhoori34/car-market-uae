@@ -11,13 +11,18 @@ const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_
 export const REPORT_THRESHOLD = 3;
 
 export const LISTING_FIELDS =
-  "id,make,model,body_type,year,price,previous_price,negotiable,mileage,city,fuel,trans,condition,specs,steering,description,seller_name,image,images,created_at";
+  "id,make,model,body_type,year,price,previous_price,negotiable,mileage,city,fuel,trans,condition,specs,steering,description,seller_name,image,images,created_at,sold";
 
 // Queries Supabase's REST API. `params` is an array of [key, value] pairs so
 // the same column can be filtered twice. Returns { rows, total }.
-export async function queryListings(params, { count = false } = {}) {
+// By default only live listings: not sold and not past their expiry date
+// (pass { live: false } for a single car page, which explains a sold car).
+export async function queryListings(params, { count = false, live = true } = {}) {
   if (!SUPABASE_URL || !SUPABASE_KEY) throw new Error("Supabase env vars missing");
-  const qs = new URLSearchParams([["reports_count", `lt.${REPORT_THRESHOLD}`], ...params]);
+  const liveFilters = live
+    ? [["sold", "eq.false"], ["or", `(expires_at.is.null,expires_at.gt.${new Date().toISOString()})`]]
+    : [];
+  const qs = new URLSearchParams([["reports_count", `lt.${REPORT_THRESHOLD}`], ...liveFilters, ...params]);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/listings?${qs}`, {
     headers: {
       apikey: SUPABASE_KEY,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { paths, parsePath, makeSlug, citySlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 
@@ -21,6 +21,20 @@ const OTHER = "__OTHER__";
 const MAX_IMAGES = 8;
 // A listing disappears from the site once this many people report it, pending review.
 const REPORT_THRESHOLD = 3;
+// A listing stays up this many days; the seller can renew it from "إعلاناتي".
+const LISTING_DAYS = 30;
+const isExpired = (l) => Boolean(l.expires_at) && Date.parse(l.expires_at) <= Date.now();
+const isLive = (l) => !l.sold && !isExpired(l);
+const daysLeft = (l) => (l.expires_at ? Math.ceil((Date.parse(l.expires_at) - Date.now()) / 86400000) : null);
+const renewedExpiry = () => new Date(Date.now() + LISTING_DAYS * 86400000).toISOString();
+// "05xxxxxxxx" / "+9715xxxxxxxx" -> "9715xxxxxxxx" for wa.me links.
+const waNumber = (phone) => {
+  let d = String(phone || "").replace(/\D/g, "").replace(/^00/, "");
+  if (d.startsWith("971")) return d;
+  if (d.startsWith("0")) return "971" + d.slice(1);
+  if (d.length === 9) return "971" + d;
+  return d;
+};
 // Twilio blocks SMS to unverified UAE numbers until the account has an approved
 // compliance profile. Until then, verification is offered but not required.
 const REQUIRE_PHONE_VERIFICATION = false;
@@ -364,6 +378,15 @@ function Badge({ children, tone = "blue" }) {
   return <span className={`cm-badge ${cls}`}>{children}</span>;
 }
 
+// Shown under the seller's own cards: sold, expired, or days left.
+function ListingStatus({ l }) {
+  if (l.sold) return <Badge tone="muted">مُباعة{l.sold_at ? ` · ${new Date(l.sold_at).toLocaleDateString("ar-AE")}` : ""}</Badge>;
+  if (isExpired(l)) return <Badge tone="red">منتهي · جدّده عشان يرجع يظهر</Badge>;
+  const d = daysLeft(l);
+  if (d === null) return <Badge tone="mint">ظاهر للمشترين</Badge>;
+  return <Badge tone={d <= 7 ? "red" : "mint"}>ظاهر · ينتهي بعد {d} {d === 1 ? "يوم" : "يوم"}</Badge>;
+}
+
 function PricePlate({ price, size = "md" }) {
   return (
     <span className={`cm-price ${size === "lg" ? "text-3xl" : "text-xl"}`}>
@@ -417,6 +440,13 @@ export default function CarMarket() {
   const [editingId, setEditingId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Admin (rows in public.admins; checked again by the database on every write).
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminRows, setAdminRows] = useState([]);
+  const [adminReports, setAdminReports] = useState([]);
+  const [adminTab, setAdminTab] = useState("all"); // all | live | sold | expired | reported
+  const [adminQ, setAdminQ] = useState("");
+
   const emptyForm = {
     make: MAKES[0], makeOther: "", model: MODELS[MAKES[0]][0], modelOther: "",
     bodyType: BODY_TYPES[0], year: new Date().getFullYear(), price: "", mileage: "",
@@ -461,6 +491,23 @@ export default function CarMarket() {
     return () => { clearInterval(id); listener.subscription.unsubscribe(); };
   }, []);
 
+  useEffect(() => {
+    if (!session) { setIsAdmin(false); return; }
+    supabase.from("admins").select("user_id").eq("user_id", session.user.id).maybeSingle()
+      .then(({ data }) => setIsAdmin(Boolean(data)));
+  }, [session]);
+
+  async function loadAdmin() {
+    const [{ data: rows }, { data: reps }] = await Promise.all([
+      supabase.from("listings").select("*").order("created_at", { ascending: false }),
+      supabase.from("reports").select("*").order("created_at", { ascending: false }),
+    ]);
+    setAdminRows(rows || []);
+    setAdminReports(reps || []);
+  }
+
+  useEffect(() => { if (view === "admin" && isAdmin) loadAdmin(); }, [view, isAdmin]);
+
 
   // --- URL routing ---------------------------------------------------------
   // Real paths (see src/seo-data.js): /used-cars, /used-cars/<make>,
@@ -493,7 +540,7 @@ export default function CarMarket() {
     function onPop() {
       const route = parsePath(window.location.pathname);
       // Back from a listing to its list: close it but keep the visitor's filters.
-      if (activeRef.current && route && route.kind !== "car") {
+      if (activeRef.current && (!route || route.kind !== "car")) {
         openedInApp.current = false;
         setActive(null);
         return;
@@ -979,10 +1026,35 @@ export default function CarMarket() {
     }
   }
 
+  // Sold / back on sale, and renewing for another LISTING_DAYS days. The
+  // database lets the owner (and admins) make these changes.
+  async function updateListing(id, patch, okMsg) {
+    const { error } = await supabase.from("listings").update(patch).eq("id", id);
+    if (error) { showToast("تعذر التحديث: " + error.message, "red"); return false; }
+    showToast(okMsg);
+    await loadListings();
+    if (isAdmin) loadAdmin();
+    setActive((a) => (a && a.id === id ? { ...a, ...patch } : a));
+    return true;
+  }
+  const markSold = (l, sold = true) =>
+    updateListing(l.id, { sold, sold_at: sold ? new Date().toISOString() : null }, sold ? "تم تعليم السيارة كمُباعة" : "رجع الإعلان للبيع");
+  const renewListing = (l) =>
+    updateListing(l.id, { expires_at: renewedExpiry() }, `تم تجديد الإعلان ${LISTING_DAYS} يومًا`);
+
+  async function dismissReports(listingId) {
+    const { error } = await supabase.from("reports").delete().eq("listing_id", listingId);
+    if (!error) await supabase.from("listings").update({ reports_count: 0 }).eq("id", listingId);
+    if (error) showToast("تعذر حذف البلاغات: " + error.message, "red");
+    else showToast("تم تجاهل البلاغات ورجع الإعلان");
+    loadAdmin(); loadListings();
+  }
+
   async function deleteListing(id) {
+    if (!window.confirm("متأكد تبي تحذف هذا الإعلان نهائيًا؟")) return;
     try {
       // Work out which files in Storage belong to this listing before the row goes.
-      const row = listings.find((l) => l.id === id);
+      const row = listings.find((l) => l.id === id) || adminRows.find((l) => l.id === id);
       const urls = (row?.images?.length ? row.images : [row?.image]).filter(Boolean);
       const paths = urls
         .map((u) => u.split("/car-images/")[1])
@@ -1005,6 +1077,7 @@ export default function CarMarket() {
       }
 
       await loadListings();
+      if (isAdmin) loadAdmin();
       setActive(null);
       showToast("تم حذف الإعلان", "muted");
     } catch (err) {
@@ -1013,8 +1086,11 @@ export default function CarMarket() {
   }
 
 
+  // Sold and expired listings stay in the database but leave the public pages.
+  const liveListings = useMemo(() => listings.filter(isLive), [listings]);
+
   const filtered = useMemo(() => {
-    const rows = listings.filter((l) => {
+    const rows = liveListings.filter((l) => {
       const text = `${l.make} ${l.model}`.toLowerCase();
       if (q && !text.includes(q.toLowerCase())) return false;
       if (makeFilter !== "الكل" && l.make !== makeFilter) return false;
@@ -1037,7 +1113,7 @@ export default function CarMarket() {
       kmAsc: (a, b) => (a.mileage || 0) - (b.mileage || 0),
     };
     return rows.sort(sorters[sortBy] || sorters.newest);
-  }, [listings, q, makeFilter, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter, minYear, maxKm, negotiableOnly]);
+  }, [liveListings, q, makeFilter, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter, minYear, maxKm, negotiableOnly]);
 
   const clearFilters = () => { setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setMinYear(""); setMaxKm(""); setNegotiableOnly(false); setQ(""); };
   const filtersActive = makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || minYear || maxKm || negotiableOnly || q;
@@ -1112,6 +1188,11 @@ export default function CarMarket() {
                     <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                     <div className="absolute left-0 mt-2 w-56 cm-card-solid rounded-xl shadow-xl p-2 z-50">
                       <p className="text-xs cm-text-muted px-2 py-1.5 truncate">{session.user.email}</p>
+                      {isAdmin && (
+                        <button onClick={() => { setMenuOpen(false); setView("admin"); }} className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2 rounded-lg cm-navbtn">
+                          <ShieldCheck size={15} /> لوحة الإدارة
+                        </button>
+                      )}
                       <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2 rounded-lg cm-navbtn">
                         <LogOut size={15} /> تسجيل الخروج
                       </button>
@@ -1175,7 +1256,7 @@ export default function CarMarket() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="cm-section-title">أحدث السيارات</h2>
-                {listings.length > 0 && (
+                {liveListings.length > 0 && (
                   <button onClick={() => setView("browse")} className="text-sm cm-link font-bold">عرض الكل</button>
                 )}
               </div>
@@ -1183,7 +1264,7 @@ export default function CarMarket() {
                 <div className="flex items-center justify-center py-16 cm-text-muted">
                   <Loader2 className="animate-spin ml-2" size={18} /> جارِ التحميل...
                 </div>
-              ) : listings.length === 0 ? (
+              ) : liveListings.length === 0 ? (
                 <div className="text-center py-16 rounded-xl cm-soft">
                   <Car size={36} className="cm-icon-empty mx-auto mb-3" />
                   <p className="font-bold mb-1">لا توجد سيارات معروضة بعد</p>
@@ -1192,7 +1273,7 @@ export default function CarMarket() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {listings.slice(0, 6).map((l) => (
+                  {liveListings.slice(0, 6).map((l) => (
                     <ListingCard
                       key={l.id}
                       l={l}
@@ -1245,14 +1326,33 @@ export default function CarMarket() {
                           onFav={() => toggleFavorite(l.id)}
                         />
                         {view === "mine" && (
-                          <div className="flex gap-2 pt-2">
-                            <button onClick={() => startEdit(l)} className="flex-1 flex items-center justify-center gap-1.5 cm-btn-ghost text-xs font-bold py-2 rounded-lg">
-                              <Pencil size={13} /> تعديل
-                            </button>
-                            <button onClick={() => deleteListing(l.id)} className="flex items-center justify-center cm-danger-outline px-3 py-2 rounded-lg">
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
+                          <>
+                            <div className="pt-2">
+                              <ListingStatus l={l} />
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                              {l.sold ? (
+                                <button onClick={() => markSold(l, false)} className="flex-1 flex items-center justify-center gap-1.5 cm-btn-ghost text-xs font-bold py-2 rounded-lg">
+                                  <Undo2 size={13} /> إرجاع للبيع
+                                </button>
+                              ) : (
+                                <button onClick={() => markSold(l)} className="flex-1 flex items-center justify-center gap-1.5 cm-btn-ghost text-xs font-bold py-2 rounded-lg">
+                                  <CircleCheck size={13} /> تم البيع
+                                </button>
+                              )}
+                              {!l.sold && (daysLeft(l) ?? 99) <= 7 && (
+                                <button onClick={() => renewListing(l)} className="flex-1 flex items-center justify-center gap-1.5 cm-btn-primary text-xs font-bold py-2 rounded-lg">
+                                  <RefreshCw size={13} /> تجديد
+                                </button>
+                              )}
+                              <button onClick={() => startEdit(l)} title="تعديل" className="flex items-center justify-center cm-btn-ghost px-3 py-2 rounded-lg">
+                                <Pencil size={13} />
+                              </button>
+                              <button onClick={() => deleteListing(l.id)} title="حذف" className="flex items-center justify-center cm-danger-outline px-3 py-2 rounded-lg">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                     ))}
@@ -1263,6 +1363,86 @@ export default function CarMarket() {
           })()}
         </main>
       )}
+
+      {view === "admin" && isAdmin && (() => {
+        const status = (l) => (l.reports_count >= REPORT_THRESHOLD ? "reported" : l.sold ? "sold" : isExpired(l) ? "expired" : "live");
+        const counts = { all: adminRows.length, live: 0, sold: 0, expired: 0, reported: 0 };
+        adminRows.forEach((l) => { counts[status(l)] += 1; });
+        const reportedIds = new Set(adminReports.map((r) => r.listing_id));
+        const needle = adminQ.trim().toLowerCase();
+        const rows = adminRows.filter((l) => {
+          if (adminTab === "reported" ? !(reportedIds.has(l.id) || l.reports_count > 0) : adminTab !== "all" && status(l) !== adminTab) return false;
+          if (!needle) return true;
+          return `${l.make} ${l.model} ${l.year} ${l.seller_name || ""} ${l.phone || ""} ${l.city || ""}`.toLowerCase().includes(needle);
+        });
+        const tabs = [["all", "الكل"], ["live", "ظاهرة"], ["sold", "مُباعة"], ["expired", "منتهية"], ["reported", "بلاغات"]];
+        const label = { live: ["ظاهرة", "mint"], sold: ["مُباعة", "muted"], expired: ["منتهية", "red"], reported: ["مخفية بسبب البلاغات", "red"] };
+        return (
+          <main className="max-w-6xl mx-auto px-4 py-6">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h1 className="cm-display font-extrabold text-2xl">لوحة الإدارة</h1>
+              <button onClick={loadAdmin} className="cm-btn-ghost text-sm font-bold px-3 py-2 rounded-lg flex items-center gap-1.5"><RefreshCw size={14} /> تحديث</button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+              <div className="cm-stat"><b className="cm-tabular">{counts.all}</b><span>كل الإعلانات</span></div>
+              <div className="cm-stat"><b className="cm-tabular">{counts.live}</b><span>ظاهرة للمشترين</span></div>
+              <div className="cm-stat"><b className="cm-tabular">{counts.sold}</b><span>مُباعة</span></div>
+              <div className="cm-stat"><b className="cm-tabular">{adminReports.length}</b><span>بلاغات</span></div>
+            </div>
+
+            <div className="relative mb-3">
+              <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 cm-text-muted" />
+              <input value={adminQ} onChange={(e) => setAdminQ(e.target.value)} placeholder="ابحث بالماركة، الموديل، اسم البائع أو الرقم" className="cm-input" style={{ paddingRight: "2.4rem" }} />
+            </div>
+            <div className="flex gap-2 overflow-x-auto cm-chip-row pb-1 mb-4">
+              {tabs.map(([k, t]) => (
+                <button key={k} onClick={() => setAdminTab(k)} className={`cm-tab ${adminTab === k ? "cm-tab-on" : ""}`}>{t} ({k === "reported" ? reportedIds.size : counts[k]})</button>
+              ))}
+            </div>
+
+            {rows.length === 0 ? (
+              <div className="text-center py-12 rounded-xl cm-soft cm-text-muted text-sm">لا توجد إعلانات هنا.</div>
+            ) : (
+              <div className="space-y-2.5">
+                {rows.map((l) => {
+                  const st = status(l);
+                  const reps = adminReports.filter((r) => r.listing_id === l.id);
+                  const photo = l.image || l.images?.[0];
+                  return (
+                    <div key={l.id} className="cm-row p-3">
+                      <div className="flex gap-3 items-start">
+                        {photo ? <img src={photo} alt="" className="cm-thumb" /> : <div className="cm-thumb flex items-center justify-center"><Car size={20} className="cm-icon-empty" /></div>}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="font-bold truncate">{l.make} {l.model} {l.year}</p>
+                            <Badge tone={label[st][1]}>{label[st][0]}</Badge>
+                          </div>
+                          <p className="text-sm cm-tabular mt-0.5"><b>{formatNumber(l.price)}</b> د.إ · {l.city} · {timeAgo(l.created_at)}</p>
+                          <p className="text-xs cm-text-muted mt-0.5 cm-tabular truncate">{sellerLabel(l.seller_name)} · <span dir="ltr">{l.phone}</span>{st === "live" && daysLeft(l) !== null ? ` · ينتهي بعد ${daysLeft(l)} يوم` : ""}</p>
+                        </div>
+                      </div>
+                      {reps.length > 0 && (
+                        <div className="mt-2 rounded-lg cm-soft p-2 text-xs space-y-1">
+                          <p className="font-bold cm-text-danger flex items-center gap-1"><Flag size={12} /> {reps.length} بلاغ</p>
+                          {reps.slice(0, 3).map((r) => <p key={r.id} className="cm-text-muted">• {r.reason || "بدون سبب"} ({timeAgo(r.created_at)})</p>)}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-2.5">
+                        <button onClick={() => openListing(l)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><Eye size={13} /> عرض</button>
+                        <button onClick={() => markSold(l, !l.sold)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">{l.sold ? <><Undo2 size={13} /> إرجاع للبيع</> : <><CircleCheck size={13} /> تم البيع</>}</button>
+                        {!l.sold && <button onClick={() => renewListing(l)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><RefreshCw size={13} /> تجديد {LISTING_DAYS} يوم</button>}
+                        {reps.length > 0 && <button onClick={() => dismissReports(l.id)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg">تجاهل البلاغات</button>}
+                        <button onClick={() => deleteListing(l.id)} className="cm-danger-outline text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><Trash2 size={13} /> حذف</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </main>
+        );
+      })()}
 
       {view === "browse" && (
         <main className="max-w-6xl mx-auto px-4 py-6">
@@ -1623,6 +1803,17 @@ export default function CarMarket() {
                 <Badge tone={active.condition === "جديدة" ? "mint" : "muted"}>{active.condition}</Badge>
               </div>
 
+              {active.sold && (
+                <div className="mt-3 rounded-lg px-3 py-2 text-sm font-bold cm-badge-red" style={{ border: "1px solid" }}>
+                  تم بيع هذه السيارة
+                </div>
+              )}
+              {!active.sold && isExpired(active) && (
+                <div className="mt-3 rounded-lg px-3 py-2 text-sm font-bold cm-badge-muted" style={{ border: "1px solid" }}>
+                  انتهت مدة هذا الإعلان
+                </div>
+              )}
+
               <div className="my-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <PricePlate price={active.price} size="lg" />
@@ -1674,37 +1865,43 @@ export default function CarMarket() {
                     <p className="text-sm font-bold cm-tabular cm-text-muted">•••• ••• ••••</p>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  {session ? (
+                <div className="flex flex-wrap justify-end gap-2">
+                  {!active.sold && (
+                    <a
+                      href={`https://wa.me/${waNumber(active.phone)}?text=${encodeURIComponent(`السلام عليكم، شفت إعلان ${active.make} ${active.model} ${active.year} على CarsUAE وأبي أستفسر عنها: ${listingUrl(active.id)}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 cm-btn-wa font-bold text-sm px-4 py-2 rounded-lg"
+                    >
+                      <MessageCircle size={15} /> واتساب
+                    </a>
+                  )}
+                  {active.sold ? null : session ? (
                     <a href={`tel:${active.phone}`} className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
                       <Phone size={15} /> اتصال
                     </a>
                   ) : (
                     <button
                       onClick={() => setAuthOpen(true)}
-                      className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg"
+                      className="flex items-center gap-1.5 cm-btn-ghost font-bold text-sm px-4 py-2 rounded-lg"
                     >
-                      <LogIn size={15} /> سجّل الدخول لعرض الرقم
+                      <Phone size={15} /> عرض الرقم
                     </button>
                   )}
-                  {session && active.seller_id === session.user.id ? (
-                    <button onClick={() => deleteListing(active.id)} title="حذف الإعلان" className="flex items-center justify-center cm-danger-outline px-3 py-2 rounded-lg">
-                      <Trash2 size={15} />
-                    </button>
+                  {session && (active.seller_id === session.user.id || isAdmin) ? (
+                    <>
+                      <button onClick={() => markSold(active, !active.sold)} title={active.sold ? "إرجاع للبيع" : "تم البيع"} className="flex items-center gap-1 cm-btn-ghost text-sm font-bold px-3 py-2 rounded-lg">
+                        {active.sold ? <><Undo2 size={15} /> إرجاع للبيع</> : <><CircleCheck size={15} /> تم البيع</>}
+                      </button>
+                      <button onClick={() => deleteListing(active.id)} title="حذف الإعلان" className="flex items-center justify-center cm-danger-outline px-3 py-2 rounded-lg">
+                        <Trash2 size={15} />
+                      </button>
+                    </>
                   ) : (
                     <button onClick={() => reportListing(active.id)} title="إبلاغ عن الإعلان" className="flex items-center justify-center cm-btn-ghost px-3 py-2 rounded-lg">
                       <Flag size={15} />
                     </button>
                   )}
-                  <a
-                    href={`https://wa.me/${toE164(active.phone).replace("+", "")}?text=${encodeURIComponent(`مرحبًا، أنا مهتم بـ ${active.make} ${active.model} ${active.year} المعروضة على CarsUAE: ${listingUrl(active.id)}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="مراسلة البائع على واتساب"
-                    className="flex items-center justify-center cm-btn-ghost px-3 py-2 rounded-lg"
-                  >
-                    <MessageCircle size={15} />
-                  </a>
                   <button
                     onClick={() => shareListing(active)}
                     title="مشاركة الإعلان"
@@ -1889,7 +2086,8 @@ function ListingCard({ l, onOpen, isFav, onFav }) {
         )}
 
         <div className="absolute top-2 right-2 flex flex-wrap gap-1 z-10">
-          {isRecent(l.created_at) && <span className="cm-tag cm-tag-mint">جديد</span>}
+          {l.sold && <span className="cm-tag cm-tag-dark">تم البيع</span>}
+          {!l.sold && isRecent(l.created_at) && <span className="cm-tag cm-tag-mint">جديد</span>}
           {discount > 0 && <span className="cm-tag cm-tag-red">خصم {discount}%</span>}
           {l.condition === "جديدة" && <span className="cm-tag cm-tag-dark">سيارة جديدة</span>}
         </div>

@@ -65,7 +65,7 @@ export default async function handler(req, res) {
 async function carPage(shell, route) {
   // Listing ids are UUIDs; anything else cannot match, so skip the query.
   if (!/^[0-9a-f-]{8,40}$/i.test(route.id)) return [404, notFound(shell, paths.car(route.id))];
-  const { rows } = await queryListings([["select", LISTING_FIELDS], ["id", `eq.${route.id}`], ["limit", "1"]]);
+  const { rows } = await queryListings([["select", LISTING_FIELDS], ["id", `eq.${route.id}`], ["limit", "1"]], { live: false });
   const l = rows[0];
   if (!l) return [404, notFound(shell, paths.car(route.id))];
 
@@ -110,7 +110,7 @@ async function carPage(shell, route) {
       "@type": "Offer",
       price: Number(l.price),
       priceCurrency: "AED",
-      availability: "https://schema.org/InStock",
+      availability: l.sold ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
       url,
       areaServed: l.city || "الإمارات العربية المتحدة",
     },
@@ -123,7 +123,7 @@ ${siteHeader()}
   <article class="cm-card rounded-2xl overflow-hidden">
     ${gallery.length ? `<img src="${esc(gallery[0])}" alt="${esc(carTitle(l))}" class="w-full object-cover cm-aspect-16-9">` : ""}
     <div class="p-5">
-      <h1 class="cm-display font-extrabold text-2xl">${esc(carTitle(l))} للبيع</h1>
+      ${l.sold ? `<p class="cm-badge cm-badge-red mb-2">تم بيع هذه السيارة</p>` : ""}<h1 class="cm-display font-extrabold text-2xl">${esc(carTitle(l))}${l.sold ? "" : " للبيع"}</h1>
       <p class="text-2xl font-black mt-2">${fmt(l.price)} د.إ${l.negotiable ? ` <span class="cm-badge cm-badge-blue">قابل للتفاوض</span>` : ""}</p>
       ${l.previous_price && Number(l.previous_price) > Number(l.price) ? `<p class="text-sm cm-text-muted">السعر السابق: <s>${fmt(l.previous_price)} د.إ</s></p>` : ""}
       <dl class="grid grid-cols-2 gap-2 mt-4 text-sm">
