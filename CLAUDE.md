@@ -49,6 +49,12 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   page content in `#root` (React then takes over). `api/sitemap.js` serves
   `/sitemap.xml`; `public/robots.txt` points to it. Pages are edge-cached for
   5 minutes. A new make added to `MODELS` also needs a slug in `seo-data.js`.
+  The home page `/` is sent to `api/page.js` by `middleware.js` (static
+  index.html would otherwise win over rewrites). Category pages paginate with
+  `?page=N` (48 per page); car pages list up to 6 other cars of the same make.
+  Preview deployments are behind Vercel login, so server pages there render
+  the login page as the shell — check SEO output on production.
+  Icons and the default share image (`og-image.png`) live in `public/`.
 - **Data:** `MODELS` holds ~135 makes with their models (Arabic names).
   `CITIES` = the seven emirates plus العين. Currency is د.إ, numbers formatted
   with `ar-AE`.
