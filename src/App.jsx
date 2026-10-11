@@ -1560,7 +1560,7 @@ export default function CarMarket() {
                             <p className="font-bold truncate">{l.make} {l.model} {l.year}</p>
                             <Badge tone={label[st][1]}>{label[st][0]}</Badge>
                           </div>
-                          <p className="text-sm cm-tabular mt-0.5"><b>{formatNumber(l.price)}</b> د.إ · {l.city} · {timeAgo(l.created_at)}</p>
+                          <p className="text-sm cm-tabular mt-0.5"><b>{formatNumber(l.price)}</b> د.إ · {l.city || "-"} · {timeAgo(l.created_at)}</p>
                           <p className="text-xs cm-text-muted mt-0.5 cm-tabular truncate">{sellerLabel(l.seller_name)} · <span dir="ltr">{l.phone}</span>{st === "live" && daysLeft(l) !== null ? ` · ينتهي بعد ${daysLeft(l)} يوم` : ""}</p>
                         </div>
                       </div>
@@ -2003,7 +2003,7 @@ export default function CarMarket() {
                 <div>
                   <h3 className="cm-display font-extrabold text-xl">{active.make} {active.model}</h3>
                   <p className="text-xs cm-text-muted mt-1 flex flex-wrap items-center gap-1">
-                    <span>{timeAgo(active.created_at)} · {active.city}</span>
+                    <span>{timeAgo(active.created_at)} · {active.city || "-"}</span>
                     <span>· <Eye size={11} className="inline" /> {formatNumber(active.views || 0)} مشاهدة</span>
                   </p>
                   {makeSlug(active.make) && modelSlug(active.model) && (
@@ -2045,13 +2045,13 @@ export default function CarMarket() {
 
               <div className="grid grid-cols-2 gap-2.5 text-sm mb-4">
                 <Spec icon={<Calendar size={14} />} label="سنة الصنع" value={active.year} />
-                <Spec icon={<Gauge size={14} />} label="الممشى" value={`${formatNumber(active.mileage)} كم`} />
+                <Spec icon={<Gauge size={14} />} label="الممشى" value={active.mileage ? `${formatNumber(active.mileage)} كم` : null} />
                 <Spec icon={<Fuel size={14} />} label="الوقود" value={active.fuel} />
                 <Spec icon={<Settings2 size={14} />} label="ناقل الحركة" value={active.trans} />
-                {active.specs && <Spec icon={<ShieldCheck size={14} />} label="المواصفات" value={active.specs} />}
-                {active.steering && <Spec icon={<Car size={14} />} label="جهة المقود" value={active.steering} />}
-                {active.body_type && <Spec icon={<Car size={14} />} label="نوع السيارة" value={active.body_type} />}
-                {active.city && <Spec icon={<MapPin size={14} />} label="الإمارة" value={active.city} />}
+                <Spec icon={<ShieldCheck size={14} />} label="المواصفات" value={active.specs} />
+                <Spec icon={<Car size={14} />} label="جهة المقود" value={active.steering} />
+                <Spec icon={<Car size={14} />} label="نوع السيارة" value={active.body_type} />
+                <Spec icon={<MapPin size={14} />} label="الإمارة" value={active.city} />
               </div>
 
               {active.description && (
@@ -2285,7 +2285,7 @@ function ComboBox({ value, options, onChange, placeholder }) {
 function ListingCard({ l, onOpen, isFav, onFav, dealer }) {
   const photo = l.image || l.images?.[0];
   const discount = discountPercent(l);
-  const facts = [l.year, l.mileage ? `${formatNumber(l.mileage)} كم` : "", l.specs ? `${l.specs}` : ""].filter(Boolean);
+  const facts = [l.year || "-", l.mileage ? `${formatNumber(l.mileage)} كم` : "- كم", l.specs || "-"];
 
   return (
     <div
@@ -2340,7 +2340,7 @@ function ListingCard({ l, onOpen, isFav, onFav, dealer }) {
         </div>
 
         <div className="flex items-center justify-between gap-2 mt-2">
-          <p className="text-xs cm-text-muted flex items-center gap-1"><MapPin size={12} />{l.city}</p>
+          <p className="text-xs cm-text-muted flex items-center gap-1"><MapPin size={12} />{l.city || "-"}</p>
           {dealer?.verified && <span className="cm-tag cm-tag-blue flex items-center gap-0.5"><BadgeCheck size={11} /> وسيط معتمد</span>}
         </div>
       </div>
@@ -2363,7 +2363,7 @@ function Spec({ icon, label, value }) {
       <span className="cm-text-accent">{icon}</span>
       <div>
         <p className="text-xs cm-text-muted">{label}</p>
-        <p className="text-xs font-bold cm-tabular">{value}</p>
+        <p className="text-xs font-bold cm-tabular">{value === null || value === undefined || value === "" ? "-" : value}</p>
       </div>
     </div>
   );

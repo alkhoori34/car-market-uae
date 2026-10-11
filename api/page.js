@@ -94,7 +94,7 @@ async function carPage(shell, route) {
     ["جهة المقود", l.steering],
     ["الحالة", l.condition],
     ["الإمارة", l.city],
-  ].filter(([, v]) => v);
+  ].map(([k, v]) => [k, v || "-"]);
 
   const crumbs = [
     ["الرئيسية", "/"],
@@ -319,7 +319,7 @@ function breadcrumbLd(crumbs) {
 
 function card(l) {
   const img = photo(l);
-  const facts = [l.year, l.mileage ? `${fmt(l.mileage)} كم` : "", l.specs, l.city].filter(Boolean).join(" · ");
+  const facts = [l.year || "-", l.mileage ? `${fmt(l.mileage)} كم` : "- كم", l.specs || "-", l.city || "-"].join(" · ");
   return `<li class="cm-card rounded-xl overflow-hidden"><a href="${paths.car(l.id)}" class="block">
     ${img ? `<img src="${esc(img)}" alt="${esc(carTitle(l))}" loading="lazy" class="w-full object-cover cm-aspect-16-10">` : ""}
     <div class="p-3.5"><h2 class="cm-display font-bold text-sm">${esc(carTitle(l))}</h2>
