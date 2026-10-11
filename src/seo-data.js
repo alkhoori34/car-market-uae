@@ -58,6 +58,10 @@ export const CITY_BY_SLUG = invert(CITY_SLUGS);
 
 export const makeSlug = (make) => MAKE_SLUGS[make] || null;
 export const citySlug = (city) => CITY_SLUGS[city] || null;
+// Model names are free text (Latin or Arabic): "LS" -> "ls", "لاند كروزر" -> "لاند-كروزر".
+export const modelSlug = (model) =>
+  String(model || "").trim().toLowerCase()
+    .replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "") || null;
 
 // Paths -------------------------------------------------------------------
 export const paths = {
@@ -66,6 +70,8 @@ export const paths = {
   make: (make) => (makeSlug(make) ? `/used-cars/${makeSlug(make)}` : "/used-cars"),
   city: (city) => (citySlug(city) ? `/used-cars/in/${citySlug(city)}` : "/used-cars"),
   budget: (max) => `/used-cars/under/${max}`,
+  model: (make, model) => (makeSlug(make) && modelSlug(model) ? `/used-cars/${makeSlug(make)}/${modelSlug(model)}` : paths.make(make)),
+  dealer: (slug) => `/dealer/${slug}`,
   car: (id) => `/car/${id}`,
 };
 
@@ -73,6 +79,8 @@ export const paths = {
 // not ours (e.g. "/"), so callers can fall back to the home page.
 //   { kind: "car", id } | { kind: "all" } | { kind: "make", make }
 //   { kind: "city", city } | { kind: "budget", max }
+//   { kind: "model", make, modelSlug } (the model's display name is looked up
+//   from the listings) | { kind: "dealer", slug }
 export function parsePath(pathname) {
   const p = decodeURIComponent(pathname || "/").replace(/\/+$/, "") || "/";
   let m;
@@ -81,6 +89,8 @@ export function parsePath(pathname) {
   if ((m = p.match(/^\/used-cars\/in\/([a-z-]+)$/)) && CITY_BY_SLUG[m[1]]) return { kind: "city", city: CITY_BY_SLUG[m[1]] };
   if ((m = p.match(/^\/used-cars\/under\/(\d{4,7})$/))) return { kind: "budget", max: Number(m[1]) };
   if ((m = p.match(/^\/used-cars\/([a-z0-9-]+)$/)) && MAKE_BY_SLUG[m[1]]) return { kind: "make", make: MAKE_BY_SLUG[m[1]] };
+  if ((m = p.match(/^\/used-cars\/([a-z0-9-]+)\/([^/]+)$/)) && MAKE_BY_SLUG[m[1]] && modelSlug(m[2]) === m[2]) return { kind: "model", make: MAKE_BY_SLUG[m[1]], modelSlug: m[2] };
+  if ((m = p.match(/^\/dealer\/([a-z0-9-]{2,40})$/))) return { kind: "dealer", slug: m[1] };
   return null;
 }
 
@@ -90,6 +100,20 @@ const fmt = (n) => new Intl.NumberFormat("ar-AE").format(n);
 export function categoryCopy(route, count) {
   const n = count ? `${fmt(count)} ` : "";
   switch (route.kind) {
+    case "model": {
+      const name = `${route.make} ${route.model || ""}`.trim();
+      return {
+        h1: `${name} مستعملة للبيع في الإمارات`,
+        title: `${name} مستعملة للبيع في الإمارات | ${SITE_NAME}`,
+        description: `تصفح ${n}سيارة ${name} مستعملة للبيع في أبوظبي ودبي والشارقة وباقي الإمارات. قارن الأسعار والموديلات والممشى، وتواصل مع البائع مباشرة على ${SITE_NAME}.`,
+      };
+    }
+    case "dealer":
+      return {
+        h1: `سيارات ${route.name || "الوسيط"} للبيع`,
+        title: `سيارات ${route.name || "الوسيط"} للبيع في الإمارات | ${SITE_NAME}`,
+        description: `كل السيارات المعروضة من ${route.name || "الوسيط"}${route.verified ? "، وسيط معتمد على " + SITE_NAME : ""}. ${n ? `${n}سيارة ` : ""}بأسعار ومواصفات وصور، وتواصل مباشر.`,
+      };
     case "make":
       return {
         h1: `${route.make} مستعملة للبيع في الإمارات`,

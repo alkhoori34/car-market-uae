@@ -138,3 +138,4 @@
 .cm-tab-on { background:var(--cm-accent); border-color:var(--cm-accent); color:#fff; }
 .cm-row { background:#fff; border:1px solid var(--cm-border); border-radius:0.75rem; }
 .cm-thumb { width:72px; height:54px; border-radius:0.5rem; object-fit:cover; background:var(--cm-bg-soft); flex-shrink:0; }
+.cm-bar { background:var(--cm-accent); opacity:0.85; }

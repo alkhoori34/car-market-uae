@@ -1,13 +1,13 @@
 // /sitemap.xml: every page Google should know about. Category pages are only
 // listed while they have at least one listing.
 
-import { SITE_URL, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS, paths } from "../src/seo-data.js";
-import { queryListings, esc } from "./_lib.js";
+import { SITE_URL, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS, paths, modelSlug } from "../src/seo-data.js";
+import { queryListings, queryTable, esc } from "./_lib.js";
 
 export default async function handler(req, res) {
   try {
     const { rows } = await queryListings([
-      ["select", "id,make,city,price,created_at"],
+      ["select", "id,make,model,city,price,created_at,dealer_id"],
       ["order", "created_at.desc"],
       ["limit", "5000"],
     ]);
@@ -27,6 +27,11 @@ export default async function handler(req, res) {
     BUDGET_STEPS.forEach((b) => {
       if (rows.some((r) => Number(r.price) <= b)) urls.push({ loc: paths.budget(b), lastmod: latestFor((r) => Number(r.price) <= b), priority: "0.7" });
     });
+    const pairs = new Map();
+    rows.forEach((r) => { if (MAKE_SLUGS[r.make] && modelSlug(r.model)) { const k = paths.model(r.make, r.model); if (!pairs.has(k)) pairs.set(k, r); } });
+    pairs.forEach((r, loc) => urls.push({ loc, lastmod: latestFor((x) => x.make === r.make && x.model === r.model), priority: "0.7" }));
+    const dealers = await queryTable("dealers", [["select", "id,slug"]]).catch(() => []);
+    dealers.forEach((d) => { if (rows.some((r) => r.dealer_id === d.id)) urls.push({ loc: paths.dealer(d.slug), lastmod: latestFor((r) => r.dealer_id === d.id), priority: "0.6" }); });
     rows.forEach((r) => urls.push({ loc: paths.car(r.id), lastmod: day(r.created_at), priority: "0.6" }));
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>

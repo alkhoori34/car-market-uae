@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import { paths, parsePath, makeSlug, citySlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
+import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -35,6 +35,37 @@ const waNumber = (phone) => {
   if (d.length === 9) return "971" + d;
   return d;
 };
+// Where a visitor came from, for the admin's visitor stats.
+function visitSource() {
+  try {
+    const utm = new URLSearchParams(window.location.search).get("utm_source");
+    if (utm) return utm.toLowerCase().slice(0, 40);
+    const ua = navigator.userAgent || "";
+    if (/Instagram/i.test(ua)) return "instagram";
+    if (/FBAN|FBAV/i.test(ua)) return "facebook";
+    const ref = document.referrer ? new URL(document.referrer).hostname : "";
+    if (!ref || ref === window.location.hostname) return "direct";
+    if (/google\./.test(ref)) return "google";
+    if (/instagram/.test(ref)) return "instagram";
+    if (/facebook|fb\./.test(ref)) return "facebook";
+    if (/whatsapp|wa\.me/.test(ref)) return "whatsapp";
+    if (/tiktok/.test(ref)) return "tiktok";
+    if (/bing|yahoo|duckduckgo/.test(ref)) return "search";
+    return ref.replace(/^www\./, "").slice(0, 40);
+  } catch { return "direct"; }
+}
+const firstSource = typeof window !== "undefined" ? visitSource() : "direct";
+// One count per page per browser tab; admins are not counted.
+function trackVisit(client, path, listingId = null) {
+  try {
+    if (localStorage.getItem("cm_admin") === "1") return;
+    const key = "cm_seen:" + path;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+  } catch { /* storage blocked: still count */ }
+  client.rpc("track_visit", { p_path: path, p_source: firstSource, p_listing: listingId }).then(() => {}, () => {});
+}
+
 // Twilio blocks SMS to unverified UAE numbers until the account has an approved
 // compliance profile. Until then, verification is offered but not required.
 const REQUIRE_PHONE_VERIFICATION = false;
@@ -380,6 +411,15 @@ function Badge({ children, tone = "blue" }) {
 
 // Shown under the seller's own cards: sold, expired, or days left.
 function ListingStatus({ l }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <ListingState l={l} />
+      <Badge tone="muted"><Eye size={11} /> {formatNumber(l.views || 0)} مشاهدة</Badge>
+    </div>
+  );
+}
+
+function ListingState({ l }) {
   if (l.sold) return <Badge tone="muted">مُباعة{l.sold_at ? ` · ${new Date(l.sold_at).toLocaleDateString("ar-AE")}` : ""}</Badge>;
   if (isExpired(l)) return <Badge tone="red">منتهي · جدّده عشان يرجع يظهر</Badge>;
   const d = daysLeft(l);
@@ -425,7 +465,11 @@ export default function CarMarket() {
   const [saving, setSaving] = useState(false);
 
   const [q, setQ] = useState("");
-  const [makeFilter, setMakeFilter] = useState(initialRoute?.kind === "make" ? initialRoute.make : "الكل");
+  const [makeFilter, setMakeFilter] = useState(["make", "model"].includes(initialRoute?.kind) ? initialRoute.make : "الكل");
+  // Model is matched by its URL slug, since model names are free text.
+  const [modelFilter, setModelFilter] = useState(initialRoute?.kind === "model" ? initialRoute.modelSlug : "");
+  const [dealerFilter, setDealerFilter] = useState(initialRoute?.kind === "dealer" ? initialRoute.slug : "");
+  const [dealers, setDealers] = useState([]);
   const [cityFilter, setCityFilter] = useState(initialRoute?.kind === "city" ? initialRoute.city : "الكل");
   const [bodyTypeFilter, setBodyTypeFilter] = useState("الكل");
   const [maxPrice, setMaxPrice] = useState(initialRoute?.kind === "budget" ? String(initialRoute.max) : "");
@@ -446,6 +490,8 @@ export default function CarMarket() {
   const [adminReports, setAdminReports] = useState([]);
   const [adminTab, setAdminTab] = useState("all"); // all | live | sold | expired | reported
   const [adminQ, setAdminQ] = useState("");
+  const [stats, setStats] = useState(null);
+  const [dealerForm, setDealerForm] = useState({ name: "", slug: "", instagram: "", phone: "", city: "" });
 
   const emptyForm = {
     make: MAKES[0], makeOther: "", model: MODELS[MAKES[0]][0], modelOther: "",
@@ -483,6 +529,8 @@ export default function CarMarket() {
 
     loadListings();
     loadFavorites();
+    supabase.from("dealers").select("*").order("name").then(({ data }) => setDealers(data || []));
+    if (!/^\/car\//.test(window.location.pathname)) trackVisit(supabase, window.location.pathname);
     // Light polling so new listings from other visitors show up without a manual refresh.
     // Skips the fetch while the tab is in the background — no point loading for nobody.
     const id = setInterval(() => {
@@ -494,7 +542,10 @@ export default function CarMarket() {
   useEffect(() => {
     if (!session) { setIsAdmin(false); return; }
     supabase.from("admins").select("user_id").eq("user_id", session.user.id).maybeSingle()
-      .then(({ data }) => setIsAdmin(Boolean(data)));
+      .then(({ data }) => {
+        setIsAdmin(Boolean(data));
+        try { if (data) localStorage.setItem("cm_admin", "1"); } catch { /* ignore */ }
+      });
   }, [session]);
 
   async function loadAdmin() {
@@ -504,7 +555,37 @@ export default function CarMarket() {
     ]);
     setAdminRows(rows || []);
     setAdminReports(reps || []);
+    const { data: st } = await supabase.rpc("visit_stats", { p_days: 30 });
+    setStats(st || null);
+    const { data: ds } = await supabase.from("dealers").select("*").order("name");
+    setDealers(ds || []);
   }
+
+  async function addDealer(e) {
+    e.preventDefault();
+    const slug = dealerForm.slug.trim().toLowerCase();
+    if (!dealerForm.name.trim() || !/^[a-z0-9-]{2,40}$/.test(slug)) {
+      showToast("اكتب الاسم ورابط بالإنجليزي (حروف وأرقام وشرطة فقط)", "red"); return;
+    }
+    const { error } = await supabase.from("dealers").insert({
+      name: dealerForm.name.trim(), slug,
+      instagram: dealerForm.instagram.trim().replace(/^@/, "") || null,
+      phone: dealerForm.phone.trim() || null, city: dealerForm.city || null,
+    });
+    if (error) { showToast(error.code === "23505" ? "هذا الرابط مستخدم" : "تعذر الحفظ: " + error.message, "red"); return; }
+    showToast("تمت إضافة الوسيط");
+    setDealerForm({ name: "", slug: "", instagram: "", phone: "", city: "" });
+    loadAdmin();
+  }
+
+  async function removeDealer(d) {
+    if (!window.confirm(`حذف الوسيط ${d.name}؟ إعلاناته تبقى بدون وسيط.`)) return;
+    const { error } = await supabase.from("dealers").delete().eq("id", d.id);
+    if (error) showToast("تعذر الحذف: " + error.message, "red"); else { showToast("تم حذف الوسيط", "muted"); loadAdmin(); loadListings(); }
+  }
+
+  const setListingDealer = (l, dealerId) =>
+    updateListing(l.id, { dealer_id: dealerId || null }, dealerId ? "تم ربط الإعلان بالوسيط" : "تم فك الربط");
 
   useEffect(() => { if (view === "admin" && isAdmin) loadAdmin(); }, [view, isAdmin]);
 
@@ -528,7 +609,9 @@ export default function CarMarket() {
     if (!route) { setActive(null); setView("home"); return; }
     if (route.kind === "car") { setView("browse"); setPendingCarId(route.id); return; }
     setActive(null);
-    setMakeFilter(route.kind === "make" ? route.make : "الكل");
+    setMakeFilter(["make", "model"].includes(route.kind) ? route.make : "الكل");
+    setModelFilter(route.kind === "model" ? route.modelSlug : "");
+    setDealerFilter(route.kind === "dealer" ? route.slug : "");
     setCityFilter(route.kind === "city" ? route.city : "الكل");
     setMinPrice("");
     setMaxPrice(route.kind === "budget" ? String(route.max) : "");
@@ -555,12 +638,12 @@ export default function CarMarket() {
   useEffect(() => {
     if (!pendingCarId) return;
     const found = listings.find((l) => l.id === pendingCarId);
-    if (found) { setActive(found); setPhotoIdx(0); setPendingCarId(null); return; }
+    if (found) { setActive(found); setPhotoIdx(0); setPendingCarId(null); trackVisit(supabase, paths.car(found.id), found.id); return; }
     if (!loaded) return;
     // Not in the loaded set (hidden by reports, or a direct visit): fetch it.
     const id = pendingCarId;
     supabase.from("listings").select("*").eq("id", id).maybeSingle().then(({ data }) => {
-      if (data) { setActive(data); setPhotoIdx(0); }
+      if (data) { setActive(data); setPhotoIdx(0); trackVisit(supabase, paths.car(data.id), data.id); }
       else showToast("الإعلان غير موجود، ربما بيعت السيارة", "muted");
       setPendingCarId((cur) => (cur === id ? null : cur));
     });
@@ -571,6 +654,8 @@ export default function CarMarket() {
   function browsePath() {
     const make = makeFilter !== "الكل" ? makeFilter : null;
     const city = cityFilter !== "الكل" ? cityFilter : null;
+    if (dealerFilter) return paths.dealer(dealerFilter);
+    if (make && modelFilter && !city && !minPrice && !maxPrice && makeSlug(make)) return `/used-cars/${makeSlug(make)}/${modelFilter}`;
     if (make && !city && !minPrice && !maxPrice && makeSlug(make)) return paths.make(make);
     if (city && !make && !minPrice && !maxPrice && citySlug(city)) return paths.city(city);
     if (!make && !city && !minPrice && BUDGET_STEPS.includes(Number(maxPrice))) return paths.budget(Number(maxPrice));
@@ -578,7 +663,19 @@ export default function CarMarket() {
   }
 
   // The section the browse page currently matches, for its heading and tab title.
-  const sectionRoute = parsePath(browsePath()) || { kind: "all" };
+  const dealerById = useMemo(() => Object.fromEntries(dealers.map((d) => [d.id, d])), [dealers]);
+  const currentDealer = dealers.find((d) => d.slug === dealerFilter) || null;
+  // Display name for the model slug in the URL: from listings, else the catalogue.
+  const modelName = modelFilter
+    ? (listings.find((l) => l.make === makeFilter && modelSlug(l.model) === modelFilter)?.model
+      || (MODELS[makeFilter] || []).find((m) => modelSlug(m) === modelFilter) || modelFilter.replace(/-/g, " "))
+    : "";
+  const sectionRoute = (() => {
+    const r = parsePath(browsePath()) || { kind: "all" };
+    if (r.kind === "model") return { ...r, model: modelName };
+    if (r.kind === "dealer") return { ...r, name: currentDealer?.name, verified: currentDealer?.verified };
+    return r;
+  })();
   const sectionTitle = categoryCopy(sectionRoute).title;
 
   useEffect(() => {
@@ -589,7 +686,7 @@ export default function CarMarket() {
     if (target === window.location.pathname) return;
     if (viewChanged) window.history.pushState({}, "", target);
     else window.history.replaceState({}, "", target);
-  }, [view, makeFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
+  }, [view, makeFilter, modelFilter, dealerFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
 
   // Keep the tab title useful when a listing is open — it's what WhatsApp and
   // browsers show, and what someone sees in their history.
@@ -928,6 +1025,7 @@ export default function CarMarket() {
     setPhotoIdx(0);
     openedInApp.current = true;
     window.history.pushState({}, "", paths.car(l.id));
+    trackVisit(supabase, paths.car(l.id), l.id);
   }
 
   function closeListing() {
@@ -945,8 +1043,8 @@ export default function CarMarket() {
   }
 
   async function shareListing(l) {
-    const url = listingUrl(l.id);
-    const title = `${l.make} ${l.model} ${l.year} — ${formatNumber(l.price)} د.إ`;
+    const url = l.dealerSlug ? `${window.location.origin}${paths.dealer(l.dealerSlug)}` : listingUrl(l.id);
+    const title = l.dealerSlug ? `سيارات ${l.make} على CarsUAE` : `${l.make} ${l.model} ${l.year} — ${formatNumber(l.price)} د.إ`;
     if (navigator.share) {
       try { await navigator.share({ title, url }); return; } catch { /* user cancelled */ }
     }
@@ -1094,6 +1192,8 @@ export default function CarMarket() {
       const text = `${l.make} ${l.model}`.toLowerCase();
       if (q && !text.includes(q.toLowerCase())) return false;
       if (makeFilter !== "الكل" && l.make !== makeFilter) return false;
+      if (modelFilter && modelSlug(l.model) !== modelFilter) return false;
+      if (dealerFilter && (!currentDealer || l.dealer_id !== currentDealer.id)) return false;
       if (cityFilter !== "الكل" && l.city !== cityFilter) return false;
       if (bodyTypeFilter !== "الكل" && l.body_type !== bodyTypeFilter) return false;
       if (maxPrice && l.price > Number(maxPrice)) return false;
@@ -1113,14 +1213,15 @@ export default function CarMarket() {
       kmAsc: (a, b) => (a.mileage || 0) - (b.mileage || 0),
     };
     return rows.sort(sorters[sortBy] || sorters.newest);
-  }, [liveListings, q, makeFilter, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter, minYear, maxKm, negotiableOnly]);
+  }, [liveListings, q, makeFilter, modelFilter, dealerFilter, currentDealer, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter, minYear, maxKm, negotiableOnly]);
 
-  const clearFilters = () => { setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setMinYear(""); setMaxKm(""); setNegotiableOnly(false); setQ(""); };
-  const filtersActive = makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || minYear || maxKm || negotiableOnly || q;
+  const clearFilters = () => { setModelFilter(""); setDealerFilter(""); setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setMinYear(""); setMaxKm(""); setNegotiableOnly(false); setQ(""); };
+  const filtersActive = Boolean(modelFilter) || Boolean(dealerFilter) || makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || minYear || maxKm || negotiableOnly || q;
 
   // Filters in use, shown as a number on the filters button.
   const filterCount = [
     makeFilter !== "الكل",
+    Boolean(modelFilter),
     cityFilter !== "الكل",
     Boolean(maxPrice) || Boolean(minPrice),
     bodyTypeFilter !== "الكل",
@@ -1277,6 +1378,7 @@ export default function CarMarket() {
                     <ListingCard
                       key={l.id}
                       l={l}
+                      dealer={dealerById[l.dealer_id]}
                       onOpen={() => { setView("browse"); openListing(l); }}
                       isFav={favorites.includes(l.id)}
                       onFav={() => toggleFavorite(l.id)}
@@ -1321,6 +1423,7 @@ export default function CarMarket() {
                       <div key={l.id} className="flex flex-col">
                         <ListingCard
                           l={l}
+                          dealer={dealerById[l.dealer_id]}
                           onOpen={() => openListing(l)}
                           isFav={favorites.includes(l.id)}
                           onFav={() => toggleFavorite(l.id)}
@@ -1391,6 +1494,45 @@ export default function CarMarket() {
               <div className="cm-stat"><b className="cm-tabular">{adminReports.length}</b><span>بلاغات</span></div>
             </div>
 
+            {stats && (() => {
+              const days = (stats.by_day || []).slice(-14);
+              const peak = Math.max(1, ...days.map((d) => d.n));
+              const srcName = { direct: "مباشر", instagram: "إنستقرام", facebook: "فيسبوك", google: "قوقل", whatsapp: "واتساب", tiktok: "تيك توك", search: "محركات بحث" };
+              return (
+                <section className="cm-card-solid rounded-xl p-4 mb-4">
+                  <div className="flex items-baseline justify-between gap-2 mb-3">
+                    <h2 className="cm-section-title">الزوار</h2>
+                    <p className="text-xs cm-text-muted">اليوم <b className="cm-tabular">{formatNumber(stats.today || 0)}</b> · آخر 30 يوم <b className="cm-tabular">{formatNumber(stats.total || 0)}</b></p>
+                  </div>
+                  {days.length > 0 ? (
+                    <div className="flex items-end gap-1 h-24 mb-1" dir="ltr">
+                      {days.map((d) => (
+                        <div key={d.day} className="flex-1 flex flex-col items-center justify-end h-full" title={`${d.day}: ${d.n}`}>
+                          <span className="text-[10px] cm-text-muted cm-tabular">{d.n}</span>
+                          <div className="w-full rounded-t cm-bar" style={{ height: `${Math.max(4, (d.n / peak) * 72)}px` }} />
+                          <span className="text-[10px] cm-text-muted cm-tabular">{d.day.slice(8)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="text-sm cm-text-muted">ما في زيارات مسجلة بعد. العداد بدأ مع هذا التحديث.</p>}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <p className="text-xs font-bold cm-text-muted mb-1.5">من وين جاء الزوار</p>
+                      {(stats.by_source || []).slice(0, 6).map((r) => (
+                        <div key={r.source} className="flex justify-between text-sm py-0.5"><span>{srcName[r.source] || r.source}</span><b className="cm-tabular">{formatNumber(r.n)}</b></div>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold cm-text-muted mb-1.5">أكثر الإعلانات مشاهدة</p>
+                      {(stats.top_listings || []).slice(0, 6).map((r) => (
+                        <div key={r.listing_id} className="flex justify-between gap-2 text-sm py-0.5"><span className="truncate">{r.title}</span><b className="cm-tabular">{formatNumber(r.n)}</b></div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              );
+            })()}
+
             <div className="relative mb-3">
               <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 cm-text-muted" />
               <input value={adminQ} onChange={(e) => setAdminQ(e.target.value)} placeholder="ابحث بالماركة، الموديل، اسم البائع أو الرقم" className="cm-input" style={{ paddingRight: "2.4rem" }} />
@@ -1433,6 +1575,12 @@ export default function CarMarket() {
                         <button onClick={() => markSold(l, !l.sold)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">{l.sold ? <><Undo2 size={13} /> إرجاع للبيع</> : <><CircleCheck size={13} /> تم البيع</>}</button>
                         {!l.sold && <button onClick={() => renewListing(l)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><RefreshCw size={13} /> تجديد {LISTING_DAYS} يوم</button>}
                         {reps.length > 0 && <button onClick={() => dismissReports(l.id)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg">تجاهل البلاغات</button>}
+                        {dealers.length > 0 && (
+                          <select value={l.dealer_id || ""} onChange={(e) => setListingDealer(l, e.target.value)} className="cm-input text-xs" style={{ width: "auto", padding: "0.3rem 0.5rem" }}>
+                            <option value="">بدون وسيط</option>
+                            {dealers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                          </select>
+                        )}
                         <button onClick={() => deleteListing(l.id)} className="cm-danger-outline text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><Trash2 size={13} /> حذف</button>
                       </div>
                     </div>
@@ -1440,13 +1588,57 @@ export default function CarMarket() {
                 })}
               </div>
             )}
+
+            <section className="cm-card-solid rounded-xl p-4 mt-6">
+              <h2 className="cm-section-title mb-1">الوسطاء (السماسرة)</h2>
+              <p className="text-xs cm-text-muted mb-3">لكل وسيط صفحة فيها كل سياراته، وشارة «وسيط معتمد» على إعلاناته. اربط الإعلانات بالوسيط من القائمة فوق.</p>
+              {dealers.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {dealers.map((d) => {
+                    const n = adminRows.filter((l) => l.dealer_id === d.id && isLive(l)).length;
+                    return (
+                      <div key={d.id} className="cm-row p-2.5 flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm flex items-center gap-1">{d.verified && <BadgeCheck size={13} className="cm-text-mint" />}{d.name} <span className="cm-text-muted font-normal">· {n} سيارة</span></p>
+                          <p className="text-xs cm-text-muted" dir="ltr">carsuae.net{paths.dealer(d.slug)}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => { applyRoute({ kind: "dealer", slug: d.slug }); }} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><Eye size={13} /> الصفحة</button>
+                          <button onClick={() => { navigator.clipboard?.writeText(`https://carsuae.net${paths.dealer(d.slug)}`); showToast("تم نسخ رابط صفحة الوسيط"); }} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><Share2 size={13} /> نسخ الرابط</button>
+                          <button onClick={() => removeDealer(d)} className="cm-danger-outline text-xs font-bold px-2.5 py-1.5 rounded-lg"><Trash2 size={13} /></button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <form onSubmit={addDealer} className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <input value={dealerForm.name} onChange={(e) => setDealerForm({ ...dealerForm, name: e.target.value })} placeholder="اسم الوسيط" className="cm-input" />
+                <input value={dealerForm.slug} onChange={(e) => setDealerForm({ ...dealerForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })} placeholder="الرابط بالإنجليزي مثل smsar" className="cm-input" dir="ltr" />
+                <input value={dealerForm.instagram} onChange={(e) => setDealerForm({ ...dealerForm, instagram: e.target.value })} placeholder="حساب إنستقرام" className="cm-input" dir="ltr" />
+                <select value={dealerForm.city} onChange={(e) => setDealerForm({ ...dealerForm, city: e.target.value })} className="cm-input">
+                  <option value="">الإمارة</option>
+                  {CITIES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+                <button type="submit" className="cm-btn-primary text-sm font-bold py-2 rounded-lg col-span-2 sm:col-span-4 flex items-center justify-center gap-1.5"><Plus size={15} /> إضافة وسيط</button>
+              </form>
+            </section>
           </main>
         );
       })()}
 
       {view === "browse" && (
         <main className="max-w-6xl mx-auto px-4 py-6">
-          <h1 className="cm-display font-extrabold text-2xl mb-4">{categoryCopy(sectionRoute).h1}</h1>
+          <h1 className="cm-display font-extrabold text-2xl mb-2">{categoryCopy(sectionRoute).h1}</h1>
+          {currentDealer && (
+            <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
+              {currentDealer.verified && <Badge tone="mint"><BadgeCheck size={12} /> وسيط معتمد</Badge>}
+              {currentDealer.city && <span className="cm-text-muted flex items-center gap-1"><MapPin size={13} />{currentDealer.city}</span>}
+              {currentDealer.instagram && <a href={`https://instagram.com/${currentDealer.instagram}`} target="_blank" rel="noopener noreferrer" className="cm-link font-bold" dir="ltr">@{currentDealer.instagram}</a>}
+              <button onClick={() => shareListing({ id: null, dealerSlug: currentDealer.slug, make: currentDealer.name })} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><Share2 size={13} /> مشاركة الصفحة</button>
+            </div>
+          )}
+          {!currentDealer && <div className="mb-2" />}
 
           <div className="relative mb-4">
             <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 cm-text-muted" />
@@ -1488,8 +1680,19 @@ export default function CarMarket() {
           {showFilters && (
             <div className="cm-filter-panel mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Field label="الماركة">
-                <ComboBox value={makeFilter} options={["الكل", ...MAKES]} onChange={setMakeFilter} placeholder="كل الماركات" />
+                <ComboBox value={makeFilter} options={["الكل", ...MAKES]} onChange={(v) => { setMakeFilter(v); setModelFilter(""); }} placeholder="كل الماركات" />
               </Field>
+              {makeFilter !== "الكل" && (() => {
+                const names = [...new Set([...(MODELS[makeFilter] || []), ...liveListings.filter((l) => l.make === makeFilter).map((l) => l.model)])].filter((m) => modelSlug(m));
+                return (
+                  <Field label="الموديل">
+                    <select value={modelFilter} onChange={(e) => setModelFilter(e.target.value)} className="cm-input">
+                      <option value="">كل الموديلات</option>
+                      {names.map((m) => <option key={m} value={modelSlug(m)}>{m}</option>)}
+                    </select>
+                  </Field>
+                );
+              })()}
               <Field label="الإمارة">
                 <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="cm-input">
                   <option value="الكل">كل الإمارات</option>
@@ -1553,6 +1756,7 @@ export default function CarMarket() {
                 <ListingCard
                   key={l.id}
                   l={l}
+                  dealer={dealerById[l.dealer_id]}
                   onOpen={() => openListing(l)}
                   isFav={favorites.includes(l.id)}
                   onFav={() => toggleFavorite(l.id)}
@@ -1798,7 +2002,15 @@ export default function CarMarket() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="cm-display font-extrabold text-xl">{active.make} {active.model}</h3>
-                  <p className="text-xs cm-text-muted mt-1">{timeAgo(active.created_at)} · {active.city}</p>
+                  <p className="text-xs cm-text-muted mt-1 flex flex-wrap items-center gap-1">
+                    <span>{timeAgo(active.created_at)} · {active.city}</span>
+                    <span>· <Eye size={11} className="inline" /> {formatNumber(active.views || 0)} مشاهدة</span>
+                  </p>
+                  {makeSlug(active.make) && modelSlug(active.model) && (
+                    <a href={paths.model(active.make, active.model)} onClick={(e) => { e.preventDefault(); setActive(null); applyRoute({ kind: "model", make: active.make, modelSlug: modelSlug(active.model) }); window.history.pushState({}, "", paths.model(active.make, active.model)); }} className="text-xs cm-link font-bold mt-1 inline-block">
+                      كل سيارات {active.make} {active.model} ←
+                    </a>
+                  )}
                 </div>
                 <Badge tone={active.condition === "جديدة" ? "mint" : "muted"}>{active.condition}</Badge>
               </div>
@@ -1851,6 +2063,11 @@ export default function CarMarket() {
 
               <div className="cm-divider flex items-center justify-between pt-4 gap-2">
                 <div>
+                  {dealerById[active.dealer_id] && (
+                    <a href={paths.dealer(dealerById[active.dealer_id].slug)} onClick={(e) => { e.preventDefault(); const d = dealerById[active.dealer_id]; setActive(null); applyRoute({ kind: "dealer", slug: d.slug }); window.history.pushState({}, "", paths.dealer(d.slug)); }} className="text-xs font-bold cm-link flex items-center gap-1 mb-0.5">
+                      {dealerById[active.dealer_id].verified && <BadgeCheck size={12} />} {dealerById[active.dealer_id].name}
+                    </a>
+                  )}
                   <p className="text-xs cm-text-muted flex items-center gap-1">
                     {sellerLabel(active.seller_name)}
                     {active.phone_verified && (
@@ -2065,7 +2282,7 @@ function ComboBox({ value, options, onChange, placeholder }) {
 
 // Search-result card: the facts a buyer scans first (year, km, specs), the
 // price with any cut from the earlier asking price, and a rough monthly payment.
-function ListingCard({ l, onOpen, isFav, onFav }) {
+function ListingCard({ l, onOpen, isFav, onFav, dealer }) {
   const photo = l.image || l.images?.[0];
   const discount = discountPercent(l);
   const facts = [l.year, l.mileage ? `${formatNumber(l.mileage)} كم` : "", l.specs ? `${l.specs}` : ""].filter(Boolean);
@@ -2122,7 +2339,10 @@ function ListingCard({ l, onOpen, isFav, onFav }) {
           {l.negotiable && <span className="cm-tag cm-tag-blue">قابل للتفاوض</span>}
         </div>
 
-        <p className="text-xs cm-text-muted flex items-center gap-1 mt-2"><MapPin size={12} />{l.city}</p>
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <p className="text-xs cm-text-muted flex items-center gap-1"><MapPin size={12} />{l.city}</p>
+          {dealer?.verified && <span className="cm-tag cm-tag-blue flex items-center gap-0.5"><BadgeCheck size={11} /> وسيط معتمد</span>}
+        </div>
       </div>
     </div>
   );
