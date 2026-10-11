@@ -130,6 +130,14 @@ The owner forwards a seller's/broker's photos and specs into the chat. Claude:
    `dealer_id` when it came from a known broker; `expires_at` = now + 30 days.
 4. Schedules the Instagram/Facebook/TikTok post through the Metricool
    connector, linking to `https://carsuae.net/car/<id>`.
+Instagram links (done 2026-10-11 for the Patrol ad): WebFetch is blocked, so
+read the post in the owner's Chrome (Claude in Chrome), collect the carousel
+image URLs, navigate the same tab to `https://carsuae.net/#ig=<urls>` (the IG
+CDN allows CORS from carsuae.net, Instagram's own CSP blocks Supabase), then
+from carsuae.net upload each image to Storage `car-images/<owner uid>/...`
+with the logged-in session token (POST without `x-upsert`, which RLS rejects)
+and insert the row via SQL. Default Metricool slot: next day 19:00 Dubai,
+brand `carsuaenet` (blogId 7350493), instagram + facebook + tiktok.
 Plan B (full automation through the WhatsApp Cloud API on a dedicated number)
 waits on Meta Business Verification.
 
