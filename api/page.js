@@ -6,6 +6,8 @@
 //   /used-cars/under/<max>    e.g. /used-cars/under/50000
 //   /used-cars/<make>/<model> e.g. /used-cars/lexus/ls
 //   /dealer/<slug>            one dealer's cars
+//   /                         home page (sent here by middleware.js)
+// Category pages take ?page=2, 3 … so every live car is reachable by links.
 // vercel.json rewrites those paths here as ?route=<path>. Each response is the
 // normal app shell with real <head> tags and the page content already in
 // #root; the React app then takes over in the browser.
@@ -41,7 +43,8 @@ async function getFacets() {
 
 export default async function handler(req, res) {
   const raw = String((req.query && req.query.route) || "/used-cars");
-  const route = parsePath(raw);
+  const route = raw === "/" ? { kind: "home" } : parsePath(raw);
+  const page = Math.max(1, Math.min(500, parseInt((req.query && req.query.page) || "1", 10) || 1));
 
   let shell;
   try {
@@ -53,8 +56,9 @@ export default async function handler(req, res) {
 
   try {
     if (!route) return send(res, 404, notFound(shell, raw));
+    if (route.kind === "home") return send(res, 200, await homePage(shell));
     if (route.kind === "car") return send(res, ...(await carPage(shell, route)));
-    return send(res, 200, await categoryPage(shell, route));
+    return send(res, ...(await categoryPage(shell, route, page)));
   } catch (err) {
     console.error("page", raw, err);
     // Fall back to the plain app so visitors still get a working page.
@@ -73,6 +77,12 @@ async function carPage(shell, route) {
 
   const url = SITE_URL + paths.car(l.id);
   const copy = carCopy(l);
+  // Other live cars of the same make (same model first), linked from the page.
+  const { rows: sameMake } = await queryListings([
+    ["select", LISTING_FIELDS], ["make", `eq.${l.make}`], ["id", `neq.${l.id}`],
+    ["order", "created_at.desc"], ["limit", "24"],
+  ]).catch(() => ({ rows: [] }));
+  const similar = [...sameMake.filter((r) => r.model === l.model), ...sameMake.filter((r) => r.model !== l.model)].slice(0, 6);
   const gallery = (Array.isArray(l.images) && l.images.length ? l.images : [l.image]).filter(Boolean);
   const facts = [
     ["سنة الصنع", l.year],
@@ -137,6 +147,7 @@ ${siteHeader()}
     </div>
   </article>
   ${gallery.length > 1 ? `<div class="grid grid-cols-4 gap-2 mt-3">${gallery.slice(1, 8).map((src, i) => `<img src="${esc(src)}" alt="${esc(`${carTitle(l)} صورة ${i + 2}`)}" loading="lazy" class="rounded-lg object-cover cm-aspect-4-3">`).join("")}</div>` : ""}
+  ${similar.length ? `<section class="mt-8"><h2 class="font-bold mb-3">سيارات ${esc(l.make)} أخرى للبيع</h2><ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${similar.map(card).join("")}</ul></section>` : ""}
   <nav class="mt-6 text-sm">
     ${MAKE_SLUGS[l.make] ? `<a class="cm-link" href="${paths.make(l.make)}">كل سيارات ${esc(l.make)} المستعملة</a> · ` : ""}
     ${CITY_SLUGS[l.city] ? `<a class="cm-link" href="${paths.city(l.city)}">سيارات مستعملة في ${esc(l.city)}</a> · ` : ""}
@@ -156,7 +167,7 @@ ${siteHeader()}
 
 // --- Category pages --------------------------------------------------------
 
-async function categoryPage(shell, route) {
+async function categoryPage(shell, route, page = 1) {
   // Model pages: find the model's display name among this make's listings.
   let models = [];
   if (route.kind === "model" || route.kind === "make") {
@@ -164,12 +175,12 @@ async function categoryPage(shell, route) {
   }
   if (route.kind === "model") {
     const hit = models.find((r) => modelSlug(r.model) === route.modelSlug);
-    if (!hit) return notFound(shell, `/used-cars/${encodeURIComponent(route.modelSlug)}`);
+    if (!hit) return [404, notFound(shell, `/used-cars/${encodeURIComponent(route.modelSlug)}`)];
     route = { ...route, model: hit.model };
   }
   if (route.kind === "dealer") {
     const [dealer] = await queryTable("dealers", [["select", "*"], ["slug", `eq.${route.slug}`], ["limit", "1"]]);
-    if (!dealer) return notFound(shell, paths.dealer(route.slug));
+    if (!dealer) return [404, notFound(shell, paths.dealer(route.slug))];
     route = { ...route, id: dealer.id, name: dealer.name, verified: dealer.verified, instagram: dealer.instagram };
   }
   const filters = [];
@@ -182,7 +193,7 @@ async function categoryPage(shell, route) {
   const [{ rows, total }, facets] = await Promise.all([
     queryListings([
       ["select", LISTING_FIELDS], ...filters,
-      ["order", "created_at.desc"], ["limit", String(PAGE_SIZE)],
+      ["order", "created_at.desc"], ["limit", String(PAGE_SIZE)], ["offset", String((page - 1) * PAGE_SIZE)],
     ], { count: true }),
     getFacets(),
   ]);
@@ -193,8 +204,12 @@ async function categoryPage(shell, route) {
     : route.kind === "city" ? paths.city(route.city)
     : route.kind === "budget" ? paths.budget(route.max)
     : paths.all();
-  const url = SITE_URL + path;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (page > pages) return [404, notFound(shell, path)];
+  const pageHref = (n) => (n > 1 ? `${path}?page=${n}` : path);
+  const url = SITE_URL + pageHref(page);
   const copy = categoryCopy(route, total);
+  if (page > 1) { copy.title = `${copy.title} — صفحة ${page}`; copy.description = `صفحة ${page}: ${copy.description}`; }
   const prices = rows.map((r) => Number(r.price)).filter(Boolean);
 
   const crumbs = [
@@ -226,12 +241,12 @@ ${siteHeader()}
   <p class="cm-text-muted text-sm mb-5">${esc(route.kind === "dealer" ? intro.replace("كل الإعلانات من البائعين مباشرة، بدون وسيط.", "") : intro)}</p>
   ${dealerIntro}
   ${rows.length ? `<ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${rows.map(card).join("")}</ul>` : ""}
-  ${total > rows.length ? `<p class="text-sm cm-text-muted mt-4">نعرض أحدث ${fmt(rows.length)} إعلان. <a class="cm-link" href="${path}">افتح الصفحة</a> لتصفح الكل والفلترة.</p>` : ""}
+  ${pager(page, pages, pageHref)}
   ${modelChips.length ? `<section class="mt-8 text-sm"><h2 class="font-bold">موديلات ${esc(route.make)}</h2><ul class="flex flex-wrap gap-2 mt-2">${modelChips.join("")}</ul></section>` : ""}
   ${relatedLinks(facets, route)}
 </main>`;
 
-  return fillShell(shell, {
+  return [200, fillShell(shell, {
     title: copy.title,
     description: copy.description,
     canonical: url,
@@ -243,8 +258,41 @@ ${siteHeader()}
       "@type": "ItemList",
       name: copy.h1,
       numberOfItems: total,
-      itemListElement: rows.map((l, i) => ({ "@type": "ListItem", position: i + 1, url: SITE_URL + paths.car(l.id), name: carTitle(l) })),
+      itemListElement: rows.map((l, i) => ({ "@type": "ListItem", position: (page - 1) * PAGE_SIZE + i + 1, url: SITE_URL + paths.car(l.id), name: carTitle(l) })),
     }) : ""),
+    body,
+  })];
+}
+
+// --- Home page -------------------------------------------------------------
+
+async function homePage(shell) {
+  const [{ rows, total }, facets] = await Promise.all([
+    queryListings([["select", LISTING_FIELDS], ["order", "created_at.desc"], ["limit", "24"]], { count: true }),
+    getFacets(),
+  ]);
+  const title = `${SITE_NAME} — سوق السيارات المستعملة في الإمارات`;
+  const description = `${SITE_NAME} سوق السيارات المستعملة في الإمارات: تصفح ${total ? `${fmt(total)} ` : ""}سيارة للبيع في دبي وأبوظبي والشارقة وباقي الإمارات، أو انشر سيارتك مجانًا وتواصل مع المشترين مباشرة.`;
+  const body = `
+${siteHeader()}
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <h1 class="cm-display font-extrabold text-2xl mb-2">سوق السيارات المستعملة في الإمارات</h1>
+  <p class="cm-text-muted text-sm mb-5">${total ? `${fmt(total)} سيارة معروضة للبيع الآن. ` : ""}تصفح السيارات المستعملة حسب الماركة أو الإمارة أو الميزانية، أو انشر إعلان سيارتك مجانًا.</p>
+  <p class="mb-6"><a class="cm-link font-bold" href="${paths.all()}">تصفح كل السيارات المستعملة</a></p>
+  ${rows.length ? `<h2 class="font-bold mb-3">أحدث السيارات</h2><ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${rows.map(card).join("")}</ul>` : ""}
+  ${relatedLinks(facets, { kind: "home" })}
+</main>`;
+  return fillShell(shell, {
+    title,
+    description,
+    canonical: SITE_URL + "/",
+    headExtra: jsonLd({
+      "@context": "https://schema.org",
+      "@graph": [
+        { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: SITE_NAME, url: `${SITE_URL}/`, logo: `${SITE_URL}/icon-512.png`, email: "carsuae@carsuae.net", areaServed: "AE" },
+        { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: SITE_NAME, alternateName: "كارز يو إيه إي", url: `${SITE_URL}/`, inLanguage: "ar-AE", publisher: { "@id": `${SITE_URL}/#org` } },
+      ],
+    }),
     body,
   });
 }
@@ -278,6 +326,20 @@ function card(l) {
     <p class="text-xs cm-text-muted mt-1">${esc(facts)}</p>
     <p class="font-bold mt-2">${fmt(l.price)} د.إ${l.negotiable ? " · قابل للتفاوض" : ""}</p></div>
   </a></li>`;
+}
+
+// Crawlable page links: ‹ السابق · 1 2 3 … · التالي ›
+function pager(page, pages, href) {
+  if (pages <= 1) return "";
+  const nums = [...new Set([1, page - 2, page - 1, page, page + 1, page + 2, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  const items = [];
+  if (page > 1) items.push(`<a class="cm-link" rel="prev" href="${href(page - 1)}">السابق</a>`);
+  nums.forEach((n, i) => {
+    if (i && n - nums[i - 1] > 1) items.push(`<span>…</span>`);
+    items.push(n === page ? `<span class="font-bold" aria-current="page">${fmt(n)}</span>` : `<a class="cm-link" href="${href(n)}">${fmt(n)}</a>`);
+  });
+  if (page < pages) items.push(`<a class="cm-link" rel="next" href="${href(page + 1)}">التالي</a>`);
+  return `<nav aria-label="الصفحات" class="flex flex-wrap gap-3 items-center justify-center text-sm mt-6">${items.join("")}</nav>`;
 }
 
 function relatedLinks(facets, route) {

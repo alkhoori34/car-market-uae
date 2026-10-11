@@ -81,7 +81,12 @@ export function photo(l) {
 
 // Puts the page's own <head> tags and server-rendered body into the shell.
 // React replaces the #root content as soon as the app starts.
+// Shown by WhatsApp, Facebook etc. when a page has no car photo of its own.
+const DEFAULT_IMAGE = "https://carsuae.net/og-image.png";
+
 export function fillShell(shell, { title, description, canonical, image, noindex, headExtra = "", body }) {
+  const ownImage = Boolean(image);
+  image = image || DEFAULT_IMAGE;
   const head = [
     `<title>${esc(title)}</title>`,
     `<meta name="description" content="${esc(description)}">`,
@@ -93,8 +98,8 @@ export function fillShell(shell, { title, description, canonical, image, noindex
     `<meta property="og:title" content="${esc(title)}">`,
     `<meta property="og:description" content="${esc(description)}">`,
     `<meta property="og:url" content="${esc(canonical)}">`,
-    image ? `<meta property="og:image" content="${esc(image)}">` : "",
-    `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">`,
+    `<meta property="og:image" content="${esc(image)}">`,
+    `<meta name="twitter:card" content="${ownImage ? "summary_large_image" : "summary"}">`,
     headExtra,
   ].filter(Boolean).join("\n    ");
 
