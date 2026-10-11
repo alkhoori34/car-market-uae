@@ -118,6 +118,21 @@ of the SQL in the repo root (see `listings-*.sql`).
   visible changes, push a branch first and show the owner the preview.
 - The repo is **public**: never commit keys, OAuth secrets or `.env.local`.
 
+## Importing an ad the owner forwards from WhatsApp (plan A, since 2026-10-11)
+
+The owner forwards a seller's/broker's photos and specs into the chat. Claude:
+1. Reads the specs (make, model, year, price, km, city, specs, phone of the
+   car's owner — not the broker's) and asks only for what is missing.
+2. Saves the photos as `public/l/<make>-<model>-<year>-<n>.jpg` (resize to
+   ~1600px wide, JPEG), commits and pushes to `main`.
+3. Inserts the row in `listings` via Supabase SQL with `image`/`images` set to
+   `https://carsuae.net/l/<file>`, `seller_id` = the owner's user id, and
+   `dealer_id` when it came from a known broker; `expires_at` = now + 30 days.
+4. Schedules the Instagram/Facebook/TikTok post through the Metricool
+   connector, linking to `https://carsuae.net/car/<id>`.
+Plan B (full automation through the WhatsApp Cloud API on a dedicated number)
+waits on Meta Business Verification.
+
 ## Open work
 
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
