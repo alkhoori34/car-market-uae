@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 
@@ -460,6 +460,8 @@ export default function CarMarket() {
   const [resendWait, setResendWait] = useState(0);
   const [active, setActive] = useState(null);
   const [photoIdx, setPhotoIdx] = useState(0);
+  // Full-screen photo viewer (tap a listing photo to open, pinch / double-tap to zoom).
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [checking, setChecking] = useState(false);
   const [toast, setToast] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -1029,6 +1031,7 @@ export default function CarMarket() {
   }
 
   function closeListing() {
+    setViewerOpen(false);
     if (openedInApp.current) {
       // Step back to the list it was opened from; the popstate handler closes it.
       window.history.back();
@@ -1971,7 +1974,27 @@ export default function CarMarket() {
                 if (!gallery.length) return <Car size={56} className="cm-icon-empty" />;
                 return (
                   <>
-                    <img src={gallery[Math.min(photoIdx, gallery.length - 1)]} className="w-full h-full object-cover" alt="" />
+                    <img
+                      src={gallery[Math.min(photoIdx, gallery.length - 1)]}
+                      onClick={() => setViewerOpen(true)}
+                      className="w-full h-full object-cover cursor-zoom-in"
+                      alt=""
+                    />
+                    <button
+                      onClick={() => setViewerOpen(true)}
+                      aria-label="تكبير الصورة"
+                      className="absolute bottom-3 left-3 bg-black/60 hover:bg-black/80 rounded-full p-1.5 text-white"
+                    >
+                      <Maximize2 size={16} />
+                    </button>
+                    {viewerOpen && (
+                      <PhotoViewer
+                        images={gallery}
+                        index={Math.min(photoIdx, gallery.length - 1)}
+                        onIndex={setPhotoIdx}
+                        onClose={() => setViewerOpen(false)}
+                      />
+                    )}
                     {gallery.length > 1 && (
                       <>
                         <button
@@ -2282,6 +2305,148 @@ function ComboBox({ value, options, onChange, placeholder }) {
 
 // Search-result card: the facts a buyer scans first (year, km, specs), the
 // price with any cut from the earlier asking price, and a rough monthly payment.
+// Full-screen photo viewer: swipe / arrows to change photo, pinch, double-tap
+// or mouse wheel to zoom, drag to move a zoomed photo, Esc or ✕ to close.
+function PhotoViewer({ images, index, onIndex, onClose }) {
+  const [scale, setScale] = useState(1);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const touch = useRef({ startDist: 0, startScale: 1, last: null, startX: 0, startY: 0, moved: false, lastTap: 0 });
+  const count = images.length;
+
+  const reset = () => { setScale(1); setPos({ x: 0, y: 0 }); };
+  const go = (d) => { reset(); onIndex((index + d + count) % count); };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); onClose(); }
+      else if (e.key === "ArrowLeft" && count > 1) go(1);
+      else if (e.key === "ArrowRight" && count > 1) go(-1);
+    };
+    window.addEventListener("keydown", onKey, true);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey, true); document.body.style.overflow = prevOverflow; };
+  });
+
+  const clampScale = (s) => Math.min(4, Math.max(1, s));
+  const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+  function onTouchStart(e) {
+    const t = touch.current;
+    if (e.touches.length === 2) {
+      t.startDist = dist(e.touches);
+      t.startScale = scale;
+    } else if (e.touches.length === 1) {
+      t.last = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      t.startX = e.touches[0].clientX;
+      t.startY = e.touches[0].clientY;
+      t.moved = false;
+    }
+  }
+
+  function onTouchMove(e) {
+    const t = touch.current;
+    if (e.touches.length === 2 && t.startDist) {
+      const s = clampScale(t.startScale * (dist(e.touches) / t.startDist));
+      setScale(s);
+      if (s === 1) setPos({ x: 0, y: 0 });
+    } else if (e.touches.length === 1 && t.last) {
+      const x = e.touches[0].clientX, y = e.touches[0].clientY;
+      if (Math.abs(x - t.startX) > 8 || Math.abs(y - t.startY) > 8) t.moved = true;
+      if (scale > 1) setPos((p) => ({ x: p.x + (x - t.last.x), y: p.y + (y - t.last.y) }));
+      t.last = { x, y };
+    }
+  }
+
+  function onTouchEnd(e) {
+    const t = touch.current;
+    if (e.touches.length > 0) return;
+    // Swipe to change photo when not zoomed.
+    if (scale === 1 && t.last && count > 1) {
+      const dx = t.last.x - t.startX;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(t.last.y - t.startY)) { go(dx < 0 ? 1 : -1); t.last = null; return; }
+    }
+    // Double-tap toggles zoom.
+    if (!t.moved && t.startDist === 0) {
+      const now = Date.now();
+      if (now - t.lastTap < 300) { if (scale > 1) reset(); else setScale(2.5); t.lastTap = 0; }
+      else t.lastTap = now;
+    }
+    t.startDist = 0;
+    t.last = null;
+  }
+
+  // Mouse: wheel zooms, drag moves, double-click toggles zoom.
+  const drag = useRef(null);
+  function onWheel(e) {
+    const s = clampScale(scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+    setScale(s);
+    if (s === 1) setPos({ x: 0, y: 0 });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black flex items-center justify-center select-none"
+      style={{ zIndex: 60, touchAction: "none" }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div
+        className="w-full h-full flex items-center justify-center overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onWheel={onWheel}
+        onDoubleClick={() => (scale > 1 ? reset() : setScale(2.5))}
+        onMouseDown={(e) => { if (scale > 1) drag.current = { x: e.clientX, y: e.clientY }; }}
+        onMouseMove={(e) => {
+          if (!drag.current) return;
+          const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y;
+          drag.current = { x: e.clientX, y: e.clientY };
+          setPos((p) => ({ x: p.x + dx, y: p.y + dy }));
+        }}
+        onMouseUp={() => { drag.current = null; }}
+        onMouseLeave={() => { drag.current = null; }}
+      >
+        <img
+          src={images[index]}
+          alt=""
+          draggable={false}
+          className="max-w-full max-h-full object-contain"
+          style={{
+            transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
+            transition: drag.current || touch.current.last ? "none" : "transform 0.15s ease-out",
+            cursor: scale > 1 ? "grab" : "zoom-in",
+          }}
+        />
+      </div>
+
+      <button onClick={onClose} aria-label="إغلاق" className="absolute top-4 left-4 bg-black/60 hover:bg-black/80 rounded-full p-2 text-white">
+        <X size={22} />
+      </button>
+      <span className="absolute top-5 right-4 bg-black/60 text-white text-sm rounded-full px-3 py-1">
+        {index + 1} / {count}
+      </span>
+
+      {count > 1 && (
+        <>
+          <button onClick={() => go(-1)} aria-label="السابقة" className="absolute top-1/2 -translate-y-1/2 right-3 bg-black/60 hover:bg-black/80 rounded-full p-2 text-white">
+            <ChevronRight size={24} />
+          </button>
+          <button onClick={() => go(1)} aria-label="التالية" className="absolute top-1/2 -translate-y-1/2 left-3 bg-black/60 hover:bg-black/80 rounded-full p-2 text-white rotate-180">
+            <ChevronRight size={24} />
+          </button>
+        </>
+      )}
+
+      {scale === 1 && (
+        <span className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs rounded-full px-3 py-1">
+          اضغط مرتين أو باصبعين للتكبير
+        </span>
+      )}
+    </div>
+  );
+}
+
 function ListingCard({ l, onOpen, isFav, onFav, dealer }) {
   const photo = l.image || l.images?.[0];
   const discount = discountPercent(l);
