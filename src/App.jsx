@@ -2411,7 +2411,7 @@ function PhotoViewer({ images, index, onIndex, onClose }) {
           src={images[index]}
           alt=""
           draggable={false}
-          className="max-w-full max-h-full object-contain"
+          className="w-full h-full object-contain"
           style={{
             transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
             transition: drag.current || touch.current.last ? "none" : "transform 0.15s ease-out",
