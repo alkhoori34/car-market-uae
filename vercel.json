@@ -29,5 +29,10 @@
       "source": "/((?!api/|assets/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/page.js": {
+      "includeFiles": "dist/index.html"
+    }
+  }
 }

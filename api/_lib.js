@@ -51,15 +51,37 @@ export async function queryTable(table, params) {
   return res.json();
 }
 
-// The built index.html (with Vite's hashed script and CSS names) is fetched
-// from this same deployment, then reused for a few minutes.
+// The built index.html (with Vite's hashed script and CSS names). It is read
+// from the function's own bundle (vercel.json includeFiles "dist/index.html"),
+// so a page always points at this deployment's script and CSS. Fetching it
+// over the network could return the previous deployment's copy right after a
+// deploy, and that page then loaded a script that no longer exists (blank,
+// unstyled site for several minutes). The network fetch is only a fallback.
 let shellCache = { html: null, at: 0, host: "" };
+let bundledShell;
+async function readBundledShell() {
+  if (bundledShell !== undefined) return bundledShell;
+  bundledShell = null;
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    for (const p of [join(process.cwd(), "dist", "index.html"), new URL("../dist/index.html", import.meta.url)]) {
+      try {
+        const html = await readFile(p, "utf8");
+        if (html.includes("/assets/")) { bundledShell = html; break; }
+      } catch {}
+    }
+  } catch {}
+  return bundledShell;
+}
 export async function getShell(req) {
+  const bundled = await readBundledShell();
+  if (bundled) return bundled;
   const host = req.headers["x-forwarded-host"] || req.headers.host;
-  const fresh = shellCache.html && shellCache.host === host && Date.now() - shellCache.at < 5 * 60 * 1000;
+  const fresh = shellCache.html && shellCache.host === host && Date.now() - shellCache.at < 60 * 1000;
   if (fresh) return shellCache.html;
   const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0];
-  const res = await fetch(`${proto}://${host}/index.html`);
+  const res = await fetch(`${proto}://${host}/index.html?shell=${Date.now()}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`index.html ${res.status}`);
   const html = await res.text();
   shellCache = { html, at: Date.now(), host };
