@@ -84,6 +84,12 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
 - **Dealers (brokers):** `dealers` table, `listings.dealer_id`; verified
   dealers get a "وسيط معتمد" badge and a `/dealer/<slug>` page. Imported
   broker ads keep the car owner's phone number.
+- **VIN check (فحص رقم الشاصي)** at `/vin-check` (view `vin`, `VinCheck` in
+  App.jsx; header button, home card, and a button on each listing). `api/vin.js`
+  calls the free NHTSA vPIC decoder and recalls API (no key); `src/vin.js`
+  reads country/maker/year from the VIN itself. NHTSA only covers North
+  American-market cars, so the page never states "خليجي/وارد" as fact — it
+  shows a hint and tells the buyer how to confirm. `?vin=` prefills and runs.
 - WhatsApp button on every listing (`waNumber` normalises UAE numbers).
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is

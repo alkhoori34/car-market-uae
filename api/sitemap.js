@@ -19,6 +19,7 @@ export default async function handler(req, res) {
     const urls = [
       { loc: "/", lastmod: newest, priority: "1.0" },
       { loc: paths.all(), lastmod: newest, priority: "0.9" },
+      { loc: paths.vin(), priority: "0.7" },
     ];
     const makes = [...new Set(rows.map((r) => r.make))].filter((m) => MAKE_SLUGS[m]);
     const cities = [...new Set(rows.map((r) => r.city))].filter((c) => CITY_SLUGS[c]);

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2 } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
+import { cleanVin, isVinFormat } from "./vin.js";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -446,7 +447,7 @@ export default function CarMarket() {
   });
   const [listings, setListings] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [view, setView] = useState(initialRoute ? "browse" : "home"); // home | browse | mine | saved | add
+  const [view, setView] = useState(initialRoute?.kind === "vin" ? "vin" : initialRoute ? "browse" : "home"); // home | browse | mine | saved | add | vin
 
   // Auth (Supabase email/password accounts)
   const [session, setSession] = useState(null);
@@ -610,6 +611,7 @@ export default function CarMarket() {
   function applyRoute(route) {
     if (!route) { setActive(null); setView("home"); return; }
     if (route.kind === "car") { setView("browse"); setPendingCarId(route.id); return; }
+    if (route.kind === "vin") { setActive(null); setView("vin"); return; }
     setActive(null);
     setMakeFilter(["make", "model"].includes(route.kind) ? route.make : "الكل");
     setModelFilter(route.kind === "model" ? route.modelSlug : "");
@@ -684,7 +686,7 @@ export default function CarMarket() {
     const viewChanged = prevViewRef.current !== view;
     prevViewRef.current = view;
     if (active || pendingCarId) return;
-    const target = view === "browse" ? browsePath() : "/";
+    const target = view === "browse" ? browsePath() : view === "vin" ? paths.vin() : "/";
     if (target === window.location.pathname) return;
     if (viewChanged) window.history.pushState({}, "", target);
     else window.history.replaceState({}, "", target);
@@ -697,6 +699,8 @@ export default function CarMarket() {
       ? `${active.make} ${active.model} ${active.year} — ${formatNumber(active.price)} د.إ | CarsUAE`
       : view === "browse"
         ? sectionTitle
+        : view === "vin"
+        ? "فحص رقم الشاصي مجانًا | CarsUAE"
         : "CarsUAE — سوق السيارات المستعملة في الإمارات";
   }, [active, view, sectionTitle]);
 
@@ -1256,6 +1260,13 @@ export default function CarMarket() {
             >
               <Search size={15} /> <span className="hidden sm:inline">السيارات</span>
             </button>
+            <button
+              onClick={() => setView("vin")}
+              title="فحص رقم الشاصي"
+              className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "vin" ? "cm-navbtn-active" : ""}`}
+            >
+              <ScanLine size={15} /> <span className="hidden sm:inline">فحص الشاصي</span>
+            </button>
             {session && (
               <button
                 onClick={() => setView("mine")}
@@ -1357,6 +1368,16 @@ export default function CarMarket() {
               </button>
             </div>
 
+            <div className="cm-card rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="cm-section-title flex items-center gap-2"><ScanLine size={18} className="cm-text-accent" /> فحص رقم الشاصي مجانًا</p>
+                <p className="text-sm cm-text-muted mt-1">قبل ما تشتري: اعرف بلد الصنع وسنة الموديل ومواصفات المصنع.</p>
+              </div>
+              <button onClick={() => setView("vin")} className="cm-btn-ghost font-bold text-sm px-5 py-2.5 rounded-lg flex items-center gap-1.5">
+                <ScanLine size={16} /> افحص الآن
+              </button>
+            </div>
+
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="cm-section-title">أحدث السيارات</h2>
@@ -1393,6 +1414,8 @@ export default function CarMarket() {
           </main>
         </>
       )}
+
+      {view === "vin" && <VinCheck onBrowse={() => setView("browse")} />}
 
       {/* BUYER / BROWSE PAGE */}
       {(view === "mine" || view === "saved") && (
@@ -2116,6 +2139,15 @@ export default function CarMarket() {
                       <MessageCircle size={15} /> واتساب
                     </a>
                   )}
+                  {!active.sold && (
+                    <button
+                      onClick={() => { openedInApp.current = false; setActive(null); setView("vin"); }}
+                      className="flex items-center gap-1.5 cm-btn-ghost font-bold text-sm px-3 py-2 rounded-lg"
+                      title="اطلب رقم الشاصي من البائع وافحصه مجانًا"
+                    >
+                      <ScanLine size={15} /> افحص الشاصي
+                    </button>
+                  )}
                   {active.sold ? null : session ? (
                     <a href={`tel:${active.phone}`} className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
                       <Phone size={15} /> اتصال
@@ -2531,5 +2563,156 @@ function Spec({ icon, label, value }) {
         <p className="text-xs font-bold cm-tabular">{value === null || value === undefined || value === "" ? "-" : value}</p>
       </div>
     </div>
+  );
+}
+
+// "فحص رقم الشاصي": the buyer types a VIN, /api/vin answers with what the VIN
+// itself says (country, maker, year) and, for cars built for the North
+// American market, factory specs and recalls from NHTSA. We never call a car
+// "خليجي" or "وارد" outright: the VIN alone cannot prove it, so the page gives
+// a hint and tells the buyer how to be sure.
+function VinCheck({ onBrowse }) {
+  const [vin, setVin] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return cleanVin(new URLSearchParams(window.location.search).get("vin") || "");
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+
+  async function check(e) {
+    if (e) e.preventDefault();
+    const v = cleanVin(vin);
+    setVin(v);
+    setResult(null);
+    if (!isVinFormat(v)) {
+      setError(v.length !== 17
+        ? `رقم الشاصي يتكون من 17 خانة، وكتبت ${v.length}.`
+        : "في رقم الشاصي رمز غير صحيح. تأكد من الرقم.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/vin?vin=${v}`);
+      const data = await r.json();
+      if (!data.ok) setError(data.error || "تعذر فحص الرقم.");
+      else setResult(data);
+    } catch {
+      setError("تعذر الاتصال الآن. حاول بعد قليل.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { if (vin.length === 17) check(); }, []);
+
+  const s = result?.specs;
+  const title = s ? `${s.make} ${s.model}${s.year ? ` ${s.year}` : ""}` : [result?.maker, result?.year].filter(Boolean).join(" ");
+  const row = (label, value) => value ? (
+    <div className="flex justify-between gap-4 py-2 text-sm" style={{ borderBottom: "1px solid var(--cm-border)" }}>
+      <span className="cm-text-muted">{label}</span>
+      <span className="font-bold text-left">{value}</span>
+    </div>
+  ) : null;
+
+  // What we can honestly say about the car's market.
+  let origin = null;
+  if (result) {
+    if (result.northAmerica) {
+      origin = { tone: "muted", text: `السيارة مصنوعة في ${result.country || "أمريكا الشمالية"}. هذا وحده لا يعني أنها وارد، لأن كثير من سيارات الخليج (شيفروليه، جي إم سي، فورد، جيب...) تُصنع هناك. اطلب من البائع ما يثبت أنها خليجية.` };
+    } else if (result.usMarketHint) {
+      origin = { tone: "red", text: "هذا الرقم مسجّل في قاعدة بيانات السوق الأمريكي، وهذا مؤشر قوي أن السيارة بمواصفات أمريكية (وارد). تأكد من البائع واطلب تقرير تاريخ السيارة (مثل Carfax) قبل الشراء." };
+    } else if (result.nhtsaOk) {
+      origin = { tone: "mint", text: "الرقم غير مسجّل في قاعدة بيانات السوق الأمريكي، وهذا مؤشر أن السيارة غالبًا ليست بمواصفات أمريكية. للتأكد أنها خليجية، اطلب من البائع سجل الوكالة أو افحصها في مركز فحص." };
+    }
+  }
+  const toneCls = { red: "cm-badge-red", mint: "cm-badge-mint", muted: "cm-badge-muted" };
+
+  return (
+    <main className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <div>
+        <h1 className="cm-display font-extrabold text-2xl mb-1 flex items-center gap-2"><ScanLine size={24} className="cm-text-accent" /> فحص رقم الشاصي</h1>
+        <p className="text-sm cm-text-muted">مجانًا: بلد الصنع، الشركة المصنعة، سنة الموديل، ومواصفات المصنع.</p>
+      </div>
+
+      <form onSubmit={check} className="flex gap-2">
+        <input
+          dir="ltr"
+          value={vin}
+          onChange={(e) => setVin(e.target.value.toUpperCase())}
+          placeholder="مثال: JTMHV05J804012345"
+          maxLength={25}
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          className="cm-input cm-input-lg cm-tabular flex-1"
+          style={{ letterSpacing: "0.08em" }}
+        />
+        <button type="submit" disabled={loading} className="cm-btn-primary cm-btn-lg font-bold whitespace-nowrap flex items-center gap-1.5">
+          {loading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />} افحص
+        </button>
+      </form>
+      <p className="text-xs cm-text-muted -mt-3">
+        تلقاه في ملكية السيارة، أو أسفل الزجاج الأمامي من جهة السائق، أو على باب السائق من الداخل. يتكون من 17 حرفًا ورقمًا.
+      </p>
+
+      {error && (
+        <div className="cm-badge cm-badge-red w-full py-2.5 px-3 text-sm"><AlertTriangle size={16} /> {error}</div>
+      )}
+
+      {result && (
+        <div className="space-y-4">
+          <div className="cm-card rounded-xl p-5">
+            <p className="text-xs cm-text-muted cm-tabular" dir="ltr">{result.vin}</p>
+            <h2 className="cm-display font-extrabold text-xl mt-1">{title || "سيارة"}</h2>
+            {s?.trim && <p className="text-sm cm-text-muted">{s.trim}</p>}
+            <div className="mt-3">
+              {row("بلد الصنع", result.country)}
+              {row("المصنع", s?.plant)}
+              {row("الشركة المصنعة", result.maker || s?.manufacturer)}
+              {row("سنة الموديل", s?.year || result.year)}
+              {row("نوع الهيكل", s?.body)}
+              {row("المحرك", s?.engine)}
+              {row("الوقود", s?.fuel)}
+              {row("ناقل الحركة", s?.trans)}
+              {row("نظام الدفع", s?.drive)}
+              {row("الأبواب", s?.doors)}
+              {row("المقاعد", s?.seats)}
+            </div>
+            {!s && (
+              <p className="text-xs cm-text-muted mt-3 flex gap-1.5"><Info size={14} className="shrink-0 mt-0.5" /> تفاصيل المحرك والفئة غير متوفرة لهذا الرقم في قاعدة البيانات المجانية. المعلومات أعلاه مقروءة من رقم الشاصي نفسه.</p>
+            )}
+          </div>
+
+          {origin && (
+            <div className={`cm-badge ${toneCls[origin.tone]} w-full py-3 px-3 text-sm items-start`} style={{ fontWeight: 600, lineHeight: 1.7 }}>
+              <Info size={16} className="shrink-0 mt-1" /> <span>{origin.text}</span>
+            </div>
+          )}
+
+          {Array.isArray(result.recalls) && (
+            <div className="cm-card rounded-xl p-5">
+              <h3 className="font-bold mb-2">نداءات الاستدعاء من الشركة</h3>
+              {result.recalls.length === 0 ? (
+                <p className="text-sm cm-text-mint flex items-center gap-1.5"><CheckCircle2 size={15} /> لا توجد نداءات استدعاء مسجّلة لهذا الموديل.</p>
+              ) : (
+                <>
+                  <p className="text-sm mb-2">يوجد <b>{result.recalls.length}</b> نداء استدعاء لهذا الموديل والسنة. اسأل البائع أو الوكالة هل تم إصلاحها.</p>
+                  <ul className="text-xs cm-text-muted space-y-1" dir="ltr">
+                    {result.recalls.map((x, i) => <li key={x.id || i}>• {x.component}{x.id ? ` (${x.id})` : ""}</li>)}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
+
+          <p className="text-xs cm-text-muted leading-relaxed">
+            هذا الفحص يقرأ مواصفات المصنع فقط، ولا يكشف الحوادث أو الممشى الحقيقي. قبل الشراء افحص السيارة في مركز فحص معتمد.
+          </p>
+          <button onClick={onBrowse} className="cm-link font-bold text-sm">تصفح السيارات المعروضة للبيع</button>
+        </div>
+      )}
+    </main>
   );
 }

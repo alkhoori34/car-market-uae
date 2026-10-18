@@ -22,6 +22,10 @@
       "destination": "/api/page?route=/used-cars/:a/:b"
     },
     {
+      "source": "/vin-check",
+      "destination": "/api/page?route=/vin-check"
+    },
+    {
       "source": "/dealer/:slug",
       "destination": "/api/page?route=/dealer/:slug"
     },

@@ -6,6 +6,7 @@
 //   /used-cars/under/<max>    e.g. /used-cars/under/50000
 //   /used-cars/<make>/<model> e.g. /used-cars/lexus/ls
 //   /dealer/<slug>            one dealer's cars
+//   /vin-check                free VIN (رقم الشاصي) check tool
 //   /                         home page (sent here by middleware.js)
 // Category pages take ?page=2, 3 … so every live car is reachable by links.
 // vercel.json rewrites those paths here as ?route=<path>. Each response is the
@@ -58,6 +59,7 @@ export default async function handler(req, res) {
     if (!route) return send(res, 404, notFound(shell, raw));
     if (route.kind === "home") return send(res, 200, await homePage(shell));
     if (route.kind === "car") return send(res, ...(await carPage(shell, route)));
+    if (route.kind === "vin") return send(res, 200, vinPage(shell));
     return send(res, ...(await categoryPage(shell, route, page)));
   } catch (err) {
     console.error("page", raw, err);
@@ -292,6 +294,37 @@ ${siteHeader()}
         { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: SITE_NAME, url: `${SITE_URL}/`, logo: `${SITE_URL}/icon-512.png`, email: "carsuae@carsuae.net", areaServed: "AE" },
         { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: SITE_NAME, alternateName: "كارز يو إيه إي", url: `${SITE_URL}/`, inLanguage: "ar-AE", publisher: { "@id": `${SITE_URL}/#org` } },
       ],
+    }),
+    body,
+  });
+}
+
+// --- VIN check tool --------------------------------------------------------
+
+function vinPage(shell) {
+  const title = `فحص رقم الشاصي مجانًا (VIN) | ${SITE_NAME}`;
+  const description = "افحص رقم الشاصي لأي سيارة مجانًا: بلد الصنع، الشركة المصنعة، سنة الموديل، مواصفات المحرك وناقل الحركة، ونداءات الاستدعاء. أداة مجانية من CarsUAE قبل شراء سيارتك المستعملة في الإمارات.";
+  const body = `
+${siteHeader()}
+<main class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="cm-display font-extrabold text-2xl mb-2">فحص رقم الشاصي مجانًا</h1>
+  <p class="cm-text-muted text-sm mb-5">اكتب رقم الشاصي (VIN) المكوّن من 17 حرفًا ورقمًا، واعرف بلد الصنع والشركة المصنعة وسنة الموديل ومواصفات المصنع، قبل ما تشتري السيارة.</p>
+  <h2 class="font-bold mt-6 mb-2">وين ألقى رقم الشاصي؟</h2>
+  <p class="text-sm">في ملكية السيارة (الكارت)، أو أسفل الزجاج الأمامي من جهة السائق، أو على باب السائق من الداخل.</p>
+  <p class="mt-6"><a class="cm-link font-bold" href="${paths.all()}">تصفح السيارات المستعملة للبيع</a></p>
+</main>`;
+  return fillShell(shell, {
+    title,
+    description,
+    canonical: SITE_URL + paths.vin(),
+    headExtra: jsonLd({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: "فحص رقم الشاصي",
+      url: SITE_URL + paths.vin(),
+      applicationCategory: "UtilitiesApplication",
+      inLanguage: "ar-AE",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "AED" },
     }),
     body,
   });

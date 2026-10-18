@@ -73,6 +73,7 @@ export const paths = {
   model: (make, model) => (makeSlug(make) && modelSlug(model) ? `/used-cars/${makeSlug(make)}/${modelSlug(model)}` : paths.make(make)),
   dealer: (slug) => `/dealer/${slug}`,
   car: (id) => `/car/${id}`,
+  vin: () => "/vin-check",
 };
 
 // Turns a URL path into what the page shows. Returns null for paths that are
@@ -80,12 +81,13 @@ export const paths = {
 //   { kind: "car", id } | { kind: "all" } | { kind: "make", make }
 //   { kind: "city", city } | { kind: "budget", max }
 //   { kind: "model", make, modelSlug } (the model's display name is looked up
-//   from the listings) | { kind: "dealer", slug }
+//   from the listings) | { kind: "dealer", slug } | { kind: "vin" } (VIN check tool)
 export function parsePath(pathname) {
   const p = decodeURIComponent(pathname || "/").replace(/\/+$/, "") || "/";
   let m;
   if ((m = p.match(/^\/car\/([^/]+)$/))) return { kind: "car", id: m[1] };
   if (p === "/used-cars") return { kind: "all" };
+  if (p === "/vin-check") return { kind: "vin" };
   if ((m = p.match(/^\/used-cars\/in\/([a-z-]+)$/)) && CITY_BY_SLUG[m[1]]) return { kind: "city", city: CITY_BY_SLUG[m[1]] };
   if ((m = p.match(/^\/used-cars\/under\/(\d{4,7})$/))) return { kind: "budget", max: Number(m[1]) };
   if ((m = p.match(/^\/used-cars\/([a-z0-9-]+)$/)) && MAKE_BY_SLUG[m[1]]) return { kind: "make", make: MAKE_BY_SLUG[m[1]] };
