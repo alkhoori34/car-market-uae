@@ -2616,18 +2616,12 @@ function VinCheck({ onBrowse }) {
     </div>
   ) : null;
 
-  // What we can honestly say about the car's market.
-  let origin = null;
-  if (result) {
-    if (result.northAmerica) {
-      origin = { tone: "muted", text: `السيارة مصنوعة في ${result.country || "أمريكا الشمالية"}. هذا وحده لا يعني أنها وارد، لأن كثير من سيارات الخليج (شيفروليه، جي إم سي، فورد، جيب...) تُصنع هناك. اطلب من البائع ما يثبت أنها خليجية.` };
-    } else if (result.usMarketHint) {
-      origin = { tone: "red", text: "هذا الرقم مسجّل في قاعدة بيانات السوق الأمريكي، وهذا مؤشر قوي أن السيارة بمواصفات أمريكية (وارد). تأكد من البائع واطلب تقرير تاريخ السيارة (مثل Carfax) قبل الشراء." };
-    } else if (result.nhtsaOk) {
-      origin = { tone: "mint", text: "الرقم غير مسجّل في قاعدة بيانات السوق الأمريكي، وهذا مؤشر أن السيارة غالبًا ليست بمواصفات أمريكية. للتأكد أنها خليجية، اطلب من البائع سجل الوكالة أو افحصها في مركز فحص." };
-    }
-  }
-  const toneCls = { red: "cm-badge-red", mint: "cm-badge-mint", muted: "cm-badge-muted" };
+  // What we can honestly say about the car's market: the VIN alone never
+  // proves GCC vs imported, so we say so and tell the buyer how to check.
+  const origin = result ? (result.northAmerica
+    ? `السيارة مصنوعة في ${result.country || "أمريكا الشمالية"}. هذا لا يعني أنها وارد، فكثير من سيارات الخليج (شيفروليه، جي إم سي، فورد، جيب...) تُصنع هناك.`
+    : "رقم الشاصي يبيّن مواصفات المصنع، لكنه وحده لا يثبت إذا كانت السيارة خليجية أو وارد.")
+    + " للتأكد: اطلب من البائع سجل صيانة الوكالة، أو اسأل وكيل الماركة برقم الشاصي، أو افحصها في مركز فحص." : null;
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-5">
@@ -2686,8 +2680,8 @@ function VinCheck({ onBrowse }) {
           </div>
 
           {origin && (
-            <div className={`cm-badge ${toneCls[origin.tone]} w-full py-3 px-3 text-sm items-start`} style={{ fontWeight: 600, lineHeight: 1.7 }}>
-              <Info size={16} className="shrink-0 mt-1" /> <span>{origin.text}</span>
+            <div className="cm-badge cm-badge-blue w-full py-3 px-3 text-sm items-start" style={{ fontWeight: 600, lineHeight: 1.7 }}>
+              <Info size={16} className="shrink-0 mt-1" /> <span>خليجي ولا وارد؟ {origin}</span>
             </div>
           )}
 
@@ -2698,7 +2692,7 @@ function VinCheck({ onBrowse }) {
                 <p className="text-sm cm-text-mint flex items-center gap-1.5"><CheckCircle2 size={15} /> لا توجد نداءات استدعاء مسجّلة لهذا الموديل.</p>
               ) : (
                 <>
-                  <p className="text-sm mb-2">يوجد <b>{result.recalls.length}</b> نداء استدعاء لهذا الموديل والسنة. اسأل البائع أو الوكالة هل تم إصلاحها.</p>
+                  <p className="text-sm mb-2">يوجد <b>{result.recallsTotal || result.recalls.length}</b> نداء استدعاء لهذا الموديل والسنة. اسأل البائع أو الوكالة هل تم إصلاحها.</p>
                   <ul className="text-xs cm-text-muted space-y-1" dir="ltr">
                     {result.recalls.map((x, i) => <li key={x.id || i}>• {x.component}{x.id ? ` (${x.id})` : ""}</li>)}
                   </ul>

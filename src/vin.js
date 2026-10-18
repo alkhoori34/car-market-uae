@@ -100,4 +100,10 @@ const AR = {
   "RWD/Rear-Wheel Drive": "دفع خلفي", "4x2": "دفع ثنائي", "Left-Hand Drive (LHD)": "يسار", "Right-Hand Drive (RHD)": "يمين",
   "PASSENGER CAR": "سيارة ركاب", "MULTIPURPOSE PASSENGER VEHICLE (MPV)": "متعددة الأغراض", TRUCK: "شاحنة / بيك أب",
 };
-export const vinAr = (v) => (v && AR[v]) || v || "";
+const AR_KEYWORDS = [[/SUV|Sport Utility/i, "دفع رباعي / SUV"], [/Pickup/i, "بيك أب"], [/Sedan/i, "سيدان"], [/Coupe/i, "كوبيه"], [/Hatchback/i, "هاتشباك"], [/Convertible/i, "مكشوفة"], [/Van/i, "فان"]];
+export const vinAr = (v) => {
+  if (!v) return "";
+  if (AR[v]) return AR[v];
+  const hit = AR_KEYWORDS.find(([re]) => re.test(v));
+  return hit ? hit[1] : v;
+};

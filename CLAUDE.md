@@ -88,8 +88,9 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   App.jsx; header button, home card, and a button on each listing). `api/vin.js`
   calls the free NHTSA vPIC decoder and recalls API (no key); `src/vin.js`
   reads country/maker/year from the VIN itself. NHTSA only covers North
-  American-market cars, so the page never states "خليجي/وارد" as fact — it
-  shows a hint and tells the buyer how to confirm. `?vin=` prefills and runs.
+  American-market cars but also decodes some GCC VINs (a GCC Land Cruiser VX-R
+  decodes), so the page gives no GCC/imported verdict, only how to confirm.
+  Recalls are shown only for VINs with a valid check digit. `?vin=` prefills.
 - WhatsApp button on every listing (`waNumber` normalises UAE numbers).
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is

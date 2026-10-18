@@ -67,7 +67,7 @@ export default async function handler(req, res) {
           clean(r.EngineHP) ? `${Math.round(Number(clean(r.EngineHP)))} حصان` : "",
         ].filter(Boolean).join(" · "),
         fuel: vinAr(clean(r.FuelTypePrimary)),
-        trans: [vinAr(clean(r.TransmissionStyle)), clean(r.TransmissionSpeeds) ? `${clean(r.TransmissionSpeeds)} سرعات` : ""].filter(Boolean).join(" · "),
+        trans: [vinAr(clean(r.TransmissionStyle)), Number(clean(r.TransmissionSpeeds)) > 1 ? `${clean(r.TransmissionSpeeds)} سرعات` : ""].filter(Boolean).join(" · "),
         drive: vinAr(clean(r.DriveType)),
         doors: clean(r.Doors),
         seats: clean(r.Seats),
@@ -80,13 +80,16 @@ export default async function handler(req, res) {
     nhtsaOk = false;
   }
 
-  // Recalls only make sense for a decoded North American-market vehicle.
+  // Recalls are filed for North American-market cars, whose VINs must carry a
+  // valid check digit; for other cars they would be about a different car.
   let recalls = null;
-  if (specs && specs.make && specs.model && specs.year) {
+  let recallsTotal = 0;
+  if (specs && specs.make && specs.model && specs.year && local.checkDigitOk) {
     try {
       const q = new URLSearchParams({ make: specs.make, model: specs.model, modelYear: String(specs.year) });
       const data = await getJson(`https://api.nhtsa.gov/recalls/recallsByVehicle?${q}`);
       const list = (data && (data.results || data.Results)) || [];
+      recallsTotal = list.length;
       recalls = list.slice(0, 20).map((x) => ({
         id: x.NHTSACampaignNumber || "",
         component: x.Component || "",
@@ -97,9 +100,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // A full decode in the US database means the VIN pattern was filed for the
-  // North American market: a strong hint (not proof) of US/Canada specs.
-  const usMarketHint = Boolean(specs);
-
-  return reply(res, 200, { ok: true, ...local, specs, recalls, usMarketHint, nhtsaOk }, nhtsaOk ? 86400 : 0);
+  // No "GCC or imported" verdict: NHTSA also decodes Gulf-spec cars (a GCC
+  // Land Cruiser VX-R decodes fine), so a decode proves nothing about market.
+  return reply(res, 200, { ok: true, ...local, specs, recalls, recallsTotal, nhtsaOk }, nhtsaOk ? 86400 : 0);
 }
