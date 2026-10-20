@@ -75,6 +75,9 @@ export const paths = {
   car: (id) => `/car/${id}`,
   vin: () => "/vin-check",
   blog: () => "/blog",
+  terms: () => "/terms",
+  privacy: () => "/privacy",
+  contact: () => "/contact",
   article: (slug) => `/blog/${slug}`,
 };
 
@@ -91,6 +94,7 @@ export function parsePath(pathname) {
   if (p === "/used-cars") return { kind: "all" };
   if (p === "/vin-check") return { kind: "vin" };
   if (p === "/blog") return { kind: "blog" };
+  if (p === "/terms" || p === "/privacy" || p === "/contact") return { kind: "info", page: p.slice(1) };
   if ((m = p.match(/^\/blog\/([a-z0-9-]{2,80})$/))) return { kind: "article", slug: m[1] };
   if ((m = p.match(/^\/used-cars\/in\/([a-z-]+)$/)) && CITY_BY_SLUG[m[1]]) return { kind: "city", city: CITY_BY_SLUG[m[1]] };
   if ((m = p.match(/^\/used-cars\/under\/(\d{4,7})$/))) return { kind: "budget", max: Number(m[1]) };

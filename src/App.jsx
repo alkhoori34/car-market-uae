@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
+import { INFO_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -451,8 +452,11 @@ export default function CarMarket() {
   const [view, setView] = useState(
     initialRoute?.kind === "vin" ? "vin"
       : initialRoute?.kind === "blog" || initialRoute?.kind === "article" ? "blog"
+      : initialRoute?.kind === "info" ? "info"
       : initialRoute ? "browse" : "home"
-  ); // home | browse | mine | saved | add | vin | blog
+  ); // home | browse | mine | saved | add | vin | blog | info
+  // Which info page is open on the "info" view: terms | privacy | contact.
+  const [infoPage, setInfoPage] = useState(initialRoute?.kind === "info" ? initialRoute.page : "terms");
   // Open article on the blog view ("" = the article list).
   const [articleSlug, setArticleSlug] = useState(initialRoute?.kind === "article" ? initialRoute.slug : "");
 
@@ -619,6 +623,11 @@ export default function CarMarket() {
     if (!route) { setActive(null); setView("home"); return; }
     if (route.kind === "car") { setView("browse"); setPendingCarId(route.id); return; }
     if (route.kind === "vin") { setActive(null); setView("vin"); return; }
+    if (route.kind === "info") {
+      setActive(null); setInfoPage(route.page); setView("info");
+      window.scrollTo(0, 0);
+      return;
+    }
     if (route.kind === "blog" || route.kind === "article") {
       setActive(null); setArticleSlug(route.kind === "article" ? route.slug : ""); setView("blog");
       window.scrollTo(0, 0);
@@ -701,11 +710,12 @@ export default function CarMarket() {
     const target = view === "browse" ? browsePath()
       : view === "vin" ? paths.vin()
       : view === "blog" ? (articleSlug ? paths.article(articleSlug) : paths.blog())
+      : view === "info" ? INFO_PAGES[infoPage].path
       : "/";
     if (target === window.location.pathname) return;
     if (viewChanged) window.history.pushState({}, "", target);
     else window.history.replaceState({}, "", target);
-  }, [view, articleSlug, makeFilter, modelFilter, dealerFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
+  }, [view, articleSlug, infoPage, makeFilter, modelFilter, dealerFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
 
   // Keep the tab title useful when a listing is open — it's what WhatsApp and
   // browsers show, and what someone sees in their history.
@@ -718,6 +728,8 @@ export default function CarMarket() {
         ? "فحص رقم الشاصي مجانًا | CarsUAE"
         : view === "blog"
         ? (articleBySlug(articleSlug)?.title || "مقالات ونصائح") + " | CarsUAE"
+        : view === "info"
+        ? `${INFO_PAGES[infoPage].title} | CarsUAE`
         : "CarsUAE — سوق السيارات المستعملة في الإمارات";
   }, [active, view, sectionTitle]);
 
@@ -1462,6 +1474,16 @@ export default function CarMarket() {
       {view === "vin" && <VinCheck onBrowse={() => setView("browse")} />}
 
       {view === "blog" && <Blog slug={articleSlug} goTo={goTo} />}
+
+      {view === "info" && (
+        <main className="max-w-3xl mx-auto px-4 py-8">
+          <article className="cm-article">
+            <h1 className="cm-display font-extrabold text-2xl mb-2">{INFO_PAGES[infoPage].title}</h1>
+            {infoPage !== "contact" && <p className="text-xs cm-text-muted mb-6">آخر تحديث: {formatArticleDate(LEGAL_UPDATED)}</p>}
+            <ArticleBlocks body={INFO_PAGES[infoPage].body} goTo={goTo} />
+          </article>
+        </main>
+      )}
 
       {/* BUYER / BROWSE PAGE */}
       {(view === "mine" || view === "saved") && (
@@ -2326,6 +2348,13 @@ export default function CarMarket() {
               الدخول باستخدام Apple
             </button>
 
+            <p className="text-xs cm-text-muted text-center mt-4 leading-relaxed">
+              بالتسجيل أو الدخول، أنت توافق على{" "}
+              <a href={paths.terms()} onClick={(e) => { e.preventDefault(); setAuthOpen(false); goTo(paths.terms()); }} className="cm-link">الشروط والأحكام</a>
+              {" "}و{" "}
+              <a href={paths.privacy()} onClick={(e) => { e.preventDefault(); setAuthOpen(false); goTo(paths.privacy()); }} className="cm-link">سياسة الخصوصية</a>.
+            </p>
+
             <p className="text-xs cm-text-muted text-center mt-4">
               {authMode === "signup" ? "عندك حساب؟" : "ما عندك حساب؟"}{" "}
               <button onClick={() => setAuthMode(authMode === "signup" ? "login" : "signup")} className="cm-link font-bold">
@@ -2340,7 +2369,7 @@ export default function CarMarket() {
 
       <footer className="cm-hero mt-10" style={{ borderTop: "1px solid var(--cm-border)", borderBottom: "none" }}>
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["المقالات", paths.blog()]].map(([label, href]) => (
+          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["المقالات", paths.blog()], ["تواصل معنا", paths.contact()], ["الشروط والأحكام", paths.terms()], ["سياسة الخصوصية", paths.privacy()]].map(([label, href]) => (
             <a key={href} href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className="cm-link">{label}</a>
           ))}
           <span className="cm-text-muted mr-auto" dir="ltr">© CarsUAE</span>
@@ -2807,21 +2836,32 @@ function Blog({ slug, goTo }) {
       <article className="cm-article">
         <h1 className="cm-display font-extrabold text-2xl mb-2" style={{ lineHeight: 1.5 }}>{a.title}</h1>
         <p className="text-xs cm-text-muted mb-6">{formatArticleDate(a.date)} · {a.readMinutes} دقائق قراءة</p>
-        {a.body.map(([type, v], i) => {
-          if (type === "h2") return <h2 key={i} className="cm-section-title mt-8 mb-3">{v}</h2>;
-          if (type === "p") return <p key={i} className="mb-4">{v}</p>;
-          if (type === "ul") return <ul key={i} className="cm-article-list mb-4">{v.map((x, j) => <li key={j}>{x}</li>)}</ul>;
-          if (type === "ol") return <ol key={i} className="cm-article-list mb-4">{v.map((x, j) => <li key={j}>{x}</li>)}</ol>;
-          if (type === "tip") return <p key={i} className="cm-article-tip mb-4">{v}</p>;
-          if (type === "cta") return (
-            <div key={i} className="cm-sell-banner p-4 my-6 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-bold">{v.text}</p>
-              {link(v.href, v.label, "cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg")}
-            </div>
-          );
-          return null;
-        })}
+        <ArticleBlocks body={a.body} goTo={goTo} />
       </article>
     </main>
   );
+}
+
+// Renders the block lists of src/articles.js and src/legal.js.
+function ArticleBlocks({ body, goTo }) {
+  return body.map(([type, v], i) => {
+    if (type === "h2") return <h2 key={i} className="cm-section-title mt-8 mb-3">{v}</h2>;
+    if (type === "p") return <p key={i} className="mb-4">{v}</p>;
+    if (type === "ul") return <ul key={i} className="cm-article-list mb-4">{v.map((x, j) => <li key={j}>{x}</li>)}</ul>;
+    if (type === "ol") return <ol key={i} className="cm-article-list mb-4">{v.map((x, j) => <li key={j}>{x}</li>)}</ol>;
+    if (type === "tip") return <p key={i} className="cm-article-tip mb-4">{v}</p>;
+    if (type === "contact") return (
+      <div key={i} className="cm-sell-banner p-4 my-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm">البريد الإلكتروني: <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr" className="cm-link font-bold">{CONTACT_EMAIL}</a></p>
+        <a href={`mailto:${CONTACT_EMAIL}`} className="cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">راسلنا</a>
+      </div>
+    );
+    if (type === "cta") return (
+      <div key={i} className="cm-sell-banner p-4 my-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-bold">{v.text}</p>
+        <a href={v.href} onClick={(e) => { e.preventDefault(); goTo(v.href); }} className="cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">{v.label}</a>
+      </div>
+    );
+    return null;
+  });
 }

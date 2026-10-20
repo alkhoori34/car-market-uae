@@ -97,6 +97,10 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   `api/page.js` (Article JSON-LD) and listed in the sitemap. To publish a new
   article, add an entry at the top of `ARTICLES` with an English slug; keep
   facts checked against sources and avoid fees/prices that change often.
+- **Info pages** `/terms`, `/privacy`, `/contact` (view `info`, content in
+  `src/legal.js`, same block format as articles, footer links and a consent
+  line in the sign-in dialog). The privacy page lists what the site collects
+  and which services it uses: update it when that changes.
 - WhatsApp button on every listing (`waNumber` normalises UAE numbers).
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is

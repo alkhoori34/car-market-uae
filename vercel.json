@@ -22,6 +22,18 @@
       "destination": "/api/page?route=/used-cars/:a/:b"
     },
     {
+      "source": "/terms",
+      "destination": "/api/page?route=/terms"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/api/page?route=/privacy"
+    },
+    {
+      "source": "/contact",
+      "destination": "/api/page?route=/contact"
+    },
+    {
       "source": "/blog",
       "destination": "/api/page?route=/blog"
     },
