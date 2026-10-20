@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
+import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -447,7 +448,13 @@ export default function CarMarket() {
   });
   const [listings, setListings] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [view, setView] = useState(initialRoute?.kind === "vin" ? "vin" : initialRoute ? "browse" : "home"); // home | browse | mine | saved | add | vin
+  const [view, setView] = useState(
+    initialRoute?.kind === "vin" ? "vin"
+      : initialRoute?.kind === "blog" || initialRoute?.kind === "article" ? "blog"
+      : initialRoute ? "browse" : "home"
+  ); // home | browse | mine | saved | add | vin | blog
+  // Open article on the blog view ("" = the article list).
+  const [articleSlug, setArticleSlug] = useState(initialRoute?.kind === "article" ? initialRoute.slug : "");
 
   // Auth (Supabase email/password accounts)
   const [session, setSession] = useState(null);
@@ -612,6 +619,11 @@ export default function CarMarket() {
     if (!route) { setActive(null); setView("home"); return; }
     if (route.kind === "car") { setView("browse"); setPendingCarId(route.id); return; }
     if (route.kind === "vin") { setActive(null); setView("vin"); return; }
+    if (route.kind === "blog" || route.kind === "article") {
+      setActive(null); setArticleSlug(route.kind === "article" ? route.slug : ""); setView("blog");
+      window.scrollTo(0, 0);
+      return;
+    }
     setActive(null);
     setMakeFilter(["make", "model"].includes(route.kind) ? route.make : "الكل");
     setModelFilter(route.kind === "model" ? route.modelSlug : "");
@@ -686,11 +698,14 @@ export default function CarMarket() {
     const viewChanged = prevViewRef.current !== view;
     prevViewRef.current = view;
     if (active || pendingCarId) return;
-    const target = view === "browse" ? browsePath() : view === "vin" ? paths.vin() : "/";
+    const target = view === "browse" ? browsePath()
+      : view === "vin" ? paths.vin()
+      : view === "blog" ? (articleSlug ? paths.article(articleSlug) : paths.blog())
+      : "/";
     if (target === window.location.pathname) return;
     if (viewChanged) window.history.pushState({}, "", target);
     else window.history.replaceState({}, "", target);
-  }, [view, makeFilter, modelFilter, dealerFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
+  }, [view, articleSlug, makeFilter, modelFilter, dealerFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
 
   // Keep the tab title useful when a listing is open — it's what WhatsApp and
   // browsers show, and what someone sees in their history.
@@ -701,8 +716,17 @@ export default function CarMarket() {
         ? sectionTitle
         : view === "vin"
         ? "فحص رقم الشاصي مجانًا | CarsUAE"
+        : view === "blog"
+        ? (articleBySlug(articleSlug)?.title || "مقالات ونصائح") + " | CarsUAE"
         : "CarsUAE — سوق السيارات المستعملة في الإمارات";
   }, [active, view, sectionTitle]);
+
+  // Follows a link inside the site (from an article) without reloading the page.
+  function goTo(href) {
+    window.history.pushState({}, "", href);
+    applyRoute(parsePath(href));
+    window.scrollTo(0, 0);
+  }
 
   function showToast(msg, tone = "mint") {
     setToast({ msg, tone });
@@ -1380,6 +1404,26 @@ export default function CarMarket() {
 
             <div>
               <div className="flex items-center justify-between mb-3">
+                <h2 className="cm-section-title">نصائح قبل الشراء</h2>
+                <button onClick={() => goTo(paths.blog())} className="text-sm cm-link font-bold">كل المقالات</button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {ARTICLES.slice(0, 4).map((a) => (
+                  <a
+                    key={a.slug}
+                    href={paths.article(a.slug)}
+                    onClick={(e) => { e.preventDefault(); goTo(paths.article(a.slug)); }}
+                    className="cm-card rounded-xl p-4 flex gap-3 items-start"
+                  >
+                    <BookOpen size={18} className="cm-text-accent shrink-0 mt-1" />
+                    <span className="font-bold text-sm leading-relaxed">{a.title}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="cm-section-title">أحدث السيارات</h2>
                 {liveListings.length > 0 && (
                   <button onClick={() => setView("browse")} className="text-sm cm-link font-bold">عرض الكل</button>
@@ -1416,6 +1460,8 @@ export default function CarMarket() {
       )}
 
       {view === "vin" && <VinCheck onBrowse={() => setView("browse")} />}
+
+      {view === "blog" && <Blog slug={articleSlug} goTo={goTo} />}
 
       {/* BUYER / BROWSE PAGE */}
       {(view === "mine" || view === "saved") && (
@@ -2291,6 +2337,15 @@ export default function CarMarket() {
           </div>
         </div>
       )}
+
+      <footer className="cm-hero mt-10" style={{ borderTop: "1px solid var(--cm-border)", borderBottom: "none" }}>
+        <div className="max-w-6xl mx-auto px-4 py-6 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["المقالات", paths.blog()]].map(([label, href]) => (
+            <a key={href} href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className="cm-link">{label}</a>
+          ))}
+          <span className="cm-text-muted mr-auto" dir="ltr">© CarsUAE</span>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -2707,6 +2762,66 @@ function VinCheck({ onBrowse }) {
           <button onClick={onBrowse} className="cm-link font-bold text-sm">تصفح السيارات المعروضة للبيع</button>
         </div>
       )}
+    </main>
+  );
+}
+
+// المقالات: the list at /blog, or one article at /blog/<slug>. Same content as
+// the server pages in api/page.js (both read src/articles.js).
+function Blog({ slug, goTo }) {
+  const a = slug ? articleBySlug(slug) : null;
+  const link = (href, children, className) => (
+    <a href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className={className}>{children}</a>
+  );
+
+  if (slug && !a) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <p className="font-bold mb-3">المقالة غير موجودة</p>
+        {link(paths.blog(), "كل المقالات", "cm-link font-bold")}
+      </main>
+    );
+  }
+
+  if (!a) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-8">
+        <h1 className="cm-display font-extrabold text-2xl mb-2 flex items-center gap-2"><BookOpen size={24} className="cm-text-accent" /> مقالات ونصائح</h1>
+        <p className="cm-text-muted text-sm mb-6">نصائح عملية لشراء وبيع السيارات المستعملة في الإمارات.</p>
+        <div className="space-y-4">
+          {ARTICLES.map((x) => <React.Fragment key={x.slug}>{link(paths.article(x.slug), (
+            <>
+              <h2 className="cm-section-title">{x.title}</h2>
+              <p className="text-sm cm-text-muted mt-1">{x.description}</p>
+              <p className="text-xs cm-text-muted mt-2">{formatArticleDate(x.date)} · {x.readMinutes} دقائق قراءة</p>
+            </>
+          ), "cm-card rounded-xl p-5 block")}</React.Fragment>)}
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="max-w-3xl mx-auto px-4 py-8">
+      {link(paths.blog(), <><ArrowRight size={15} /> كل المقالات</>, "cm-link text-sm font-bold inline-flex items-center gap-1 mb-4")}
+      <article className="cm-article">
+        <h1 className="cm-display font-extrabold text-2xl mb-2" style={{ lineHeight: 1.5 }}>{a.title}</h1>
+        <p className="text-xs cm-text-muted mb-6">{formatArticleDate(a.date)} · {a.readMinutes} دقائق قراءة</p>
+        {a.body.map(([type, v], i) => {
+          if (type === "h2") return <h2 key={i} className="cm-section-title mt-8 mb-3">{v}</h2>;
+          if (type === "p") return <p key={i} className="mb-4">{v}</p>;
+          if (type === "ul") return <ul key={i} className="cm-article-list mb-4">{v.map((x, j) => <li key={j}>{x}</li>)}</ul>;
+          if (type === "ol") return <ol key={i} className="cm-article-list mb-4">{v.map((x, j) => <li key={j}>{x}</li>)}</ol>;
+          if (type === "tip") return <p key={i} className="cm-article-tip mb-4">{v}</p>;
+          if (type === "cta") return (
+            <div key={i} className="cm-sell-banner p-4 my-6 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-bold">{v.text}</p>
+              {link(v.href, v.label, "cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg")}
+            </div>
+          );
+          return null;
+        })}
+      </article>
     </main>
   );
 }

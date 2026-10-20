@@ -3,6 +3,7 @@
 
 import { SITE_URL, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS, paths, modelSlug } from "../src/seo-data.js";
 import { queryListings, queryTable, esc } from "./_lib.js";
+import { ARTICLES } from "../src/articles.js";
 
 export default async function handler(req, res) {
   try {
@@ -20,6 +21,8 @@ export default async function handler(req, res) {
       { loc: "/", lastmod: newest, priority: "1.0" },
       { loc: paths.all(), lastmod: newest, priority: "0.9" },
       { loc: paths.vin(), priority: "0.7" },
+      { loc: paths.blog(), lastmod: ARTICLES[0] && ARTICLES[0].date, priority: "0.7" },
+      ...ARTICLES.map((a) => ({ loc: paths.article(a.slug), lastmod: a.updated || a.date, priority: "0.7" })),
     ];
     const makes = [...new Set(rows.map((r) => r.make))].filter((m) => MAKE_SLUGS[m]);
     const cities = [...new Set(rows.map((r) => r.city))].filter((c) => CITY_SLUGS[c]);

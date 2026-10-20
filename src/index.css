@@ -139,3 +139,11 @@
 .cm-row { background:#fff; border:1px solid var(--cm-border); border-radius:0.75rem; }
 .cm-thumb { width:72px; height:54px; border-radius:0.5rem; object-fit:cover; background:var(--cm-bg-soft); flex-shrink:0; }
 .cm-bar { background:var(--cm-accent); opacity:0.85; }
+
+/* Articles (/blog) */
+.cm-article { font-size:1.02rem; line-height:1.95; color:var(--cm-text); }
+.cm-article-list { padding-right:1.25rem; }
+ul.cm-article-list { list-style:disc; }
+ol.cm-article-list { list-style:decimal; }
+.cm-article-list li { margin-bottom:0.45rem; }
+.cm-article-tip { background:var(--cm-bg-soft); border-right:3px solid var(--cm-accent); border-radius:0.5rem; padding:0.8rem 1rem; font-weight:600; }

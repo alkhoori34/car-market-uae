@@ -7,6 +7,7 @@
 //   /used-cars/<make>/<model> e.g. /used-cars/lexus/ls
 //   /dealer/<slug>            one dealer's cars
 //   /vin-check                free VIN (رقم الشاصي) check tool
+//   /blog, /blog/<slug>       articles (src/articles.js)
 //   /                         home page (sent here by middleware.js)
 // Category pages take ?page=2, 3 … so every live car is reachable by links.
 // vercel.json rewrites those paths here as ?route=<path>. Each response is the
@@ -17,6 +18,7 @@ import {
   SITE_URL, SITE_NAME, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS,
   parsePath, paths, categoryCopy, carCopy, carTitle, modelSlug,
 } from "../src/seo-data.js";
+import { ARTICLES, articleBySlug, formatArticleDate } from "../src/articles.js";
 import {
   LISTING_FIELDS, queryListings, queryTable, getShell, fillShell, send, esc, jsonLd, fmt, photo,
 } from "./_lib.js";
@@ -60,6 +62,11 @@ export default async function handler(req, res) {
     if (route.kind === "home") return send(res, 200, await homePage(shell));
     if (route.kind === "car") return send(res, ...(await carPage(shell, route)));
     if (route.kind === "vin") return send(res, 200, vinPage(shell));
+    if (route.kind === "blog") return send(res, 200, blogPage(shell));
+    if (route.kind === "article") {
+      const a = articleBySlug(route.slug);
+      return a ? send(res, 200, articlePage(shell, a)) : send(res, 404, notFound(shell, raw));
+    }
     return send(res, ...(await categoryPage(shell, route, page)));
   } catch (err) {
     console.error("page", raw, err);
@@ -295,6 +302,76 @@ ${siteHeader()}
         { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: SITE_NAME, alternateName: "كارز يو إيه إي", url: `${SITE_URL}/`, inLanguage: "ar-AE", publisher: { "@id": `${SITE_URL}/#org` } },
       ],
     }),
+    body,
+  });
+}
+
+// --- Articles --------------------------------------------------------------
+
+function blocksHtml(body) {
+  return body.map(([type, v]) => {
+    if (type === "h2") return `<h2 class="cm-section-title mt-8 mb-3">${esc(v)}</h2>`;
+    if (type === "p") return `<p class="mb-4">${esc(v)}</p>`;
+    if (type === "ul" || type === "ol") return `<${type} class="cm-article-list mb-4">${v.map((x) => `<li>${esc(x)}</li>`).join("")}</${type}>`;
+    if (type === "tip") return `<p class="cm-article-tip mb-4">${esc(v)}</p>`;
+    if (type === "cta") return `<p class="cm-sell-banner p-4 my-6">${esc(v.text)} <a class="cm-link font-bold" href="${esc(v.href)}">${esc(v.label)}</a></p>`;
+    return "";
+  }).join("\n");
+}
+
+function blogPage(shell) {
+  const title = `مقالات ونصائح شراء وبيع السيارات في الإمارات | ${SITE_NAME}`;
+  const description = "نصائح عملية لشراء وبيع السيارات المستعملة في الإمارات: الفحص قبل الشراء، الفرق بين الخليجي والوارد، الأسعار ونقل الملكية.";
+  const crumbs = [["الرئيسية", "/"], ["المقالات", paths.blog()]];
+  const body = `
+${siteHeader()}
+<main class="max-w-3xl mx-auto px-4 py-8">
+  ${breadcrumbs(crumbs)}
+  <h1 class="cm-display font-extrabold text-2xl mb-2">مقالات ونصائح</h1>
+  <p class="cm-text-muted text-sm mb-6">${esc(description)}</p>
+  <ul class="space-y-4">${ARTICLES.map((a) => `<li class="cm-card rounded-xl p-5"><a href="${paths.article(a.slug)}" class="block">
+    <h2 class="cm-section-title">${esc(a.title)}</h2>
+    <p class="text-sm cm-text-muted mt-1">${esc(a.description)}</p>
+    <p class="text-xs cm-text-muted mt-2">${esc(formatArticleDate(a.date))} · ${fmt(a.readMinutes)} دقائق قراءة</p></a></li>`).join("")}</ul>
+</main>`;
+  return fillShell(shell, {
+    title, description, canonical: SITE_URL + paths.blog(),
+    headExtra: jsonLd(breadcrumbLd(crumbs)),
+    body,
+  });
+}
+
+function articlePage(shell, a) {
+  const url = SITE_URL + paths.article(a.slug);
+  const crumbs = [["الرئيسية", "/"], ["المقالات", paths.blog()], [a.title, paths.article(a.slug)]];
+  const body = `
+${siteHeader()}
+<main class="max-w-3xl mx-auto px-4 py-8">
+  ${breadcrumbs(crumbs)}
+  <article class="cm-article">
+    <h1 class="cm-display font-extrabold text-2xl mb-2">${esc(a.title)}</h1>
+    <p class="text-xs cm-text-muted mb-6">${esc(formatArticleDate(a.date))} · ${fmt(a.readMinutes)} دقائق قراءة</p>
+    ${blocksHtml(a.body)}
+  </article>
+  <p class="mt-8"><a class="cm-link font-bold" href="${paths.blog()}">كل المقالات</a></p>
+</main>`;
+  return fillShell(shell, {
+    title: `${a.title} | ${SITE_NAME}`,
+    description: a.description,
+    canonical: url,
+    headExtra: jsonLd({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: a.title,
+      description: a.description,
+      datePublished: a.date,
+      dateModified: a.updated || a.date,
+      inLanguage: "ar-AE",
+      mainEntityOfPage: url,
+      author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/` },
+      publisher: { "@type": "Organization", name: SITE_NAME, logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` } },
+      image: `${SITE_URL}/og-image.png`,
+    }) + jsonLd(breadcrumbLd(crumbs)),
     body,
   });
 }

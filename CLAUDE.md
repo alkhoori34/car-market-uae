@@ -91,6 +91,13 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   American-market cars but also decodes some GCC VINs (a GCC Land Cruiser VX-R
   decodes), so the page gives no GCC/imported verdict, only how to confirm.
   Recalls are shown only for VINs with a valid check digit. `?vin=` prefills.
+- **Articles (المقالات)** at `/blog` and `/blog/<slug>` (view `blog`, `Blog`
+  in App.jsx; home "نصائح قبل الشراء" section and the footer link to them).
+  Content lives in `src/articles.js` as block lists, rendered by both React and
+  `api/page.js` (Article JSON-LD) and listed in the sitemap. To publish a new
+  article, add an entry at the top of `ARTICLES` with an English slug; keep
+  facts checked against sources and avoid fees/prices that change often.
+  The owner wants articles written in Gulf Arabic, plain and practical.
 - WhatsApp button on every listing (`waNumber` normalises UAE numbers).
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is
