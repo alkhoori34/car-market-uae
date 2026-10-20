@@ -22,6 +22,26 @@
       "destination": "/api/page?route=/used-cars/:a/:b"
     },
     {
+      "source": "/sell",
+      "destination": "/api/page?route=/sell"
+    },
+    {
+      "source": "/faq",
+      "destination": "/api/page?route=/faq"
+    },
+    {
+      "source": "/safety",
+      "destination": "/api/page?route=/safety"
+    },
+    {
+      "source": "/dealers",
+      "destination": "/api/page?route=/dealers"
+    },
+    {
+      "source": "/about",
+      "destination": "/api/page?route=/about"
+    },
+    {
       "source": "/terms",
       "destination": "/api/page?route=/terms"
     },

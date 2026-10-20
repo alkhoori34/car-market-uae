@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
-import { INFO_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
+import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -735,6 +735,7 @@ export default function CarMarket() {
 
   // Follows a link inside the site (from an article) without reloading the page.
   function goTo(href) {
+    if (href === "#sell") { goAdd(); window.scrollTo(0, 0); return; }
     window.history.pushState({}, "", href);
     applyRoute(parsePath(href));
     window.scrollTo(0, 0);
@@ -1479,7 +1480,8 @@ export default function CarMarket() {
         <main className="max-w-3xl mx-auto px-4 py-8">
           <article className="cm-article">
             <h1 className="cm-display font-extrabold text-2xl mb-2">{INFO_PAGES[infoPage].title}</h1>
-            {infoPage !== "contact" && <p className="text-xs cm-text-muted mb-6">آخر تحديث: {formatArticleDate(LEGAL_UPDATED)}</p>}
+            {(infoPage === "terms" || infoPage === "privacy") && <p className="text-xs cm-text-muted mb-6">آخر تحديث: {formatArticleDate(LEGAL_UPDATED)}</p>}
+            {!(infoPage === "terms" || infoPage === "privacy") && <div className="mb-4" />}
             <ArticleBlocks body={INFO_PAGES[infoPage].body} goTo={goTo} />
           </article>
         </main>
@@ -2369,7 +2371,7 @@ export default function CarMarket() {
 
       <footer className="cm-hero mt-10" style={{ borderTop: "1px solid var(--cm-border)", borderBottom: "none" }}>
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["المقالات", paths.blog()], ["تواصل معنا", paths.contact()], ["الشروط والأحكام", paths.terms()], ["سياسة الخصوصية", paths.privacy()]].map(([label, href]) => (
+          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["المقالات", paths.blog()], ...FOOTER_PAGES.map((k) => [INFO_PAGES[k].short, INFO_PAGES[k].path])].map(([label, href]) => (
             <a key={href} href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className="cm-link">{label}</a>
           ))}
           <span className="cm-text-muted mr-auto" dir="ltr">© CarsUAE</span>
@@ -2850,6 +2852,16 @@ function ArticleBlocks({ body, goTo }) {
     if (type === "ul") return <ul key={i} className="cm-article-list mb-4">{v.map((x, j) => <li key={j}>{x}</li>)}</ul>;
     if (type === "ol") return <ol key={i} className="cm-article-list mb-4">{v.map((x, j) => <li key={j}>{x}</li>)}</ol>;
     if (type === "tip") return <p key={i} className="cm-article-tip mb-4">{v}</p>;
+    if (type === "faq") return (
+      <div key={i} className="space-y-2 mb-4">
+        {v.map(([q, a], j) => (
+          <details key={j} className="cm-card rounded-lg px-4 py-3">
+            <summary className="font-bold cursor-pointer">{q}</summary>
+            <p className="mt-2 cm-text-muted">{a}</p>
+          </details>
+        ))}
+      </div>
+    );
     if (type === "contact") return (
       <div key={i} className="cm-sell-banner p-4 my-6 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm">البريد الإلكتروني: <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr" className="cm-link font-bold">{CONTACT_EMAIL}</a></p>

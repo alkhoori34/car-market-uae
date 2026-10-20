@@ -317,15 +317,16 @@ function blocksHtml(body) {
     if (type === "p") return `<p class="mb-4">${esc(v)}</p>`;
     if (type === "ul" || type === "ol") return `<${type} class="cm-article-list mb-4">${v.map((x) => `<li>${esc(x)}</li>`).join("")}</${type}>`;
     if (type === "tip") return `<p class="cm-article-tip mb-4">${esc(v)}</p>`;
+    if (type === "faq") return v.map(([q, ans]) => `<h3 class="font-bold mt-5 mb-1">${esc(q)}</h3><p class="mb-3">${esc(ans)}</p>`).join("");
     if (type === "contact") return `<p class="cm-sell-banner p-4 my-6">البريد الإلكتروني: <a class="cm-link font-bold" dir="ltr" href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>`;
-    if (type === "cta") return `<p class="cm-sell-banner p-4 my-6">${esc(v.text)} <a class="cm-link font-bold" href="${esc(v.href)}">${esc(v.label)}</a></p>`;
+    if (type === "cta") return `<p class="cm-sell-banner p-4 my-6">${esc(v.text)} <a class="cm-link font-bold" href="${esc(v.href === "#sell" ? "/" : v.href)}">${esc(v.label)}</a></p>`;
     return "";
   }).join("\n");
 }
 
 function infoPage(shell, pg) {
   const crumbs = [["الرئيسية", "/"], [pg.title, pg.path]];
-  const updated = pg.path === "/contact" ? "" : `<p class="text-xs cm-text-muted mb-6">آخر تحديث: ${esc(formatArticleDate(LEGAL_UPDATED))}</p>`;
+  const updated = !["/terms", "/privacy"].includes(pg.path) ? "" : `<p class="text-xs cm-text-muted mb-6">آخر تحديث: ${esc(formatArticleDate(LEGAL_UPDATED))}</p>`;
   const body = `
 ${siteHeader()}
 <main class="max-w-3xl mx-auto px-4 py-8">
@@ -340,8 +341,20 @@ ${siteHeader()}
     title: `${pg.title} | ${SITE_NAME}`,
     description: pg.description,
     canonical: SITE_URL + pg.path,
-    headExtra: jsonLd(breadcrumbLd(crumbs)),
+    headExtra: jsonLd(breadcrumbLd(crumbs)) + faqLd(pg.body),
     body,
+  });
+}
+
+// FAQPage structured data from the page's "faq" blocks, so Google can show
+// the answers in results.
+function faqLd(body) {
+  const qa = body.filter(([t]) => t === "faq").flatMap(([, v]) => v);
+  if (!qa.length) return "";
+  return jsonLd({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: qa.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
   });
 }
 
