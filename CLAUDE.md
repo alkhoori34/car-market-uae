@@ -85,14 +85,15 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   dealers get a "وسيط معتمد" badge and a `/dealer/<slug>` page. Imported
   broker ads keep the car owner's phone number.
 - **VIN check (فحص رقم الشاصي)** at `/vin-check` (view `vin`, `VinCheck` in
-  App.jsx; header button, home card, and a button on each listing). `api/vin.js`
+  App.jsx; in the header "القائمة" menu and a button on each listing). `api/vin.js`
   calls the free NHTSA vPIC decoder and recalls API (no key); `src/vin.js`
   reads country/maker/year from the VIN itself. NHTSA only covers North
   American-market cars but also decodes some GCC VINs (a GCC Land Cruiser VX-R
   decodes), so the page gives no GCC/imported verdict, only how to confirm.
   Recalls are shown only for VINs with a valid check digit. `?vin=` prefills.
 - **Articles (المقالات)** at `/blog` and `/blog/<slug>` (view `blog`, `Blog`
-  in App.jsx; home "نصائح قبل الشراء" section and the footer link to them).
+  in App.jsx; reached from the header "القائمة" menu and the footer, not the
+  home page — the owner wants home kept to search, sell banner and cars).
   Content lives in `src/articles.js` as block lists, rendered by both React and
   `api/page.js` (Article JSON-LD) and listed in the sitemap. To publish a new
   article, add an entry at the top of `ARTICLES` with an English slug; keep

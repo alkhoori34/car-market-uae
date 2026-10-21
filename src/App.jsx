@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight, Menu as MenuIcon } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
@@ -497,6 +497,7 @@ export default function CarMarket() {
   const [favorites, setFavorites] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false); // site menu (pages and tools)
 
   // Admin (rows in public.admins; checked again by the database on every write).
   const [isAdmin, setIsAdmin] = useState(false);
@@ -1297,13 +1298,41 @@ export default function CarMarket() {
             >
               <Search size={15} /> <span className="hidden sm:inline">السيارات</span>
             </button>
-            <button
-              onClick={() => setView("vin")}
-              title="فحص رقم الشاصي"
-              className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "vin" ? "cm-navbtn-active" : ""}`}
-            >
-              <ScanLine size={15} /> <span className="hidden sm:inline">فحص الشاصي</span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setNavOpen((o) => !o)}
+                aria-expanded={navOpen}
+                className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${["vin", "blog", "info"].includes(view) ? "cm-navbtn-active" : ""}`}
+              >
+                <MenuIcon size={15} /> <span className="hidden sm:inline">القائمة</span>
+              </button>
+              {navOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setNavOpen(false)} />
+                  <div className="fixed inset-x-4 top-16 sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-60 cm-card-solid rounded-xl shadow-xl p-2 z-50">
+                    {[
+                      [<Search size={15} />, "تصفح السيارات", paths.all()],
+                      [<Plus size={15} />, "بيع سيارتك", "#sell"],
+                      [<ScanLine size={15} />, "فحص رقم الشاصي", paths.vin()],
+                      [<BookOpen size={15} />, "المقالات والنصائح", paths.blog()],
+                      [<Info size={15} />, "الأسئلة الشائعة", INFO_PAGES.faq.path],
+                      [<ShieldCheck size={15} />, "نصائح الأمان", INFO_PAGES.safety.path],
+                      [<Store size={15} />, "للمعارض والوسطاء", INFO_PAGES.dealers.path],
+                      [<MessageCircle size={15} />, "تواصل معنا", INFO_PAGES.contact.path],
+                    ].map(([icon, label, href]) => (
+                      <a
+                        key={href}
+                        href={href === "#sell" ? "/sell" : href}
+                        onClick={(e) => { e.preventDefault(); setNavOpen(false); goTo(href); }}
+                        className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2.5 rounded-lg cm-navbtn"
+                      >
+                        <span className="cm-text-accent">{icon}</span> {label}
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             {session && (
               <button
                 onClick={() => setView("mine")}
@@ -1403,36 +1432,6 @@ export default function CarMarket() {
               <button onClick={goAdd} className="cm-btn-primary font-bold text-sm px-5 py-2.5 rounded-lg flex items-center gap-1.5">
                 <Plus size={16} /> بيع سيارتك
               </button>
-            </div>
-
-            <div className="cm-card rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="cm-section-title flex items-center gap-2"><ScanLine size={18} className="cm-text-accent" /> فحص رقم الشاصي مجانًا</p>
-                <p className="text-sm cm-text-muted mt-1">قبل ما تشتري: اعرف بلد الصنع وسنة الموديل ومواصفات المصنع.</p>
-              </div>
-              <button onClick={() => setView("vin")} className="cm-btn-ghost font-bold text-sm px-5 py-2.5 rounded-lg flex items-center gap-1.5">
-                <ScanLine size={16} /> افحص الآن
-              </button>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="cm-section-title">نصائح قبل الشراء</h2>
-                <button onClick={() => goTo(paths.blog())} className="text-sm cm-link font-bold">كل المقالات</button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {ARTICLES.slice(0, 4).map((a) => (
-                  <a
-                    key={a.slug}
-                    href={paths.article(a.slug)}
-                    onClick={(e) => { e.preventDefault(); goTo(paths.article(a.slug)); }}
-                    className="cm-card rounded-xl p-4 flex gap-3 items-start"
-                  >
-                    <BookOpen size={18} className="cm-text-accent shrink-0 mt-1" />
-                    <span className="font-bold text-sm leading-relaxed">{a.title}</span>
-                  </a>
-                ))}
-              </div>
             </div>
 
             <div>
