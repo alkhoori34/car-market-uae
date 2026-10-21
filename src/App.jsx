@@ -2207,9 +2207,15 @@ export default function CarMarket() {
               <div className="cm-divider flex items-center justify-between pt-4 gap-2">
                 <div>
                   {dealerById[active.dealer_id] && (
-                    <a href={paths.dealer(dealerById[active.dealer_id].slug)} onClick={(e) => { e.preventDefault(); const d = dealerById[active.dealer_id]; setActive(null); applyRoute({ kind: "dealer", slug: d.slug }); window.history.pushState({}, "", paths.dealer(d.slug)); }} className="text-xs font-bold cm-link flex items-center gap-1 mb-0.5">
-                      {dealerById[active.dealer_id].verified && <BadgeCheck size={12} />} {dealerById[active.dealer_id].name}
-                    </a>
+                    <p className="text-xs flex items-center flex-wrap gap-1 mb-0.5">
+                      <span className="cm-text-muted">📢 الإعلان من حساب</span>
+                      <a href={paths.dealer(dealerById[active.dealer_id].slug)} onClick={(e) => { e.preventDefault(); const d = dealerById[active.dealer_id]; setActive(null); applyRoute({ kind: "dealer", slug: d.slug }); window.history.pushState({}, "", paths.dealer(d.slug)); }} className="font-bold cm-link flex items-center gap-1">
+                        {dealerById[active.dealer_id].verified && <BadgeCheck size={12} />} {dealerById[active.dealer_id].name}
+                      </a>
+                      {dealerById[active.dealer_id].instagram && (
+                        <a href={`https://instagram.com/${dealerById[active.dealer_id].instagram}`} target="_blank" rel="noopener noreferrer" className="font-bold cm-link" dir="ltr">@{dealerById[active.dealer_id].instagram}</a>
+                      )}
+                    </p>
                   )}
                   <p className="text-xs cm-text-muted flex items-center gap-1">
                     {sellerLabel(active.seller_name)}
