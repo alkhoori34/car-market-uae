@@ -78,5 +78,34 @@
     "api/page.js": {
       "includeFiles": "dist/index.html"
     }
+  },
+  "images": {
+    "sizes": [
+      384,
+      640,
+      828,
+      1080,
+      1600
+    ],
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "bfdyxoycbwlibzcovxef.supabase.co",
+        "pathname": "/storage/v1/object/public/**"
+      }
+    ],
+    "localPatterns": [
+      {
+        "pathname": "/l/**"
+      },
+      {
+        "pathname": "/media/**"
+      }
+    ],
+    "formats": [
+      "image/avif",
+      "image/webp"
+    ],
+    "minimumCacheTTL": 2592000
   }
 }

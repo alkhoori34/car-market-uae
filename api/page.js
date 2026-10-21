@@ -20,6 +20,7 @@ import {
   parsePath, paths, categoryCopy, carCopy, carTitle, modelSlug,
 } from "../src/seo-data.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "../src/articles.js";
+import { imgSrc, imgSrcSet } from "../src/img.js";
 import { INFO_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "../src/legal.js";
 import {
   LISTING_FIELDS, queryListings, queryTable, getShell, fillShell, send, esc, jsonLd, fmt, photo,
@@ -172,7 +173,9 @@ ${siteHeader()}
     description: copy.description,
     canonical: url,
     image: gallery[0],
-    headExtra: jsonLd(structured) + jsonLd(breadcrumbLd(crumbs)),
+    headExtra: jsonLd(structured) + jsonLd(breadcrumbLd(crumbs))
+      + (gallery[0] ? preloadImage(gallery[0], [640, 1080], "(min-width: 640px) 512px, 100vw") : "")
+      + seedScript({ car: l }),
     body,
   })];
 }
@@ -279,6 +282,7 @@ ${siteHeader()}
 // --- Home page -------------------------------------------------------------
 
 async function homePage(shell) {
+  // (also seeds the app with these rows; see seedScript)
   const [{ rows, total }, facets] = await Promise.all([
     queryListings([["select", LISTING_FIELDS], ["order", "created_at.desc"], ["limit", "24"]], { count: true }),
     getFacets(),
@@ -298,7 +302,7 @@ ${siteHeader()}
     title,
     description,
     canonical: SITE_URL + "/",
-    headExtra: jsonLd({
+    headExtra: seedScript({ listings: rows }) + (photo(rows[0] || {}) ? preloadImage(photo(rows[0]), [384, 640, 828], "(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw") : "") + jsonLd({
       "@context": "https://schema.org",
       "@graph": [
         { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: SITE_NAME, url: `${SITE_URL}/`, logo: `${SITE_URL}/icon-512.png`, email: "carsuae@carsuae.net", areaServed: "AE" },
@@ -448,6 +452,20 @@ ${siteHeader()}
 
 // --- Pieces ----------------------------------------------------------------
 
+// Hands the rows already fetched for this page to the browser app
+// (window.__SEED__), so it can draw them without a second round trip.
+function seedScript(data) {
+  return `<script>window.__SEED__=${JSON.stringify(data).replace(/</g, "\\u003c").replace(/\u2028|\u2029/g, "")}</script>`;
+}
+
+// Lets the browser start downloading the page's main photo right away.
+function preloadImage(src, widths, sizes) {
+  const set = imgSrcSet(src, widths);
+  return set
+    ? `<link rel="preload" as="image" href="${esc(imgSrc(src, widths[0]))}" imagesrcset="${esc(set)}" imagesizes="${esc(sizes)}" fetchpriority="high">`
+    : `<link rel="preload" as="image" href="${esc(src)}" fetchpriority="high">`;
+}
+
 function siteHeader() {
   return `<header class="cm-header"><div class="max-w-6xl mx-auto px-4 py-3"><a href="/" class="cm-display font-extrabold text-lg" dir="ltr">Cars<span class="cm-grad-text">UAE</span></a></div></header>`;
 }
@@ -470,7 +488,7 @@ function card(l) {
   const img = photo(l);
   const facts = [l.year || "-", l.mileage ? `${fmt(l.mileage)} كم` : "- كم", l.specs || "-", l.city || "-"].join(" · ");
   return `<li class="cm-card rounded-xl overflow-hidden"><a href="${paths.car(l.id)}" class="block">
-    ${img ? `<img src="${esc(img)}" alt="${esc(carTitle(l))}" loading="lazy" class="w-full object-cover cm-aspect-16-10">` : ""}
+    ${img ? `<img src="${esc(imgSrc(img, 640))}" srcset="${esc(imgSrcSet(img, [384, 640, 828]) || "")}" sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" width="640" height="400" alt="${esc(carTitle(l))}" loading="lazy" decoding="async" class="w-full object-cover cm-aspect-16-10">` : ""}
     <div class="p-3.5"><h2 class="cm-display font-bold text-sm">${esc(carTitle(l))}</h2>
     <p class="text-xs cm-text-muted mt-1">${esc(facts)}</p>
     <p class="font-bold mt-2">${fmt(l.price)} د.إ${l.negotiable ? " · قابل للتفاوض" : ""}</p></div>

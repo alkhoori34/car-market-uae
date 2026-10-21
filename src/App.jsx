@@ -3,6 +3,7 @@ import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, 
 import { createClient } from "@supabase/supabase-js";
 import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
+import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
 
@@ -447,8 +448,12 @@ export default function CarMarket() {
     if (legacy) window.history.replaceState({}, "", paths.car(legacy[1]));
     return parsePath(window.location.pathname);
   });
-  const [listings, setListings] = useState([]);
-  const [loaded, setLoaded] = useState(false);
+  // The server page embeds the first listings (window.__SEED__) so cards show
+  // at once instead of after the Supabase round trip. They lack the phone
+  // column; loadListings() replaces them with full rows a moment later.
+  const [seed] = useState(() => (typeof window !== "undefined" && Array.isArray(window.__SEED__?.listings) ? window.__SEED__.listings : null));
+  const [listings, setListings] = useState(() => seed || []);
+  const [loaded, setLoaded] = useState(() => Boolean(seed && seed.length));
   const [view, setView] = useState(
     initialRoute?.kind === "vin" ? "vin"
       : initialRoute?.kind === "blog" || initialRoute?.kind === "article" ? "blog"
@@ -661,14 +666,23 @@ export default function CarMarket() {
   }, []);
 
   // Opens the listing named in the URL once it is available.
+  const fetchingCar = useRef(null);
   useEffect(() => {
     if (!pendingCarId) return;
     const found = listings.find((l) => l.id === pendingCarId);
-    if (found) { setActive(found); setPhotoIdx(0); setPendingCarId(null); trackVisit(supabase, paths.car(found.id), found.id); return; }
-    if (!loaded) return;
-    // Not in the loaded set (hidden by reports, or a direct visit): fetch it.
+    if (found && "phone" in found && fetchingCar.current !== pendingCarId) { setActive(found); setPhotoIdx(0); setPendingCarId(null); trackVisit(supabase, paths.car(found.id), found.id); return; }
+    // The server page of a car embeds it (window.__SEED__.car): show it now,
+    // then swap in the full row (with the phone) from the fetch below.
+    const seededCar = window.__SEED__?.car;
+    if (seededCar && seededCar.id === pendingCarId && !activeRef.current) { setActive(seededCar); setPhotoIdx(0); }
+    else if (found && !activeRef.current) { setActive(found); setPhotoIdx(0); }
+    if (!loaded && !seededCar && !found) return;
+    // Not in the loaded set (hidden by reports, or a direct visit): fetch it once.
     const id = pendingCarId;
+    if (fetchingCar.current === id) return;
+    fetchingCar.current = id;
     supabase.from("listings").select("*").eq("id", id).maybeSingle().then(({ data }) => {
+      fetchingCar.current = null;
       if (data) { setActive(data); setPhotoIdx(0); trackVisit(supabase, paths.car(data.id), data.id); }
       else showToast("الإعلان غير موجود، ربما بيعت السيارة", "muted");
       setPendingCarId((cur) => (cur === id ? null : cur));
@@ -1066,6 +1080,11 @@ export default function CarMarket() {
   // Opening a listing puts /car/<id> in the address bar so it can be shared or bookmarked.
   function openListing(l) {
     setActive(l);
+    // A seeded row has no phone yet: fetch the full row for the contact buttons.
+    if (!("phone" in l)) {
+      supabase.from("listings").select("*").eq("id", l.id).maybeSingle()
+        .then(({ data }) => { if (data) setActive((cur) => (cur && cur.id === data.id ? data : cur)); });
+    }
     setPhotoIdx(0);
     openedInApp.current = true;
     window.history.pushState({}, "", paths.car(l.id));
@@ -1442,8 +1461,9 @@ export default function CarMarket() {
                 )}
               </div>
               {!loaded ? (
-                <div className="flex items-center justify-center py-16 cm-text-muted">
-                  <Loader2 className="animate-spin ml-2" size={18} /> جارِ التحميل...
+                // Placeholder cards the same size as real ones, so nothing jumps when they load.
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy="true" aria-label="جارِ التحميل">
+                  {[0, 1, 2, 3, 4, 5].map((i) => <CardSkeleton key={i} />)}
                 </div>
               ) : liveListings.length === 0 ? (
                 <div className="text-center py-16 rounded-xl cm-soft">
@@ -1454,9 +1474,10 @@ export default function CarMarket() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {liveListings.slice(0, 6).map((l) => (
+                  {liveListings.slice(0, 6).map((l, i) => (
                     <ListingCard
                       key={l.id}
+                      eager={i < 2}
                       l={l}
                       dealer={dealerById[l.dealer_id]}
                       onOpen={() => { setView("browse"); openListing(l); }}
@@ -1649,7 +1670,7 @@ export default function CarMarket() {
                   return (
                     <div key={l.id} className="cm-row p-3">
                       <div className="flex gap-3 items-start">
-                        {photo ? <img src={photo} alt="" className="cm-thumb" /> : <div className="cm-thumb flex items-center justify-center"><Car size={20} className="cm-icon-empty" /></div>}
+                        {photo ? <img src={imgSrc(photo, 384)} alt="" loading="lazy" className="cm-thumb" /> : <div className="cm-thumb flex items-center justify-center"><Car size={20} className="cm-icon-empty" /></div>}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5">
                             <p className="font-bold truncate">{l.make} {l.model} {l.year}</p>
@@ -1847,9 +1868,10 @@ export default function CarMarket() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((l) => (
+              {filtered.map((l, i) => (
                 <ListingCard
                   key={l.id}
+                  eager={i < 2}
                   l={l}
                   dealer={dealerById[l.dealer_id]}
                   onOpen={() => openListing(l)}
@@ -2067,7 +2089,9 @@ export default function CarMarket() {
                 return (
                   <>
                     <img
-                      src={gallery[Math.min(photoIdx, gallery.length - 1)]}
+                      src={imgSrc(gallery[Math.min(photoIdx, gallery.length - 1)], 1080, 75)}
+                      srcSet={imgSrcSet(gallery[Math.min(photoIdx, gallery.length - 1)], [640, 1080])}
+                      sizes="(min-width: 640px) 512px, 100vw"
                       onClick={() => setViewerOpen(true)}
                       className="w-full h-full object-cover cursor-zoom-in"
                       alt=""
@@ -2564,7 +2588,7 @@ function PhotoViewer({ images, index, onIndex, onClose }) {
   );
 }
 
-function ListingCard({ l, onOpen, isFav, onFav, dealer }) {
+function ListingCard({ l, onOpen, isFav, onFav, dealer, eager = false }) {
   const photo = l.image || l.images?.[0];
   const discount = discountPercent(l);
   const facts = [l.year || "-", l.mileage ? `${formatNumber(l.mileage)} كم` : "- كم", l.specs || "-"];
@@ -2579,7 +2603,17 @@ function ListingCard({ l, onOpen, isFav, onFav, dealer }) {
     >
       <div className="cm-aspect-16-10 cm-media flex items-center justify-center overflow-hidden relative">
         {photo ? (
-          <img src={photo} alt={`${l.make} ${l.model} ${l.year}`} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+          <img
+            src={imgSrc(photo, 640)}
+            srcSet={imgSrcSet(photo, [384, 640, 828])}
+            sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+            alt={`${l.make} ${l.model} ${l.year}`}
+            loading={eager ? "eager" : "lazy"}
+            fetchpriority={eager ? "high" : undefined}
+            decoding="async"
+            width="640" height="400"
+            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+          />
         ) : (
           <Car size={44} className="cm-icon-empty" />
         )}
@@ -2875,4 +2909,19 @@ function ArticleBlocks({ body, goTo }) {
     );
     return null;
   });
+}
+
+// Grey stand-in for a ListingCard while listings load (same shape and height).
+function CardSkeleton() {
+  return (
+    <div className="cm-card rounded-xl overflow-hidden flex flex-col" aria-hidden="true">
+      <div className="cm-aspect-16-10 cm-media" />
+      <div className="p-3.5 flex flex-col gap-2">
+        <div className="cm-skel" style={{ width: "60%", height: 16 }} />
+        <div className="cm-skel" style={{ width: "80%", height: 12 }} />
+        <div className="cm-skel" style={{ width: "40%", height: 20, marginTop: 6 }} />
+        <div className="cm-skel" style={{ width: "30%", height: 12 }} />
+      </div>
+    </div>
+  );
 }

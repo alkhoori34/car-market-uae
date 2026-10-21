@@ -105,6 +105,14 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   form). Footer order is `FOOTER_PAGES`; the sign-in dialog links terms and
   privacy. `/dealers` is the page to send brokers in outreach messages. The privacy page lists what the site collects
   and which services it uses: update it when that changes.
+- **Speed:** listing photos go through Vercel's image optimizer
+  (`src/img.js` `imgSrc`/`imgSrcSet`, allowed hosts and sizes in vercel.json
+  `images`). Server pages embed their rows as `window.__SEED__` (home:
+  `listings`, car page: `car`, without the phone column) so the app draws
+  cards at once; full rows arrive from Supabase after. The home shows
+  skeleton cards while loading; fonts load non-blocking from index.html;
+  `html { overflow-y: scroll }` stops RTL sideways jumps. Measured on
+  PageSpeed Insights before this work (2026-10-21): mobile 66, desktop 72.
 - WhatsApp button on every listing (`waNumber` normalises UAE numbers).
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is

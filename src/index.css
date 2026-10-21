@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+/* Fonts are linked from index.html (non-blocking), not @import here. */
 
 @tailwind base;
 @tailwind components;
@@ -147,3 +147,8 @@ ul.cm-article-list { list-style:disc; }
 ol.cm-article-list { list-style:decimal; }
 .cm-article-list li { margin-bottom:0.45rem; }
 .cm-article-tip { background:var(--cm-bg-soft); border-right:3px solid var(--cm-accent); border-radius:0.5rem; padding:0.8rem 1rem; font-weight:600; }
+
+/* Keep the page width fixed whether or not the page is tall enough to scroll,
+   so content does not jump sideways (RTL) when listings load. */
+html { overflow-y: scroll; }
+.cm-skel { background: var(--cm-bg-soft); border-radius: 6px; }
