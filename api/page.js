@@ -134,7 +134,7 @@ async function carPage(shell, route) {
     url,
     offers: {
       "@type": "Offer",
-      price: Number(l.price),
+      price: l.price ? Number(l.price) : undefined,
       priceCurrency: "AED",
       availability: l.sold ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
       url,
@@ -150,7 +150,7 @@ ${siteHeader()}
     ${gallery.length ? `<img src="${esc(gallery[0])}" alt="${esc(carTitle(l))}" class="w-full object-cover cm-aspect-16-9">` : ""}
     <div class="p-5">
       ${l.sold ? `<p class="cm-badge cm-badge-red mb-2">تم بيع هذه السيارة</p>` : ""}<h1 class="cm-display font-extrabold text-2xl">${esc(carTitle(l))}${l.sold ? "" : " للبيع"}</h1>
-      <p class="text-2xl font-black mt-2">${fmt(l.price)} د.إ${l.negotiable ? ` <span class="cm-badge cm-badge-blue">قابل للتفاوض</span>` : ""}</p>
+      <p class="text-2xl font-black mt-2">${l.price ? fmt(l.price) + " د.إ" : "السعر عند التواصل"}${l.negotiable ? ` <span class="cm-badge cm-badge-blue">قابل للتفاوض</span>` : ""}</p>
       ${l.previous_price && Number(l.previous_price) > Number(l.price) ? `<p class="text-sm cm-text-muted">السعر السابق: <s>${fmt(l.previous_price)} د.إ</s></p>` : ""}
       <dl class="grid grid-cols-2 gap-2 mt-4 text-sm">
         ${facts.map(([k, v]) => `<div class="cm-spec px-3 py-2"><dt class="text-xs cm-text-muted">${esc(k)}</dt><dd class="font-bold">${esc(v)}</dd></div>`).join("")}
@@ -491,7 +491,7 @@ function card(l) {
     ${img ? `<img src="${esc(imgSrc(img, 640))}" srcset="${esc(imgSrcSet(img, [384, 640, 828]) || "")}" sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" width="640" height="400" alt="${esc(carTitle(l))}" loading="lazy" decoding="async" class="w-full object-cover cm-aspect-16-10">` : ""}
     <div class="p-3.5"><h2 class="cm-display font-bold text-sm">${esc(carTitle(l))}</h2>
     <p class="text-xs cm-text-muted mt-1">${esc(facts)}</p>
-    <p class="font-bold mt-2">${fmt(l.price)} د.إ${l.negotiable ? " · قابل للتفاوض" : ""}</p></div>
+    <p class="font-bold mt-2">${l.price ? fmt(l.price) + " د.إ" : "السعر عند التواصل"}${l.negotiable ? " · قابل للتفاوض" : ""}</p></div>
   </a></li>`;
 }
 

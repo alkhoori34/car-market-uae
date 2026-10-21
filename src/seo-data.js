@@ -167,7 +167,7 @@ export function carCopy(l) {
     l.city && `في ${l.city}`,
   ].filter(Boolean);
   return {
-    title: `${carTitle(l)} للبيع بسعر ${fmt(l.price)} درهم${l.city ? ` في ${l.city}` : ""} | ${SITE_NAME}`,
-    description: `${carTitle(l)} للبيع بسعر ${fmt(l.price)} درهم، ${bits.join("، ")}. تواصل مع البائع مباشرة على ${SITE_NAME}.`,
+    title: `${carTitle(l)} للبيع${l.price ? ` بسعر ${fmt(l.price)} درهم` : ""}${l.city ? ` في ${l.city}` : ""} | ${SITE_NAME}`,
+    description: `${carTitle(l)} للبيع${l.price ? ` بسعر ${fmt(l.price)} درهم` : ""}، ${bits.join("، ")}. تواصل مع البائع مباشرة على ${SITE_NAME}.`,
   };
 }

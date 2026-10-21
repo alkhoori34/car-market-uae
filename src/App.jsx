@@ -434,7 +434,7 @@ function ListingState({ l }) {
 function PricePlate({ price, size = "md" }) {
   return (
     <span className={`cm-price ${size === "lg" ? "text-3xl" : "text-xl"}`}>
-      {formatNumber(price)} <small>د.إ</small>
+      {price ? <>{formatNumber(price)} <small>د.إ</small></> : <small>السعر عند التواصل</small>}
     </span>
   );
 }
@@ -736,7 +736,7 @@ export default function CarMarket() {
   // browsers show, and what someone sees in their history.
   useEffect(() => {
     document.title = active
-      ? `${active.make} ${active.model} ${active.year} — ${formatNumber(active.price)} د.إ | CarsUAE`
+      ? `${active.make} ${active.model} ${active.year} — ${active.price ? formatNumber(active.price) + " د.إ" : "للبيع"} | CarsUAE`
       : view === "browse"
         ? sectionTitle
         : view === "vin"
@@ -1108,7 +1108,7 @@ export default function CarMarket() {
 
   async function shareListing(l) {
     const url = l.dealerSlug ? `${window.location.origin}${paths.dealer(l.dealerSlug)}` : listingUrl(l.id);
-    const title = l.dealerSlug ? `سيارات ${l.make} على CarsUAE` : `${l.make} ${l.model} ${l.year} — ${formatNumber(l.price)} د.إ`;
+    const title = l.dealerSlug ? `سيارات ${l.make} على CarsUAE` : `${l.make} ${l.model} ${l.year} — ${l.price ? formatNumber(l.price) + " د.إ" : "للبيع"}`;
     if (navigator.share) {
       try { await navigator.share({ title, url }); return; } catch { /* user cancelled */ }
     }
@@ -1680,7 +1680,7 @@ export default function CarMarket() {
                             <p className="font-bold truncate">{l.make} {l.model} {l.year}</p>
                             <Badge tone={label[st][1]}>{label[st][0]}</Badge>
                           </div>
-                          <p className="text-sm cm-tabular mt-0.5"><b>{formatNumber(l.price)}</b> د.إ · {l.city || "-"} · {timeAgo(l.created_at)}</p>
+                          <p className="text-sm cm-tabular mt-0.5"><b>{l.price ? formatNumber(l.price) : "-"}</b> د.إ · {l.city || "-"} · {timeAgo(l.created_at)}</p>
                           <p className="text-xs cm-text-muted mt-0.5 cm-tabular truncate">{sellerLabel(l.seller_name)} · <span dir="ltr">{l.phone}</span>{st === "live" && daysLeft(l) !== null ? ` · ينتهي بعد ${daysLeft(l)} يوم` : ""}</p>
                         </div>
                       </div>
@@ -2181,9 +2181,9 @@ export default function CarMarket() {
                   {active.negotiable && <Badge tone="blue">قابل للتفاوض</Badge>}
                   {active.specs && <Badge tone="muted">مواصفات {active.specs}</Badge>}
                 </div>
-                <p className="text-sm cm-text-muted mt-2" title="دفعة أولى 20%، 5 سنوات، فائدة ثابتة 3% سنويًا. للاسترشاد فقط.">
+                {active.price > 0 && <p className="text-sm cm-text-muted mt-2" title="دفعة أولى 20%، 5 سنوات، فائدة ثابتة 3% سنويًا. للاسترشاد فقط.">
                   قسط تقريبي من <span className="font-bold cm-text-accent cm-tabular">{formatNumber(monthlyInstallment(active.price))} د.إ</span> شهريًا
-                </p>
+                </p>}
               </div>
 
               <div className="grid grid-cols-2 gap-2.5 text-sm mb-4">
