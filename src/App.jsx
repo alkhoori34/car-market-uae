@@ -1303,7 +1303,7 @@ export default function CarMarket() {
       {/* Header */}
       <header className="cm-header">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3 relative">
-          <button onClick={() => setView("home")} className="flex items-center gap-2 shrink-0">
+          <button onClick={() => setView("home")} aria-label="CarsUAE الصفحة الرئيسية" className="flex items-center gap-2 shrink-0">
             <div className="w-9 h-9 rounded-lg cm-logo flex items-center justify-center">
               <Car size={20} className="text-white" strokeWidth={2.5} />
             </div>
@@ -1313,6 +1313,7 @@ export default function CarMarket() {
           <nav className="flex items-center gap-2">
             <button
               onClick={() => setView("browse")}
+              aria-label="السيارات"
               className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "browse" ? "cm-navbtn-active" : ""}`}
             >
               <Search size={15} /> <span className="hidden sm:inline">السيارات</span>
@@ -1321,6 +1322,7 @@ export default function CarMarket() {
               <button
                 onClick={() => setNavOpen((o) => !o)}
                 aria-expanded={navOpen}
+                aria-label="القائمة"
                 className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${["vin", "blog", "info"].includes(view) ? "cm-navbtn-active" : ""}`}
               >
                 <MenuIcon size={15} /> <span className="hidden sm:inline">القائمة</span>
@@ -1355,6 +1357,7 @@ export default function CarMarket() {
             {session && (
               <button
                 onClick={() => setView("mine")}
+                aria-label="إعلاناتي"
                 className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "mine" ? "cm-navbtn-active" : ""}`}
               >
                 <Store size={15} /> <span className="hidden sm:inline">إعلاناتي</span>
@@ -1363,6 +1366,7 @@ export default function CarMarket() {
             {session && (
               <button
                 onClick={() => setView("saved")}
+                aria-label="المفضلة"
                 className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "saved" ? "cm-navbtn-active" : ""}`}
               >
                 <Heart size={15} /> <span className="hidden sm:inline">المفضلة</span>
@@ -1377,7 +1381,7 @@ export default function CarMarket() {
             </button>
             {session ? (
               <div className="relative">
-                <button onClick={() => setMenuOpen((o) => !o)} className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-3 py-2 rounded-lg transition">
+                <button onClick={() => setMenuOpen((o) => !o)} aria-label="حسابي" className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-3 py-2 rounded-lg transition">
                   <User size={15} className="cm-text-accent" />
                   <span className="hidden md:inline text-xs" style={{ maxWidth: "8rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {session.user.user_metadata?.full_name || session.user.email.split("@")[0]}
@@ -1401,7 +1405,7 @@ export default function CarMarket() {
                 )}
               </div>
             ) : (
-              <button onClick={() => setAuthOpen(true)} className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-3 py-2 rounded-lg transition">
+              <button onClick={() => setAuthOpen(true)} aria-label="تسجيل الدخول" className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-3 py-2 rounded-lg transition">
                 <LogIn size={15} />
                 <span className="hidden sm:inline">تسجيل الدخول</span>
               </button>
@@ -2636,6 +2640,7 @@ function ListingCard({ l, onOpen, isFav, onFav, dealer, eager = false }) {
             type="button"
             onClick={(e) => { e.stopPropagation(); onFav(); }}
             title={isFav ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
+            aria-label={isFav ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
             className="absolute top-2 left-2 z-10 rounded-full p-2 cm-fav-btn"
           >
             <Heart size={16} className={isFav ? "cm-heart-on" : ""} />

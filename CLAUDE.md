@@ -107,7 +107,8 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   and which services it uses: update it when that changes.
 - **Speed:** listing photos go through Vercel's image optimizer
   (`src/img.js` `imgSrc`/`imgSrcSet`, allowed hosts and sizes in vercel.json
-  `images`). Server pages embed their rows as `window.__SEED__` (home:
+  `images`; a new photo folder under public/ must be added to both
+  `localPatterns` and `LOCAL_DIRS` or its photos return 400). Server pages embed their rows as `window.__SEED__` (home:
   `listings`, car page: `car`, without the phone column) so the app draws
   cards at once; full rows arrive from Supabase after. The home shows
   skeleton cards while loading; fonts load non-blocking from index.html;

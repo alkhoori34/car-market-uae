@@ -99,6 +99,9 @@
         "pathname": "/l/**"
       },
       {
+        "pathname": "/listings/**"
+      },
+      {
         "pathname": "/media/**"
       }
     ],
