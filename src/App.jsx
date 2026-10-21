@@ -2209,12 +2209,16 @@ export default function CarMarket() {
                   {dealerById[active.dealer_id] && (
                     <p className="text-xs flex items-center flex-wrap gap-1 mb-0.5">
                       <span className="cm-text-muted">📢 الإعلان من حساب</span>
-                      <a href={paths.dealer(dealerById[active.dealer_id].slug)} onClick={(e) => { e.preventDefault(); const d = dealerById[active.dealer_id]; setActive(null); applyRoute({ kind: "dealer", slug: d.slug }); window.history.pushState({}, "", paths.dealer(d.slug)); }} className="font-bold cm-link flex items-center gap-1">
-                        {dealerById[active.dealer_id].verified && <BadgeCheck size={12} />} {dealerById[active.dealer_id].name}
-                      </a>
-                      {dealerById[active.dealer_id].instagram && (
-                        <a href={`https://instagram.com/${dealerById[active.dealer_id].instagram}`} target="_blank" rel="noopener noreferrer" className="font-bold cm-link" dir="ltr">@{dealerById[active.dealer_id].instagram}</a>
+                      {dealerById[active.dealer_id].instagram ? (
+                        <a href={`https://instagram.com/${dealerById[active.dealer_id].instagram}`} target="_blank" rel="noopener noreferrer" className="font-bold cm-link flex items-center gap-1">
+                          {dealerById[active.dealer_id].verified && <BadgeCheck size={12} />} {dealerById[active.dealer_id].name} <span dir="ltr">@{dealerById[active.dealer_id].instagram}</span>
+                        </a>
+                      ) : (
+                        <a href={paths.dealer(dealerById[active.dealer_id].slug)} onClick={(e) => { e.preventDefault(); const d = dealerById[active.dealer_id]; setActive(null); applyRoute({ kind: "dealer", slug: d.slug }); window.history.pushState({}, "", paths.dealer(d.slug)); }} className="font-bold cm-link flex items-center gap-1">
+                          {dealerById[active.dealer_id].verified && <BadgeCheck size={12} />} {dealerById[active.dealer_id].name}
+                        </a>
                       )}
+                      <a href={paths.dealer(dealerById[active.dealer_id].slug)} onClick={(e) => { e.preventDefault(); const d = dealerById[active.dealer_id]; setActive(null); applyRoute({ kind: "dealer", slug: d.slug }); window.history.pushState({}, "", paths.dealer(d.slug)); }} className="cm-text-muted underline">كل إعلاناته</a>
                     </p>
                   )}
                   <p className="text-xs cm-text-muted flex items-center gap-1">
