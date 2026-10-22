@@ -171,6 +171,22 @@ brand `carsuaenet` (blogId 7350493), instagram + facebook + tiktok.
 Plan B (full automation through the WhatsApp Cloud API on a dedicated number)
 waits on Meta Business Verification.
 
+## Instagram importer (admin, since 2026-10-22)
+
+Admin panel → «استيراد من إنستغرام» (also opens on `carsuae.net/#import=…`).
+The owner drags the «CarsUAE استيراد» bookmark (source: `BOOKMARKLET_SOURCE`
+in `src/importer-parse.js`) to Chrome's bookmarks bar once. On a broker's
+Instagram profile the bookmark collects the last N days of posts through
+Instagram's web API (`/api/v1/media/<id>/info/`, the owner's own session) and
+navigates the same tab to `carsuae.net/#import=<json>`. `src/Importer.jsx`
+parses each caption (`parseCaption`, `excludeReason`, `cleanDescription`),
+flags sold/buy/plate/rims/no-text posts and cars already on the site
+(phone+make+model+year), shows editable rows, and on «انشر» copies photos to
+Storage `car-images/<admin uid>/ig-<code>-<n>.jpg` and inserts listings with
+the chosen `dealer_id` and the credit line "📢 الإعلان من حساب …". This runs in
+the owner's browser, so imports cost no Claude usage; Claude only helps when
+asked to check rows.
+
 ## Open work
 
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
