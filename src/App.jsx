@@ -6,6 +6,7 @@ import { cleanVin, isVinFormat } from "./vin.js";
 import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
+import Importer from "./Importer.jsx";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -509,6 +510,8 @@ export default function CarMarket() {
   const [adminRows, setAdminRows] = useState([]);
   const [adminReports, setAdminReports] = useState([]);
   const [adminTab, setAdminTab] = useState("all"); // all | live | sold | expired | reported
+  // Instagram importer panel; opened by the "CarsUAE استيراد" bookmark via carsuae.net/#import.
+  const [importOpen, setImportOpen] = useState(() => typeof window !== "undefined" && window.location.hash.startsWith("#import"));
   const [adminQ, setAdminQ] = useState("");
   const [stats, setStats] = useState(null);
   const [dealerForm, setDealerForm] = useState({ name: "", slug: "", instagram: "", phone: "", city: "" });
@@ -608,6 +611,7 @@ export default function CarMarket() {
     updateListing(l.id, { dealer_id: dealerId || null }, dealerId ? "تم ربط الإعلان بالوسيط" : "تم فك الربط");
 
   useEffect(() => { if (view === "admin" && isAdmin) loadAdmin(); }, [view, isAdmin]);
+  useEffect(() => { if (importOpen && isAdmin) setView("admin"); }, [importOpen, isAdmin]);
 
 
   // --- URL routing ---------------------------------------------------------
@@ -1604,8 +1608,17 @@ export default function CarMarket() {
           <main className="max-w-6xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between gap-3 mb-4">
               <h1 className="cm-display font-extrabold text-2xl">لوحة الإدارة</h1>
-              <button onClick={loadAdmin} className="cm-btn-ghost text-sm font-bold px-3 py-2 rounded-lg flex items-center gap-1.5"><RefreshCw size={14} /> تحديث</button>
+              <div className="flex gap-2">
+                <button onClick={() => setImportOpen(!importOpen)} className="cm-btn-ghost text-sm font-bold px-3 py-2 rounded-lg">استيراد من إنستغرام</button>
+                <button onClick={loadAdmin} className="cm-btn-ghost text-sm font-bold px-3 py-2 rounded-lg flex items-center gap-1.5"><RefreshCw size={14} /> تحديث</button>
+              </div>
             </div>
+
+            {importOpen && (
+              <Importer supabase={supabase} session={session} makes={Object.keys(MODELS)} cities={CITIES} specsList={SPECS} bodies={BODY_TYPES}
+                onPublished={() => { loadAdmin(); loadListings(); }}
+                onClose={() => { setImportOpen(false); if (window.location.hash.startsWith("#import")) window.history.replaceState({}, "", window.location.pathname); }} />
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
               <div className="cm-stat"><b className="cm-tabular">{counts.all}</b><span>كل الإعلانات</span></div>

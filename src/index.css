@@ -152,3 +152,7 @@ ol.cm-article-list { list-style:decimal; }
    so content does not jump sideways (RTL) when listings load. */
 html { overflow-y: scroll; }
 .cm-skel { background: var(--cm-bg-soft); border-radius: 6px; }
+
+/* Instagram importer (admin) */
+.cm-text-red { color: var(--cm-red, #dc2626); }
+.cm-border-red { box-shadow: inset 0 0 0 1.5px var(--cm-red, #dc2626); }
