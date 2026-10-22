@@ -84,6 +84,11 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
 - **Dealers (brokers):** `dealers` table, `listings.dealer_id`; verified
   dealers get a "وسيط معتمد" badge and a `/dealer/<slug>` page. Imported
   broker ads keep the car owner's phone number.
+  A dealer can be linked to a site account (`dealers.user_id`, set by SQL on
+  the owner's request, e.g. souq-7r): that user's new listings get the
+  `dealer_id` and dealer name automatically (`myDealer` in App.jsx), and the
+  trigger `listings_check_dealer` blocks anyone else from using a dealer_id
+  (`listings-dealer-accounts.sql`).
 - **VIN check (فحص رقم الشاصي)** at `/vin-check` (view `vin`, `VinCheck` in
   App.jsx; in the header "القائمة" menu and a button on each listing). `api/vin.js`
   calls the free NHTSA vPIC decoder and recalls API (no key); `src/vin.js`
@@ -125,7 +130,7 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   city, fuel, trans, condition, description, phone, seller_name, image,
   images, created_at, reports_count, specs, steering, phone_verified,
   negotiable, previous_price, sold, sold_at, expires_at, views, dealer_id
-- `dealers` — id, slug, name, instagram, phone, city, verified
+- `dealers` — id, slug (lowercase letters/digits/hyphens), name, instagram, phone, city, verified, user_id
 - `visits` — id, path, source, listing_id, created_at (admins read only)
 - `admins` — user_id
 - `favorites` — user_id, listing_id, created_at

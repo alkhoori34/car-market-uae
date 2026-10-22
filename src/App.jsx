@@ -708,6 +708,8 @@ export default function CarMarket() {
 
   // The section the browse page currently matches, for its heading and tab title.
   const dealerById = useMemo(() => Object.fromEntries(dealers.map((d) => [d.id, d])), [dealers]);
+  // A broker's own account (dealers.user_id): their new listings post under the dealer name.
+  const myDealer = session ? dealers.find((d) => d.user_id === session.user.id) || null : null;
   const currentDealer = dealers.find((d) => d.slug === dealerFilter) || null;
   // Display name for the model slug in the URL: from listings, else the catalogue.
   const modelName = modelFilter
@@ -1033,6 +1035,7 @@ export default function CarMarket() {
       image: imageUrls[0] || null,
       images: imageUrls,
     };
+    if (myDealer && !editingId) { row.dealer_id = myDealer.id; row.seller_name = myDealer.name; }
 
     // The negotiable / previous_price columns are added by a SQL migration. If
     // it hasn't been run yet, save without them instead of failing the listing.
@@ -2078,9 +2081,13 @@ export default function CarMarket() {
                 </p>
               )}
 
-              <Field label="اسم البائع (اختياري)">
-                <input value={form.sellerName} onChange={(e) => setForm({ ...form, sellerName: e.target.value })} placeholder="اسمك" className="cm-input" />
-              </Field>
+              {myDealer ? (
+                <p className="text-sm rounded-lg p-3 cm-soft flex items-center gap-1.5"><BadgeCheck size={15} /> الإعلان ينزل باسم <b>{myDealer.name}</b>{myDealer.instagram ? <span dir="ltr">@{myDealer.instagram}</span> : null}. اكتب في خانة الرقم رقم صاحب السيارة.</p>
+              ) : (
+                <Field label="اسم البائع (اختياري)">
+                  <input value={form.sellerName} onChange={(e) => setForm({ ...form, sellerName: e.target.value })} placeholder="اسمك" className="cm-input" />
+                </Field>
+              )}
 
               <Field label="وصف السيارة">
                 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} placeholder="اذكر تفاصيل إضافية: الفحص، الصيانة، الحوادث..." className="cm-input resize-none" />
