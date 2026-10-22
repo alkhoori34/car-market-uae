@@ -1317,11 +1317,11 @@ export default function CarMarket() {
             <span dir="ltr" className="cm-display font-extrabold text-lg tracking-tight hidden sm:block">Cars<span className="cm-grad-text">UAE</span></span>
           </button>
 
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-1 sm:gap-2 min-w-0">
             <button
               onClick={() => setView("browse")}
               aria-label="السيارات"
-              className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "browse" ? "cm-navbtn-active" : ""}`}
+              className={`text-sm font-bold px-2 sm:px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "browse" ? "cm-navbtn-active" : ""}`}
             >
               <Search size={15} /> <span className="hidden sm:inline">السيارات</span>
             </button>
@@ -1330,7 +1330,7 @@ export default function CarMarket() {
                 onClick={() => setNavOpen((o) => !o)}
                 aria-expanded={navOpen}
                 aria-label="القائمة"
-                className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${["vin", "blog", "info"].includes(view) ? "cm-navbtn-active" : ""}`}
+                className={`text-sm font-bold px-2 sm:px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${["vin", "blog", "info"].includes(view) ? "cm-navbtn-active" : ""}`}
               >
                 <MenuIcon size={15} /> <span className="hidden sm:inline">القائمة</span>
               </button>
@@ -1365,7 +1365,7 @@ export default function CarMarket() {
               <button
                 onClick={() => setView("mine")}
                 aria-label="إعلاناتي"
-                className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "mine" ? "cm-navbtn-active" : ""}`}
+                className={`text-sm font-bold px-2 sm:px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "mine" ? "cm-navbtn-active" : ""}`}
               >
                 <Store size={15} /> <span className="hidden sm:inline">إعلاناتي</span>
               </button>
@@ -1374,21 +1374,21 @@ export default function CarMarket() {
               <button
                 onClick={() => setView("saved")}
                 aria-label="المفضلة"
-                className={`text-sm font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "saved" ? "cm-navbtn-active" : ""}`}
+                className={`text-sm font-bold px-2 sm:px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${view === "saved" ? "cm-navbtn-active" : ""}`}
               >
                 <Heart size={15} /> <span className="hidden sm:inline">المفضلة</span>
               </button>
             )}
             <button
               onClick={goAdd}
-              className="flex items-center gap-1.5 font-bold text-sm px-3.5 py-2 rounded-lg transition cm-btn-primary"
+              className="flex items-center gap-1.5 font-bold text-sm px-3 sm:px-3.5 py-2 rounded-lg transition cm-btn-primary whitespace-nowrap"
             >
               <Plus size={16} />
               <span>بيع سيارتك</span>
             </button>
             {session ? (
               <div className="relative">
-                <button onClick={() => setMenuOpen((o) => !o)} aria-label="حسابي" className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-3 py-2 rounded-lg transition">
+                <button onClick={() => setMenuOpen((o) => !o)} aria-label="حسابي" className="cm-btn-ghost flex items-center gap-1.5 font-bold text-sm px-2 sm:px-3 py-2 rounded-lg transition">
                   <User size={15} className="cm-text-accent" />
                   <span className="hidden md:inline text-xs" style={{ maxWidth: "8rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {session.user.user_metadata?.full_name || session.user.email.split("@")[0]}

@@ -151,6 +151,7 @@ ol.cm-article-list { list-style:decimal; }
 /* Keep the page width fixed whether or not the page is tall enough to scroll,
    so content does not jump sideways (RTL) when listings load. */
 html { overflow-y: scroll; }
+body { overflow-x: clip; }
 .cm-skel { background: var(--cm-bg-soft); border-radius: 6px; }
 
 /* Instagram importer (admin) */
