@@ -121,6 +121,11 @@ const UI = {
   "متأكد تبي تحذف هذا الإعلان نهائيًا؟": "Delete this listing for good?", "تعذر تحميل الصورة": "Could not load the photo",
   "لم نتعرف على سيارة في الصورة. يرجى رفع صورة واضحة للسيارة.": "We could not find a car in the photo. Please upload a clear photo of the car.",
   "أدخل رقم جوال إماراتي صحيح (مثال: 0501234567)": "Enter a valid UAE mobile number (e.g. 0501234567)",
+  "يرجى تأكيد رقم الجوال عبر رمز التحقق أولًا": "Please confirm your mobile number with the verification code first",
+  "تم تجاهل البلاغات ورجع الإعلان": "Reports dismissed and the listing is back",
+  "حُذف الإعلان، لكن لم تُحذف أي صورة (تحقق من الصلاحيات)": "Listing deleted, but no photos were deleted (check permissions)",
+  "تمت إضافة الوسيط": "Dealer added",
+  "ما سبب الإبلاغ؟ (مثال: رقم تواصل خاطئ)": "Why are you reporting this listing? (e.g. wrong contact number)",
 };
 
 // Model names that appear in listings (Arabic -> English).
@@ -147,10 +152,26 @@ const MODELS = {
   "جولف": "Golf", "باسات": "Passat", "تيجوان": "Tiguan", "جيتا": "Jetta", "بولو": "Polo", "مونجارو": "Monjaro", "نوتيلوس": "Nautilus", "أفياتور": "Aviator",
   "كوبر": "Cooper", "كنتري مان": "Countryman", "كانتري مان": "Countryman", "ليوبارد 5": "Leopard 5", "ليوبارد 7": "Leopard 7", "ليوبارد 8": "Leopard 8",
   "أداماس": "Adamas", "موديل Y": "Model Y", "موديل 3": "Model 3", "موديل X": "Model X", "أخرى": "Other",
-  "الفئة V": "V-Class", "الفئة X": "X-Class", "CS35 بلس": "CS35 Plus", "بارتنر": "Partner", "بريفيس": "Previa", "بوكستر": "Boxster",
+  "الفئة V": "V-Class", "الفئة X": "X-Class", "CS35 بلس": "CS35 Plus", "بارتنر": "Partner", "بريفيس": "Preface", "بوكستر": "Boxster",
   "تاكوما": "Tacoma", "تندرا": "Tundra", "تورس": "Taurus", "جوك": "Juke", "جيب ويليز": "Jeep Willys", "جينيسيس 3.8": "Genesis 3.8",
   "ديستروير 05": "Destroyer 05", "ريو": "Rio", "سونج": "Song", "سيل 05": "Seal 05", "سيل 6": "Seal 6", "طوارق": "Touareg",
-  "كادينزا": "Cadenza", "كين بلس": "Keyton Plus",
+  "كادينزا": "Cadenza", "كين بلس": "Qin Plus",
+  "إرتيقا": "Ertiga", "فورستر": "Forester", "ليجاسي": "Legacy", "أوتباك": "Outback", "إمبريزا": "Impreza", "تيريوس": "Terios",
+  "بسيفيكا": "Pacifica", "نافيجيتور": "Navigator", "كورسير": "Corsair", "إنكليف": "Enclave", "إنكور": "Encore", "أطلس": "Atlas",
+  "أسترا": "Astra", "إنسينيا": "Insignia", "كورسا": "Corsa", "غرانتلاند": "Grandland", "كلوبمان": "Clubman", "فورتو": "Fortwo",
+  "فانتاج": "Vantage", "كواتروبورتي": "Quattroporte", "جوليا": "Giulia", "ستيلفيو": "Stelvio", "توناليه": "Tonale", "تيبو": "Tipo",
+  "دوبلو": "Doblo", "دستر": "Duster", "كوليوس": "Koleos", "ميغان": "Megane", "كادجار": "Kadjar", "C5 إكروس": "C5 Aircross",
+  "أوكتافيا": "Octavia", "كودياك": "Kodiaq", "سوبيرب": "Superb", "كاروك": "Karoq", "ليون": "Leon", "أتيكا": "Ateca", "إبيزا": "Ibiza",
+  "إمجراند": "Emgrand", "كولراي": "Coolray", "عذراء": "Azkarra", "أليسون": "Alsvin", "إمكوو": "Emkoo", "هان": "Han", "تانج": "Tang",
+  "أتو 3": "Atto 3", "سونج بلس": "Song Plus", "جوليون": "Jolion", "داراغون": "Dargo", "تيجو": "Tiggo", "أريزو": "Arrizo",
+  "جود كات": "Good Cat", "فنكس": "Funky Cat", "ساجا": "Saga", "بوير": "Poer", "كانون": "Cannon", "ركستون": "Rexton", "تيفولي": "Tivoli",
+  "توانو": "Tunland", "فيو": "View", "لانوس": "Lanos", "نوبيرا": "Nubira", "إليس": "Elise", "إيميرا": "Emira", "إيفيجا": "Evija",
+  "داشينغ": "Dashing", "تريفل": "Traveller", "نامي": "Nammi", "إير": "Air", "غرافيتي": "Gravity", "سكوربيو": "Scorpio", "ثار": "Thar",
+  "نيكسون": "Nexon", "هارير": "Harrier", "سافاري": "Safari", "شيرون": "Chiron", "فيرون": "Veyron", "جيسكو": "Jesko", "ريجيرا": "Regera",
+  "ميغا": "MEGA", "فري": "Free", "دريم": "Dream", "باشن": "Passion", "غرينادير": "Grenadier", "وينغل": "Wingle", "ألفا S": "Alpha S",
+  "ألفا T": "Alpha T", "غلوري 500": "Glory 500", "غلوري 580": "Glory 580", "يويا": "Yoyo", "كوبرا": "Cobra", "كانتر": "Canter",
+  "فايتر": "Fighter", "دايلي": "Daily", "ستراليس": "Stralis", "دوست": "Dost", "سفن": "Seven", "مافريك": "Maverick", "غوركا": "Gurkha",
+  "ترافلر": "Traveller", "تيرالورد": "Terralord", "غراند تايغر": "Grand Tiger",
 };
 
 // Words inside short strings ("نيسان باترول مستعمل", "سيارات مستعملة في دبي").
@@ -173,6 +194,11 @@ const PATTERNS = [
   [/^منذ (\d+) د$/, "$1 min ago"], [/^منذ (\d+) س$/, "$1 h ago"], [/^منذ (\d+) يوم$/, "$1 days ago"],
   [/^من (\d{4})$/, "From $1"], [/^إلى (\d{4})$/, "To $1"], [/^(\d{4}) وأحدث$/, "$1 or newer"],
   [/^أقل من ([\d,]+) كم$/, "Under $1 km"], [/^سيارات أقل من ([\d,]+) درهم$/, "Cars under AED $1"],
+  [/^تمت إضافة (\d+) صور فقط \(الحد (\d+)\)$/, "Only $1 photos added (limit $2)"],
+  [/^تم تجاهل (\d+) صورة لم نتعرف فيها على سيارة$/, "Skipped $1 photo(s) with no car in them"],
+  [/^تعذر التحديث: ([\s\S]*)$/, "Couldn't update: $1"], [/^تعذر حذف البلاغات: ([\s\S]*)$/, "Couldn't delete the reports: $1"],
+  [/^حُذف الإعلان، لكن تعذر حذف الصور: ([\s\S]*)$/, "Listing deleted, but the photos couldn't be deleted: $1"],
+  [/^حذف الوسيط (.+)؟ إعلاناته تبقى بدون وسيط\.$/, "Delete dealer $1? Their listings stay, without a dealer."],
   [/^ينتهي بعد (\d+) يوم$/, "ends in $1 days"], [/^تم تجديد الإعلان (\d+) يومًا$/, "Listing renewed for $1 days"],
   [/^إعادة الإرسال بعد (\d+) ثانية$/, "Resend in $1 s"], [/^رقم الشاصي يتكون من 17 خانة، وكتبت (\d+)$/, "A VIN has 17 characters; you typed $1"],
 ];
@@ -184,6 +210,7 @@ const SECTION_PATTERNS = [
   [/^سيارات مستعملة تحت ([\d,]+) درهم( في الإمارات)?$/, (n) => `Used cars under AED ${n}`],
   [/^(.+) مستعملة للبيع في الإمارات$/, (n) => `Used ${n} for sale in the UAE`],
   [/^سيارات (.+) للبيع في الإمارات$/, (n) => `Cars for sale from ${n}`],
+  [/^سيارات (.+) على CarsUAE$/, (n) => `${n} cars on CarsUAE`],
   [/^سيارات (.+) للبيع$/, (n) => `Cars for sale from ${n}`],
 ];
 

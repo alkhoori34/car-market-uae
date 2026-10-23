@@ -124,8 +124,11 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   `/en/*` to `api/page.js` with `lang=en`, which renders English titles,
   meta, body and `hreflang` ar/en/x-default links (helpers `T`, `tr`, `P`
   over AsyncLocalStorage; `translateHtml` covers short leftover text). The
-  sitemap lists both copies. Articles, `/blog` and info pages are Arabic
-  only (`arOnly`: canonical to the Arabic URL, noindex on /en). In the
+  sitemap lists both copies. Articles and info pages take their English text
+  from `src/content-en.js` (`INFO_PAGES_EN`, `ARTICLES_EN`; `infoPageIn`,
+  `articleIn` pick the language; in the browser `INFO_PAGES`/`ARTICLES`
+  are already in the page's language): a new article or info page needs its
+  English entry there too. In the
   browser `src/i18n.js` turns on English when the path starts with `/en`:
   LTR, in-place translation of interface text (dictionary + patterns;
   seller descriptions stay as written; anything inside `[data-no-i18n]` is

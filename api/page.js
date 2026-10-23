@@ -21,9 +21,9 @@ import {
   parsePath, paths, categoryCopy as categoryCopyAr, carCopy as carCopyAr, carTitle as carTitleAr, modelSlug, langPath,
 } from "../src/seo-data.js";
 import { translate } from "../src/i18n.js";
-import { ARTICLES, articleBySlug, formatArticleDate } from "../src/articles.js";
+import { articlesIn, articleIn, articleBySlug, formatArticleDate as formatArticleDateIn } from "../src/articles.js";
 import { imgSrc, imgSrcSet } from "../src/img.js";
-import { INFO_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "../src/legal.js";
+import { infoPageIn, CONTACT_EMAIL, LEGAL_UPDATED } from "../src/legal.js";
 import {
   LISTING_FIELDS, queryListings, queryTable, getShell, fillShell as fillShellBase, send, esc, jsonLd, fmt, photo,
 } from "./_lib.js";
@@ -36,6 +36,7 @@ const EN = () => Boolean(langCtx.getStore() && langCtx.getStore().en);
 const T = (ar, en) => (EN() ? en : ar);
 const tr = (s) => (EN() ? translate(String(s ?? "")) : s);
 const P = Object.fromEntries(Object.entries(paths).map(([k, f]) => [k, (...a) => langPath(f(...a), EN())]));
+const formatArticleDate = (iso) => formatArticleDateIn(iso, EN());
 const num = (n) => new Intl.NumberFormat("en-US").format(Number(n) || 0);
 const carTitle = (l) => tr(carTitleAr(l));
 const aed = (n) => T(`${fmt(n)} د.إ`, `AED ${num(n)}`);
@@ -168,9 +169,9 @@ async function handle(req, res) {
     if (route.kind === "car") return send(res, ...(await carPage(shell, route)));
     if (route.kind === "vin") return send(res, 200, vinPage(shell));
     if (route.kind === "blog") return send(res, 200, blogPage(shell));
-    if (route.kind === "info") return send(res, 200, infoPage(shell, INFO_PAGES[route.page]));
+    if (route.kind === "info") return send(res, 200, infoPage(shell, infoPageIn(route.page, EN())));
     if (route.kind === "article") {
-      const a = articleBySlug(route.slug);
+      const a = articleIn(articleBySlug(route.slug), EN());
       return a ? send(res, 200, articlePage(shell, a)) : send(res, 404, notFound(shell, raw));
     }
     return send(res, ...(await categoryPage(shell, route, page)));
@@ -431,15 +432,15 @@ function blocksHtml(body) {
     if (type === "ul" || type === "ol") return `<${type} class="cm-article-list mb-4">${v.map((x) => `<li>${esc(x)}</li>`).join("")}</${type}>`;
     if (type === "tip") return `<p class="cm-article-tip mb-4">${esc(v)}</p>`;
     if (type === "faq") return v.map(([q, ans]) => `<h3 class="font-bold mt-5 mb-1">${esc(q)}</h3><p class="mb-3">${esc(ans)}</p>`).join("");
-    if (type === "contact") return `<p class="cm-sell-banner p-4 my-6">البريد الإلكتروني: <a class="cm-link font-bold" dir="ltr" href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>`;
-    if (type === "cta") return `<p class="cm-sell-banner p-4 my-6">${esc(v.text)} <a class="cm-link font-bold" href="${esc(v.href === "#sell" ? "/" : v.href)}">${esc(v.label)}</a></p>`;
+    if (type === "contact") return `<p class="cm-sell-banner p-4 my-6">${T("البريد الإلكتروني", "Email")}: <a class="cm-link font-bold" dir="ltr" href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>`;
+    if (type === "cta") return `<p class="cm-sell-banner p-4 my-6">${esc(v.text)} <a class="cm-link font-bold" href="${esc(v.href === "#sell" ? P.sell() : langPath(v.href, EN()))}">${esc(v.label)}</a></p>`;
     return "";
   }).join("\n");
 }
 
 function infoPage(shell, pg) {
-  const crumbs = [[T("الرئيسية", "Home"), P.home()], [pg.title, pg.path]];
-  const updated = !["/terms", "/privacy"].includes(pg.path) ? "" : `<p class="text-xs cm-text-muted mb-6">آخر تحديث: ${esc(formatArticleDate(LEGAL_UPDATED))}</p>`;
+  const crumbs = [[T("الرئيسية", "Home"), P.home()], [pg.title, langPath(pg.path, EN())]];
+  const updated = !["/terms", "/privacy"].includes(pg.path) ? "" : `<p class="text-xs cm-text-muted mb-6">${T("آخر تحديث", "Last updated")}: ${esc(formatArticleDate(LEGAL_UPDATED))}</p>`;
   const body = `
 ${siteHeader()}
 <main class="max-w-3xl mx-auto px-4 py-8">
@@ -453,8 +454,7 @@ ${siteHeader()}
   return fillShell(shell, {
     title: `${pg.title} | ${SITE_NAME}`,
     description: pg.description,
-    canonical: SITE_URL + pg.path,
-    arOnly: true,
+    canonical: SITE_URL + langPath(pg.path, EN()),
     headExtra: jsonLd(breadcrumbLd(crumbs)) + faqLd(pg.body),
     body,
   });
@@ -473,46 +473,46 @@ function faqLd(body) {
 }
 
 function blogPage(shell) {
-  const title = `مقالات ونصائح شراء وبيع السيارات في الإمارات | ${SITE_NAME}`;
-  const description = "نصائح عملية لشراء وبيع السيارات المستعملة في الإمارات: الفحص قبل الشراء، الفرق بين الخليجي والوارد، الأسعار ونقل الملكية.";
-  const crumbs = [[T("الرئيسية", "Home"), P.home()], ["المقالات", P.blog()]];
+  const title = T(`مقالات ونصائح شراء وبيع السيارات في الإمارات | ${SITE_NAME}`, `Tips for buying and selling cars in the UAE | ${SITE_NAME}`);
+  const description = T("نصائح عملية لشراء وبيع السيارات المستعملة في الإمارات: الفحص قبل الشراء، الفرق بين الخليجي والوارد، الأسعار ونقل الملكية.",
+    "Practical tips for buying and selling used cars in the UAE: inspecting before you buy, GCC vs imported specs, pricing and ownership transfer.");
+  const crumbs = [[T("الرئيسية", "Home"), P.home()], [T("المقالات", "Articles"), P.blog()]];
   const body = `
 ${siteHeader()}
 <main class="max-w-3xl mx-auto px-4 py-8">
   ${breadcrumbs(crumbs)}
-  <h1 class="cm-display font-extrabold text-2xl mb-2">مقالات ونصائح</h1>
+  <h1 class="cm-display font-extrabold text-2xl mb-2">${T("مقالات ونصائح", "Articles and tips")}</h1>
   <p class="cm-text-muted text-sm mb-6">${esc(description)}</p>
-  <ul class="space-y-4">${ARTICLES.map((a) => `<li class="cm-card rounded-xl p-5"><a href="${P.article(a.slug)}" class="block">
+  <ul class="space-y-4">${articlesIn(EN()).map((a) => `<li class="cm-card rounded-xl p-5"><a href="${P.article(a.slug)}" class="block">
     <h2 class="cm-section-title">${esc(a.title)}</h2>
     <p class="text-sm cm-text-muted mt-1">${esc(a.description)}</p>
-    <p class="text-xs cm-text-muted mt-2">${esc(formatArticleDate(a.date))} · ${fmt(a.readMinutes)} دقائق قراءة</p></a></li>`).join("")}</ul>
+    <p class="text-xs cm-text-muted mt-2">${esc(formatArticleDate(a.date))} · ${fmt(a.readMinutes)} ${T("دقائق قراءة", "min read")}</p></a></li>`).join("")}</ul>
 </main>`;
   return fillShell(shell, {
-    title, description, canonical: SITE_URL + paths.blog(), arOnly: true,
+    title, description, canonical: SITE_URL + P.blog(),
     headExtra: jsonLd(breadcrumbLd(crumbs)),
     body,
   });
 }
 
 function articlePage(shell, a) {
-  const url = SITE_URL + paths.article(a.slug);
-  const crumbs = [[T("الرئيسية", "Home"), P.home()], ["المقالات", P.blog()], [a.title, P.article(a.slug)]];
+  const url = SITE_URL + P.article(a.slug);
+  const crumbs = [[T("الرئيسية", "Home"), P.home()], [T("المقالات", "Articles"), P.blog()], [a.title, P.article(a.slug)]];
   const body = `
 ${siteHeader()}
 <main class="max-w-3xl mx-auto px-4 py-8">
   ${breadcrumbs(crumbs)}
   <article class="cm-article">
     <h1 class="cm-display font-extrabold text-2xl mb-2">${esc(a.title)}</h1>
-    <p class="text-xs cm-text-muted mb-6">${esc(formatArticleDate(a.date))} · ${fmt(a.readMinutes)} دقائق قراءة</p>
+    <p class="text-xs cm-text-muted mb-6">${esc(formatArticleDate(a.date))} · ${fmt(a.readMinutes)} ${T("دقائق قراءة", "min read")}</p>
     ${blocksHtml(a.body)}
   </article>
-  <p class="mt-8"><a class="cm-link font-bold" href="${P.blog()}">كل المقالات</a></p>
+  <p class="mt-8"><a class="cm-link font-bold" href="${P.blog()}">${T("كل المقالات", "All articles")}</a></p>
 </main>`;
   return fillShell(shell, {
     title: `${a.title} | ${SITE_NAME}`,
     description: a.description,
     canonical: url,
-    arOnly: true,
     headExtra: jsonLd({
       "@context": "https://schema.org",
       "@type": "Article",
@@ -520,7 +520,7 @@ ${siteHeader()}
       description: a.description,
       datePublished: a.date,
       dateModified: a.updated || a.date,
-      inLanguage: "ar-AE",
+      inLanguage: T("ar-AE", "en-AE"),
       mainEntityOfPage: url,
       author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/` },
       publisher: { "@type": "Organization", name: SITE_NAME, logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` } },

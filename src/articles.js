@@ -7,7 +7,10 @@
 //   ["cta", { text, href, label }]        call to action linking inside the site
 // Text is plain (no HTML). Newest article first.
 
-export const ARTICLES = [
+import { ARTICLES_EN } from "./content-en.js";
+import { isEnPath } from "./seo-data.js";
+
+const ARTICLES_AR = [
   {
     slug: "sell-used-car-uae-guide",
     title: "كيف تبيع سيارتك المستعملة بسرعة وبسعر زين في الإمارات",
@@ -219,8 +222,16 @@ export const ARTICLES = [
   },
 ];
 
+// An article in a language (English text from src/content-en.js when there is one).
+export const articleIn = (a, en) => (a && en && ARTICLES_EN[a.slug] ? { ...a, ...ARTICLES_EN[a.slug] } : a);
+export const articlesIn = (en) => ARTICLES_AR.map((a) => articleIn(a, en));
+
+// In the browser the articles come in the page's language (/en/... = English).
+const BROWSER_EN = typeof window !== "undefined" && isEnPath(window.location.pathname);
+export const ARTICLES = articlesIn(BROWSER_EN);
+
 export const articleBySlug = (slug) => ARTICLES.find((a) => a.slug === slug) || null;
 
-export function formatArticleDate(iso) {
-  return new Intl.DateTimeFormat("ar-AE", { day: "numeric", month: "long", year: "numeric" }).format(new Date(iso + "T12:00:00Z"));
+export function formatArticleDate(iso, en = BROWSER_EN) {
+  return new Intl.DateTimeFormat(en ? "en-GB" : "ar-AE", { day: "numeric", month: "long", year: "numeric" }).format(new Date(iso + "T12:00:00Z"));
 }

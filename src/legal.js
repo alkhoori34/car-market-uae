@@ -9,7 +9,10 @@ export const LEGAL_UPDATED = "2026-10-21";
 // Pages listed in the footer, in this order.
 export const FOOTER_PAGES = ["sell", "faq", "safety", "dealers", "about", "contact", "terms", "privacy"];
 
-export const INFO_PAGES = {
+import { INFO_PAGES_EN } from "./content-en.js";
+import { isEnPath } from "./seo-data.js";
+
+const INFO_PAGES_AR = {
   sell: {
     path: "/sell",
     title: "بيع سيارتك مجانًا في الإمارات",
@@ -359,5 +362,13 @@ export const INFO_PAGES = {
     ],
   },
 };
+
+// One page in a language (English text from src/content-en.js when there is one).
+export const infoPageIn = (key, en) => (en && INFO_PAGES_EN[key] ? { ...INFO_PAGES_AR[key], ...INFO_PAGES_EN[key] } : INFO_PAGES_AR[key]);
+
+// In the browser the pages come in the page's language (/en/... = English).
+// The server picks the language per request with infoPageIn.
+const BROWSER_EN = typeof window !== "undefined" && isEnPath(window.location.pathname);
+export const INFO_PAGES = Object.fromEntries(Object.keys(INFO_PAGES_AR).map((k) => [k, infoPageIn(k, BROWSER_EN)]));
 
 export const infoPageByPath = (p) => Object.values(INFO_PAGES).find((x) => x.path === p) || null;

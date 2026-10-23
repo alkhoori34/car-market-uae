@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight, Menu as MenuIcon } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import { paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
+import { langPath, paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
 import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
 import Importer from "./Importer.jsx";
 import { translate, getLang, switchLang, otherLangHref } from "./i18n.js";
+
+// Text for browser dialogs (confirm/prompt), which the page translator cannot reach.
+const L = (s) => (getLang() === "en" ? translate(s) : s);
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -610,7 +613,7 @@ export default function CarMarket() {
   }
 
   async function removeDealer(d) {
-    if (!window.confirm(`حذف الوسيط ${d.name}؟ إعلاناته تبقى بدون وسيط.`)) return;
+    if (!window.confirm(L(`حذف الوسيط ${d.name}؟ إعلاناته تبقى بدون وسيط.`))) return;
     const { error } = await supabase.from("dealers").delete().eq("id", d.id);
     if (error) showToast("تعذر الحذف: " + error.message, "red"); else { showToast("تم حذف الوسيط", "muted"); loadAdmin(); loadListings(); }
   }
@@ -1118,12 +1121,12 @@ export default function CarMarket() {
   }
 
   function listingUrl(id) {
-    return `${window.location.origin}${paths.car(id)}`;
+    return `${window.location.origin}${langPath(paths.car(id), getLang() === "en")}`;
   }
 
   async function shareListing(l) {
-    const url = l.dealerSlug ? `${window.location.origin}${paths.dealer(l.dealerSlug)}` : listingUrl(l.id);
-    const title = l.dealerSlug ? `سيارات ${l.make} على CarsUAE` : `${l.make} ${l.model} ${l.year} — ${l.price ? formatNumber(l.price) + " د.إ" : "للبيع"}`;
+    const url = l.dealerSlug ? `${window.location.origin}${langPath(paths.dealer(l.dealerSlug), getLang() === "en")}` : listingUrl(l.id);
+    const title = L(l.dealerSlug ? `سيارات ${l.make} على CarsUAE` : `${l.make} ${l.model} ${l.year} — ${l.price ? formatNumber(l.price) + " د.إ" : "للبيع"}`);
     if (navigator.share) {
       try { await navigator.share({ title, url }); return; } catch { /* user cancelled */ }
     }
@@ -1183,7 +1186,7 @@ export default function CarMarket() {
 
   async function reportListing(id) {
     if (!session) { showToast("سجّل الدخول للإبلاغ", "red"); setAuthOpen(true); return; }
-    const reason = window.prompt("ما سبب الإبلاغ؟ (مثال: رقم تواصل خاطئ)");
+    const reason = window.prompt(L("ما سبب الإبلاغ؟ (مثال: رقم تواصل خاطئ)"));
     if (reason === null) return;
     try {
       const { error } = await supabase.from("reports").insert({
@@ -1228,7 +1231,7 @@ export default function CarMarket() {
   }
 
   async function deleteListing(id) {
-    if (!window.confirm("متأكد تبي تحذف هذا الإعلان نهائيًا؟")) return;
+    if (!window.confirm(L("متأكد تبي تحذف هذا الإعلان نهائيًا؟"))) return;
     try {
       // Work out which files in Storage belong to this listing before the row goes.
       const row = listings.find((l) => l.id === id) || adminRows.find((l) => l.id === id);
@@ -1528,7 +1531,7 @@ export default function CarMarket() {
 
       {view === "info" && (
         <main className="max-w-3xl mx-auto px-4 py-8">
-          <article className="cm-article" data-no-i18n="" lang="ar" dir="rtl">
+          <article className="cm-article">
             <h1 className="cm-display font-extrabold text-2xl mb-2">{INFO_PAGES[infoPage].title}</h1>
             {(infoPage === "terms" || infoPage === "privacy") && <p className="text-xs cm-text-muted mb-6">آخر تحديث: {formatArticleDate(LEGAL_UPDATED)}</p>}
             {!(infoPage === "terms" || infoPage === "privacy") && <div className="mb-4" />}
@@ -2283,7 +2286,9 @@ export default function CarMarket() {
                 <div className="flex flex-wrap justify-end gap-2">
                   {!active.sold && (
                     <a
-                      href={`https://wa.me/${waNumber(active.phone)}?text=${encodeURIComponent(`السلام عليكم، شفت إعلان ${active.make} ${active.model} ${active.year} على CarsUAE وأبي أستفسر عنها: ${listingUrl(active.id)}`)}`}
+                      href={`https://wa.me/${waNumber(active.phone)}?text=${encodeURIComponent(getLang() === "en"
+                        ? `Hello, I saw your ${translate(`${active.make} ${active.model}`)} ${active.year} on CarsUAE and would like to ask about it: ${listingUrl(active.id)}`
+                        : `السلام عليكم، شفت إعلان ${active.make} ${active.model} ${active.year} على CarsUAE وأبي أستفسر عنها: ${listingUrl(active.id)}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 cm-btn-wa font-bold text-sm px-4 py-2 rounded-lg"
@@ -2813,7 +2818,11 @@ function VinCheck({ onBrowse }) {
 
   // What we can honestly say about the car's market: the VIN alone never
   // proves GCC vs imported, so we say so and tell the buyer how to check.
-  const origin = result ? (result.northAmerica
+  const origin = result && getLang() === "en" ? (result.northAmerica
+    ? `The car was made in ${translate(result.country || "أمريكا الشمالية")}. That doesn't mean it is imported: many GCC cars (Chevrolet, GMC, Ford, Jeep...) are made there.`
+    : "The VIN shows the factory specs, but on its own it doesn't prove whether the car is GCC spec or imported.")
+    + " To check: ask the seller for the dealer service record, ask the brand's dealer with the VIN, or have the car inspected at a centre."
+    : result ? (result.northAmerica
     ? `السيارة مصنوعة في ${result.country || "أمريكا الشمالية"}. هذا لا يعني أنها وارد، فكثير من سيارات الخليج (شيفروليه، جي إم سي، فورد، جيب...) تُصنع هناك.`
     : "رقم الشاصي يبيّن مواصفات المصنع، لكنه وحده لا يثبت إذا كانت السيارة خليجية أو وارد.")
     + " للتأكد: اطلب من البائع سجل صيانة الوكالة، أو اسأل وكيل الماركة برقم الشاصي، أو افحصها في مركز فحص." : null;
@@ -2944,7 +2953,7 @@ function Blog({ slug, goTo }) {
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
       {link(paths.blog(), <><ArrowRight size={15} /> كل المقالات</>, "cm-link text-sm font-bold inline-flex items-center gap-1 mb-4")}
-      <article className="cm-article" data-no-i18n="" lang="ar" dir="rtl">
+      <article className="cm-article">
         <h1 className="cm-display font-extrabold text-2xl mb-2" style={{ lineHeight: 1.5 }}>{a.title}</h1>
         <p className="text-xs cm-text-muted mb-6">{formatArticleDate(a.date)} · {a.readMinutes} دقائق قراءة</p>
         <ArticleBlocks body={a.body} goTo={goTo} />
