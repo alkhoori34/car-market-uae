@@ -206,6 +206,13 @@ are not posted twice. Every social caption credits the broker
 ("📢 الإعلان من حساب @handle") and links to `carsuae.net/car/<id>`.
 Metricool rejects `twitterData` unless twitter is a provider.
 
+**Broker outreach lists (owner rule, 2026-10-23):** before putting any broker
+account on an outreach list, open its Instagram profile and check it is active
+(latest feed post within the last few days). Never list or contact inactive
+accounts (e.g. smsar_fujairah: last post June 2020). Check dates via
+`/p/<code>/` og:description ("on <date>"), not the media API, which Instagram
+blocks after heavy pulls (a 198-post pull from 70x triggered a checkpoint).
+
 ## Open work
 
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
