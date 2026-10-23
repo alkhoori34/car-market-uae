@@ -503,6 +503,7 @@ export default function CarMarket() {
   const [sortBy, setSortBy] = useState("newest");
   const [specsFilter, setSpecsFilter] = useState("الكل");
   const [minYear, setMinYear] = useState("");
+  const [maxYear, setMaxYear] = useState("");
   const [maxKm, setMaxKm] = useState("");
   const [negotiableOnly, setNegotiableOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -656,7 +657,7 @@ export default function CarMarket() {
     setCityFilter(route.kind === "city" ? route.city : "الكل");
     setMinPrice("");
     setMaxPrice(route.kind === "budget" ? String(route.max) : "");
-    setBodyTypeFilter("الكل"); setSpecsFilter("الكل"); setMinYear(""); setMaxKm(""); setNegotiableOnly(false); setQ("");
+    setBodyTypeFilter("الكل"); setSpecsFilter("الكل"); setMinYear(""); setMaxYear(""); setMaxKm(""); setNegotiableOnly(false); setQ("");
     setView("browse");
   }
 
@@ -1277,6 +1278,7 @@ export default function CarMarket() {
       if (minPrice && l.price < Number(minPrice)) return false;
       if (specsFilter !== "الكل" && l.specs !== specsFilter) return false;
       if (minYear && l.year < Number(minYear)) return false;
+      if (maxYear && l.year > Number(maxYear)) return false;
       if (maxKm && (l.mileage || 0) > Number(maxKm)) return false;
       if (negotiableOnly && !l.negotiable) return false;
       return true;
@@ -1290,10 +1292,10 @@ export default function CarMarket() {
       kmAsc: (a, b) => (a.mileage || 0) - (b.mileage || 0),
     };
     return rows.sort(sorters[sortBy] || sorters.newest);
-  }, [liveListings, q, makeFilter, modelFilter, dealerFilter, currentDealer, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter, minYear, maxKm, negotiableOnly]);
+  }, [liveListings, q, makeFilter, modelFilter, dealerFilter, currentDealer, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter, minYear, maxYear, maxKm, negotiableOnly]);
 
-  const clearFilters = () => { setModelFilter(""); setDealerFilter(""); setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setMinYear(""); setMaxKm(""); setNegotiableOnly(false); setQ(""); };
-  const filtersActive = Boolean(modelFilter) || Boolean(dealerFilter) || makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || minYear || maxKm || negotiableOnly || q;
+  const clearFilters = () => { setModelFilter(""); setDealerFilter(""); setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setMinYear(""); setMaxYear(""); setMaxKm(""); setNegotiableOnly(false); setQ(""); };
+  const filtersActive = Boolean(modelFilter) || Boolean(dealerFilter) || makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || minYear || maxYear || maxKm || negotiableOnly || q;
 
   // Filters in use, shown as a number on the filters button.
   const filterCount = [
@@ -1303,7 +1305,7 @@ export default function CarMarket() {
     Boolean(maxPrice) || Boolean(minPrice),
     bodyTypeFilter !== "الكل",
     specsFilter !== "الكل",
-    Boolean(minYear),
+    Boolean(minYear) || Boolean(maxYear),
     Boolean(maxKm),
     negotiableOnly,
   ].filter(Boolean).length;
@@ -1854,10 +1856,16 @@ export default function CarMarket() {
                 </select>
               </Field>
               <Field label="سنة الصنع">
-                <select value={minYear} onChange={(e) => setMinYear(e.target.value)} className="cm-input cm-tabular">
-                  <option value="">أي سنة</option>
-                  {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y} وأحدث</option>)}
-                </select>
+                <div className="flex items-center gap-2">
+                  <select value={minYear} onChange={(e) => { const v = e.target.value; setMinYear(v); if (v && maxYear && Number(maxYear) < Number(v)) setMaxYear(""); }} className="cm-input cm-tabular" aria-label="من سنة">
+                    <option value="">من سنة</option>
+                    {YEAR_OPTIONS.map((y) => <option key={y} value={y}>من {y}</option>)}
+                  </select>
+                  <select value={maxYear} onChange={(e) => { const v = e.target.value; setMaxYear(v); if (v && minYear && Number(minYear) > Number(v)) setMinYear(""); }} className="cm-input cm-tabular" aria-label="إلى سنة">
+                    <option value="">إلى سنة</option>
+                    {YEAR_OPTIONS.map((y) => <option key={y} value={y}>إلى {y}</option>)}
+                  </select>
+                </div>
               </Field>
               <Field label="الممشى">
                 <select value={maxKm} onChange={(e) => setMaxKm(e.target.value)} className="cm-input cm-tabular">
