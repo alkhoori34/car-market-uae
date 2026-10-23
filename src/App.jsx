@@ -7,6 +7,7 @@ import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
 import Importer from "./Importer.jsx";
+import { translate, getLang } from "./i18n.js";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -2476,13 +2477,14 @@ function ComboBox({ value, options, onChange, placeholder }) {
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return options.slice(0, 40);
-    return options.filter((o) => o.toLowerCase().includes(q)).slice(0, 40);
+    const en = getLang() === "en";
+    return options.filter((o) => o.toLowerCase().includes(q) || (en && translate(o).toLowerCase().includes(q))).slice(0, 40);
   }, [query, options]);
 
   return (
     <div className="relative">
       <input
-        value={open ? query : value}
+        value={open ? query : (getLang() === "en" ? translate(value) : value)}
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => { setQuery(""); setOpen(true); }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
