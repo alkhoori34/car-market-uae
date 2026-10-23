@@ -43,11 +43,15 @@ const waNumber = (phone) => {
 // Where a visitor came from, for the admin's visitor stats.
 function visitSource() {
   try {
-    const utm = new URLSearchParams(window.location.search).get("utm_source");
-    if (utm) return utm.toLowerCase().slice(0, 40);
+    // Tagged links: ?utm_source=… or the short form ?s=… (e.g. ig_story, dealer_70x).
+    const q = new URLSearchParams(window.location.search);
+    const utm = q.get("utm_source") || q.get("s");
+    if (utm) return utm.toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 40) || "direct";
     const ua = navigator.userAgent || "";
     if (/Instagram/i.test(ua)) return "instagram";
     if (/FBAN|FBAV/i.test(ua)) return "facebook";
+    if (/musical_ly|BytedanceWebview|TikTok/i.test(ua)) return "tiktok";
+    if (/Snapchat/i.test(ua)) return "snapchat";
     const ref = document.referrer ? new URL(document.referrer).hostname : "";
     if (!ref || ref === window.location.hostname) return "direct";
     if (/google\./.test(ref)) return "google";
@@ -64,6 +68,8 @@ const firstSource = typeof window !== "undefined" ? visitSource() : "direct";
 function trackVisit(client, path, listingId = null) {
   try {
     if (localStorage.getItem("cm_admin") === "1") return;
+    // Crawlers and automated browsers are not visitors.
+    if (navigator.webdriver || /bot|crawl|spider|slurp|preview|headless|lighthouse|facebookexternalhit/i.test(navigator.userAgent || "")) return;
     const key = "cm_seen:" + path;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
