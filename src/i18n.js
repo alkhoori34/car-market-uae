@@ -177,6 +177,16 @@ const PATTERNS = [
   [/^إعادة الإرسال بعد (\d+) ثانية$/, "Resend in $1 s"], [/^رقم الشاصي يتكون من 17 خانة، وكتبت (\d+)$/, "A VIN has 17 characters; you typed $1"],
 ];
 
+// Page headings and titles of the browse sections (categoryCopy in seo-data.js).
+const SECTION_PATTERNS = [
+  [/^سيارات مستعملة للبيع في الإمارات$/, () => "Used cars for sale in the UAE"],
+  [/^سيارات مستعملة للبيع في (.+)$/, (c) => `Used cars for sale in ${c}`],
+  [/^سيارات مستعملة تحت ([\d,]+) درهم( في الإمارات)?$/, (n) => `Used cars under AED ${n}`],
+  [/^(.+) مستعملة للبيع في الإمارات$/, (n) => `Used ${n} for sale in the UAE`],
+  [/^سيارات (.+) للبيع في الإمارات$/, (n) => `Cars for sale from ${n}`],
+  [/^سيارات (.+) للبيع$/, (n) => `Cars for sale from ${n}`],
+];
+
 const cache = new Map();
 export function translate(text) {
   if (!text || !AR.test(text)) return text;
@@ -184,6 +194,16 @@ export function translate(text) {
   const lead = text.match(/^\s*/)[0], trail = text.match(/\s*$/)[0];
   const core = text.trim();
   let out = PHRASES[core];
+  if (out === undefined && / \| CarsUAE$/.test(core)) {
+    const head = translate(core.replace(/ \| CarsUAE$/, ""));
+    out = `${head} | CarsUAE`;
+  }
+  if (out === undefined) {
+    for (const [re, fn] of SECTION_PATTERNS) {
+      const m = core.match(re);
+      if (m) { out = fn(...m.slice(1).map((x) => translate(x))); break; }
+    }
+  }
   if (out === undefined) {
     for (const [re, rep] of PATTERNS) if (re.test(core)) { out = core.replace(re, rep); break; }
   }
