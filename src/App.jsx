@@ -2433,6 +2433,21 @@ export default function CarMarket() {
       )}
 
       <footer className="cm-hero mt-10" style={{ borderTop: "1px solid var(--cm-border)", borderBottom: "none" }}>
+        {/* Popular searches: plain links to category pages, for visitors and for search engines. */}
+        <nav aria-label="عمليات بحث شائعة" className="max-w-6xl mx-auto px-4 pt-6 grid gap-3 text-sm">
+          {[
+            ["سيارات حسب الإمارة", CITIES.map((c) => [`سيارات مستعملة في ${c}`, paths.city(c)])],
+            ["أشهر السيارات", [["نيسان", "باترول"], ["تويوتا", "لاند كروزر"], ["لكزس", "LX"], ["لاند روفر", "رينج روفر"], ["مرسيدس", "الفئة G"], ["تويوتا", "برادو"], ["شيفروليه", "تاهو"], ["جي إم سي", "يوكن"], ["تويوتا", "كامري"], ["نيسان", "التيما"]].map(([mk, md]) => [`${mk} ${md} مستعمل`, paths.model(mk, md)])],
+            ["حسب الميزانية", [30000, 50000, 100000, 200000].map((v) => [`سيارات أقل من ${v.toLocaleString("ar-AE")} درهم`, paths.budget(v)])],
+          ].map(([title, links]) => (
+            <div key={title} className="flex flex-wrap gap-x-4 gap-y-1">
+              <span className="font-bold">{title}:</span>
+              {links.map(([label, href]) => (
+                <a key={href} href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className="cm-link">{label}</a>
+              ))}
+            </div>
+          ))}
+        </nav>
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-wrap gap-x-5 gap-y-2 text-sm">
           {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["المقالات", paths.blog()], ...FOOTER_PAGES.map((k) => [INFO_PAGES[k].short, INFO_PAGES[k].path])].map(([label, href]) => (
             <a key={href} href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className="cm-link">{label}</a>
