@@ -1,10 +1,9 @@
-// English mode (preview). The app is written in Arabic; when the visitor picks
-// English (?lang=en, remembered in localStorage "cm_lang") this layer turns the
+// English mode. The app is written in Arabic; on /en/... addresses this layer turns the
 // page left-to-right and translates the visible interface text in place:
 // exact phrases first, then a few patterns with numbers, then known words
 // inside short strings (make and model names, cities ...). Long free text such
 // as a seller's own description is left as written.
-import { MAKE_SLUGS } from "./seo-data.js";
+import { MAKE_SLUGS, isEnPath, langPath } from "./seo-data.js";
 
 const UPPER = new Set(["bmw", "gmc", "mg", "byd", "gac", "jac", "ds", "baic", "faw", "gwm", "dfsk", "saic", "baw", "mini"]);
 const makeEnglish = (slug) =>
@@ -204,6 +203,7 @@ export function translate(text) {
 const ATTRS = ["placeholder", "aria-label", "title"];
 function translateNode(node) {
   if (node.nodeType === 3) {
+    if (node.parentElement && node.parentElement.closest("[data-no-i18n]")) return;
     const t = translate(node.nodeValue);
     if (t !== node.nodeValue) node.nodeValue = t;
     return;
@@ -215,7 +215,9 @@ function translateNode(node) {
     if (v && AR.test(v)) node.setAttribute(a, translate(v));
   }
   if (node.getAttribute && node.getAttribute("dir") === "rtl") node.setAttribute("dir", "ltr");
-  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (n) => (n.nodeType === 1 && n.hasAttribute("data-no-i18n") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
   let n = walker.nextNode();
   while (n) {
     if (n.nodeType === 3) {
@@ -232,46 +234,70 @@ function translateNode(node) {
   }
 }
 
+// The language comes from the address: /en/... is English, anything else Arabic.
 export function getLang() {
-  try {
-    const q = new URLSearchParams(window.location.search).get("lang");
-    if (q === "en" || q === "ar") localStorage.setItem("cm_lang", q);
-    return localStorage.getItem("cm_lang") === "en" ? "en" : "ar";
-  } catch { return "ar"; }
+  try { return isEnPath(window.location.pathname) ? "en" : "ar"; } catch { return "ar"; }
 }
 
-export function setLang(lang) {
-  try { localStorage.setItem("cm_lang", lang); } catch { /* ignore */ }
-  const url = new URL(window.location.href);
-  url.searchParams.delete("lang");
-  window.location.replace(url.toString());
+// Same page in the other language.
+export function otherLangHref() {
+  const { pathname, search, hash } = window.location;
+  const en = isEnPath(pathname);
+  const base = pathname.replace(/^\/en(?=\/|$)/, "") || "/";
+  return (en ? base : langPath(base, true)) + search + hash;
 }
+
+export function switchLang() {
+  window.location.assign(otherLangHref());
+}
+
+// Internal links and history entries keep the /en prefix in English mode.
+const prefixPath = (url) => {
+  if (typeof url !== "string" || !url.startsWith("/") || url.startsWith("//")) return url;
+  if (isEnPath(url) || /^\/(api|assets|l|listings|media|promo)\//.test(url) || /\.[a-z0-9]{2,5}([?#]|$)/i.test(url)) return url;
+  return url === "/" ? "/en" : url.replace(/^\/(?=[?#]|$)/, "/en").replace(/^\/(?!en(\/|$|[?#]))/, "/en/");
+};
 
 export function initI18n() {
+  try {
+    // Old preview links (?lang=en) move to the /en address.
+    const url = new URL(window.location.href);
+    const q = url.searchParams.get("lang");
+    try { localStorage.removeItem("cm_lang"); } catch { /* ignore */ }
+    if (q) {
+      url.searchParams.delete("lang");
+      const base = url.pathname.replace(/^\/en(?=\/|$)/, "") || "/";
+      url.pathname = langPath(base, q === "en");
+      window.location.replace(url.toString());
+      return;
+    }
+  } catch { /* ignore */ }
   if (getLang() !== "en") return;
   const html = document.documentElement;
   html.setAttribute("lang", "en");
   html.setAttribute("dir", "ltr");
   html.classList.add("cm-en");
-  const run = () => translateNode(document.body);
+  for (const fn of ["pushState", "replaceState"]) {
+    const orig = window.history[fn].bind(window.history);
+    window.history[fn] = (state, title, u) => orig(state, title, prefixPath(u));
+  }
+  const fixLinks = (root) => {
+    const list = root.querySelectorAll ? root.querySelectorAll("a[href^='/']") : [];
+    const all = root.matches && root.matches("a[href^='/']") ? [root, ...list] : list;
+    all.forEach((a) => { if (a.closest("[data-no-i18n]")) return; const h = a.getAttribute("href"); const n = prefixPath(h); if (n !== h) a.setAttribute("href", n); });
+  };
+  const run = () => { translateNode(document.body); fixLinks(document.body); };
   const obs = new MutationObserver((muts) => {
     for (const m of muts) {
       if (m.type === "characterData") translateNode(m.target);
-      else if (m.type === "attributes") translateNode(m.target);
-      else m.addedNodes.forEach(translateNode);
+      else if (m.type === "attributes") { if (m.attributeName === "href") fixLinks(m.target); else translateNode(m.target); }
+      else m.addedNodes.forEach((n) => { translateNode(n); if (n.nodeType === 1) fixLinks(n); });
     }
     if (AR.test(document.title)) document.title = translate(document.title);
   });
   const start = () => {
     run();
-    obs.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: [...ATTRS, "dir"] });
-    // Switch back to Arabic.
-    const b = document.createElement("button");
-    b.textContent = "العربية";
-    b.className = "cm-lang-switch";
-    b.setAttribute("data-no-i18n", "");
-    b.onclick = () => setLang("ar");
-    document.body.appendChild(b);
+    obs.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: [...ATTRS, "dir", "href"] });
   };
   if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
 }

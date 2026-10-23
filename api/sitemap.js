@@ -1,7 +1,7 @@
 // /sitemap.xml: every page Google should know about. Category pages are only
 // listed while they have at least one listing.
 
-import { SITE_URL, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS, paths, modelSlug } from "../src/seo-data.js";
+import { SITE_URL, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS, paths, modelSlug, langPath } from "../src/seo-data.js";
 import { queryListings, queryTable, esc } from "./_lib.js";
 import { ARTICLES } from "../src/articles.js";
 import { INFO_PAGES } from "../src/legal.js";
@@ -22,6 +22,10 @@ export default async function handler(req, res) {
       { loc: "/", lastmod: newest, priority: "1.0" },
       { loc: paths.all(), lastmod: newest, priority: "0.9" },
       { loc: paths.vin(), priority: "0.7" },
+    ];
+    // Articles and info pages exist in Arabic only; everything else also has
+    // an English copy under /en.
+    const arOnly = [
       { loc: paths.blog(), lastmod: ARTICLES[0] && ARTICLES[0].date, priority: "0.7" },
       ...ARTICLES.map((a) => ({ loc: paths.article(a.slug), lastmod: a.updated || a.date, priority: "0.7" })),
       ...Object.values(INFO_PAGES).map((pg) => ({ loc: pg.path, priority: pg.priority || "0.3" })),
@@ -39,6 +43,8 @@ export default async function handler(req, res) {
     const dealers = await queryTable("dealers", [["select", "id,slug"]]).catch(() => []);
     dealers.forEach((d) => { if (rows.some((r) => r.dealer_id === d.id)) urls.push({ loc: paths.dealer(d.slug), lastmod: latestFor((r) => r.dealer_id === d.id), priority: "0.6" }); });
     rows.forEach((r) => urls.push({ loc: paths.car(r.id), lastmod: day(r.created_at), priority: "0.6" }));
+
+    urls.push(...urls.map((u) => ({ ...u, loc: langPath(u.loc, true), priority: (Number(u.priority) * 0.8).toFixed(1) })), ...arOnly);
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

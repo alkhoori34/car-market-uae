@@ -7,7 +7,7 @@ import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
 import Importer from "./Importer.jsx";
-import { translate, getLang } from "./i18n.js";
+import { translate, getLang, switchLang, otherLangHref } from "./i18n.js";
 
 // Environment variables are injected at build time by Vite from .env.local
 // (or from the "Environment Variables" settings in your Vercel project).
@@ -1370,6 +1370,16 @@ export default function CarMarket() {
                 </>
               )}
             </div>
+            <a
+              href={otherLangHref()}
+              onClick={(e) => { e.preventDefault(); switchLang(); }}
+              data-no-i18n=""
+              lang={getLang() === "en" ? "ar" : "en"}
+              aria-label={getLang() === "en" ? "العربية" : "English"}
+              className="cm-lang-btn text-sm font-bold px-2 sm:px-3 py-2 rounded-lg transition cm-navbtn text-center"
+            >
+              {getLang() === "en" ? "عربي" : "EN"}
+            </a>
             {session && (
               <button
                 onClick={() => setView("mine")}
@@ -1518,7 +1528,7 @@ export default function CarMarket() {
 
       {view === "info" && (
         <main className="max-w-3xl mx-auto px-4 py-8">
-          <article className="cm-article">
+          <article className="cm-article" data-no-i18n="" lang="ar" dir="rtl">
             <h1 className="cm-display font-extrabold text-2xl mb-2">{INFO_PAGES[infoPage].title}</h1>
             {(infoPage === "terms" || infoPage === "privacy") && <p className="text-xs cm-text-muted mb-6">آخر تحديث: {formatArticleDate(LEGAL_UPDATED)}</p>}
             {!(infoPage === "terms" || infoPage === "privacy") && <div className="mb-4" />}
@@ -2934,7 +2944,7 @@ function Blog({ slug, goTo }) {
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
       {link(paths.blog(), <><ArrowRight size={15} /> كل المقالات</>, "cm-link text-sm font-bold inline-flex items-center gap-1 mb-4")}
-      <article className="cm-article">
+      <article className="cm-article" data-no-i18n="" lang="ar" dir="rtl">
         <h1 className="cm-display font-extrabold text-2xl mb-2" style={{ lineHeight: 1.5 }}>{a.title}</h1>
         <p className="text-xs cm-text-muted mb-6">{formatArticleDate(a.date)} · {a.readMinutes} دقائق قراءة</p>
         <ArticleBlocks body={a.body} goTo={goTo} />

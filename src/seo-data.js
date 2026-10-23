@@ -91,8 +91,12 @@ export const paths = {
 // Info pages (content in src/legal.js), served at /<slug>.
 export const INFO_SLUGS = ["sell", "faq", "safety", "dealers", "about", "contact", "terms", "privacy"];
 
+// English pages live under /en (e.g. /en/used-cars/toyota); same routes.
+export const isEnPath = (pathname) => /^\/en(\/|$)/.test(pathname || "");
+export const langPath = (path, en) => (!en ? path : path === "/" ? "/en" : `/en${path}`);
+
 export function parsePath(pathname) {
-  const p = decodeURIComponent(pathname || "/").replace(/\/+$/, "") || "/";
+  const p = decodeURIComponent(pathname || "/").replace(/\/+$/, "").replace(/^\/en(?=\/|$)/, "") || "/";
   let m;
   if ((m = p.match(/^\/car\/([^/]+)$/))) return { kind: "car", id: m[1] };
   if (p === "/used-cars") return { kind: "all" };

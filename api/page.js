@@ -15,16 +15,113 @@
 // normal app shell with real <head> tags and the page content already in
 // #root; the React app then takes over in the browser.
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import {
   SITE_URL, SITE_NAME, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS,
-  parsePath, paths, categoryCopy, carCopy, carTitle, modelSlug,
+  parsePath, paths, categoryCopy as categoryCopyAr, carCopy as carCopyAr, carTitle as carTitleAr, modelSlug, langPath,
 } from "../src/seo-data.js";
+import { translate } from "../src/i18n.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "../src/articles.js";
 import { imgSrc, imgSrcSet } from "../src/img.js";
 import { INFO_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "../src/legal.js";
 import {
-  LISTING_FIELDS, queryListings, queryTable, getShell, fillShell, send, esc, jsonLd, fmt, photo,
+  LISTING_FIELDS, queryListings, queryTable, getShell, fillShell as fillShellBase, send, esc, jsonLd, fmt, photo,
 } from "./_lib.js";
+
+// English pages (/en/...): the same pages rendered in English. The language
+// of the current request is kept in async context so every helper below can
+// ask EN() without passing it around.
+const langCtx = new AsyncLocalStorage();
+const EN = () => Boolean(langCtx.getStore() && langCtx.getStore().en);
+const T = (ar, en) => (EN() ? en : ar);
+const tr = (s) => (EN() ? translate(String(s ?? "")) : s);
+const P = Object.fromEntries(Object.entries(paths).map(([k, f]) => [k, (...a) => langPath(f(...a), EN())]));
+const num = (n) => new Intl.NumberFormat("en-US").format(Number(n) || 0);
+const carTitle = (l) => tr(carTitleAr(l));
+const aed = (n) => T(`${fmt(n)} د.إ`, `AED ${num(n)}`);
+
+function carCopy(l) {
+  if (!EN()) return carCopyAr(l);
+  const t = carTitle(l);
+  const city = l.city ? translate(l.city) : "";
+  const bits = [l.year && `model ${l.year}`, l.mileage ? `${num(l.mileage)} km` : null, l.specs && `${translate(l.specs)} specs`, city && `in ${city}`].filter(Boolean);
+  return {
+    title: `${t} for sale${l.price ? ` – AED ${num(l.price)}` : ""}${city ? ` in ${city}` : ""} | ${SITE_NAME}`,
+    description: `${t} for sale${l.price ? ` at AED ${num(l.price)}` : ""}, ${bits.join(", ")}. Contact the seller directly on ${SITE_NAME}.`,
+  };
+}
+
+function categoryCopy(route, count) {
+  if (!EN()) return categoryCopyAr(route, count);
+  const n = count ? `${num(count)} ` : "";
+  const make = route.make ? translate(route.make) : "";
+  switch (route.kind) {
+    case "model": {
+      const name = `${make} ${translate(route.model || "")}`.trim();
+      return { h1: `Used ${name} for sale in the UAE`, title: `Used ${name} for sale in the UAE | ${SITE_NAME}`,
+        description: `Browse ${n}used ${name} cars for sale in Abu Dhabi, Dubai, Sharjah and across the UAE. Compare prices, years and mileage, and contact the seller directly on ${SITE_NAME}.` };
+    }
+    case "dealer":
+      return { h1: `Cars for sale from ${route.name || "this dealer"}`, title: `${route.name || "Dealer"} – cars for sale in the UAE | ${SITE_NAME}`,
+        description: `All cars listed by ${route.name || "this dealer"}${route.verified ? `, a verified dealer on ${SITE_NAME}` : ""}. ${n ? `${n}cars ` : ""}with prices, specs and photos, and direct contact.` };
+    case "make":
+      return { h1: `Used ${make} for sale in the UAE`, title: `Used ${make} cars for sale in the UAE | ${SITE_NAME}`,
+        description: `Browse ${n}used ${make} cars for sale in Dubai, Abu Dhabi, Sharjah and across the UAE. Prices, specs and photos, and direct contact with the seller on ${SITE_NAME}.` };
+    case "city": {
+      const city = translate(route.city);
+      return { h1: `Used cars for sale in ${city}`, title: `Used cars for sale in ${city} | ${SITE_NAME}`,
+        description: `${n ? `${n}used cars` : "Used cars"} for sale in ${city}, all makes. Compare prices, mileage and specs and contact the seller directly on ${SITE_NAME}.` };
+    }
+    case "budget":
+      return { h1: `Used cars under AED ${num(route.max)}`, title: `Used cars under AED ${num(route.max)} in the UAE | ${SITE_NAME}`,
+        description: `Used cars for sale under AED ${num(route.max)} in Dubai, Abu Dhabi and across the UAE. Browse ${n ? `${n}listings` : "the listings"} and contact the seller directly on ${SITE_NAME}.` };
+    default:
+      return { h1: "Used cars for sale in the UAE", title: `Used cars for sale in the UAE | ${SITE_NAME}`,
+        description: `${SITE_NAME} used car marketplace in the UAE: ${n ? `${n}listings` : "listings"} straight from sellers in Dubai, Abu Dhabi, Sharjah and across the UAE. Sell your car for free.` };
+  }
+}
+
+// Translates the short interface text left in a server-rendered body
+// (makes, cities, specs …); seller descriptions stay as written.
+const UNESC = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
+const unesc = (s) => s.replace(/&(amp|lt|gt|quot|#39);/g, (m) => UNESC[m]);
+const HAS_AR = /[\u0600-\u06FF]/;
+function translateHtml(html) {
+  return html
+    .replace(/>([^<]+)</g, (m, t) => (HAS_AR.test(t) ? `>${esc(translate(unesc(t)))}<` : m))
+    .replace(/\s(alt|aria-label|title)="([^"]*)"/g, (m, a, v) => (HAS_AR.test(v) ? ` ${a}="${esc(translate(unesc(v)))}"` : m));
+}
+
+// Adds hreflang links between the Arabic and English copy of a page and, for
+// English, switches the shell to English (lang, dir, translated body).
+// arOnly: pages that exist only in Arabic (articles, info pages).
+function fillShell(shell, opts) {
+  const en = EN();
+  const rest = opts.canonical.slice(SITE_URL.length) || "/";
+  const [pathPart, query = ""] = rest.split(/\?(.*)/s);
+  const arPath = pathPart.replace(/^\/en(?=\/|$)/, "") || "/";
+  const q = query ? `?${query}` : "";
+  const arUrl = SITE_URL + arPath + q;
+  const enUrl = SITE_URL + langPath(arPath, true) + q;
+  const alt = opts.arOnly ? "" : [
+    `<link rel="alternate" hreflang="ar" href="${esc(arUrl)}">`,
+    `<link rel="alternate" hreflang="en" href="${esc(enUrl)}">`,
+    `<link rel="alternate" hreflang="x-default" href="${esc(arUrl)}">`,
+  ].join("");
+  let html = fillShellBase(shell, {
+    ...opts,
+    canonical: en ? (opts.arOnly ? arUrl : enUrl) : arUrl,
+    noindex: opts.noindex || (en && opts.arOnly),
+    headExtra: alt + (opts.headExtra || ""),
+    body: en && !opts.arOnly ? translateHtml(opts.body) : opts.body,
+  });
+  if (en && !opts.arOnly) {
+    html = html
+      .replace(/<html[^>]*>/i, '<html lang="en" dir="ltr" class="cm-en">')
+      .replace('<meta property="og:locale" content="ar_AE">', '<meta property="og:locale" content="en_AE">');
+  }
+  return html;
+}
 
 const PAGE_SIZE = 48;
 
@@ -47,7 +144,12 @@ async function getFacets() {
   return facetsCache;
 }
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
+  const en = String((req.query && req.query.lang) || "") === "en";
+  return langCtx.run({ en }, () => handle(req, res));
+}
+
+async function handle(req, res) {
   const raw = String((req.query && req.query.route) || "/used-cars");
   const route = raw === "/" ? { kind: "home" } : parsePath(raw);
   const page = Math.max(1, Math.min(500, parseInt((req.query && req.query.page) || "1", 10) || 1));
@@ -83,12 +185,12 @@ export default async function handler(req, res) {
 
 async function carPage(shell, route) {
   // Listing ids are UUIDs; anything else cannot match, so skip the query.
-  if (!/^[0-9a-f-]{8,40}$/i.test(route.id)) return [404, notFound(shell, paths.car(route.id))];
+  if (!/^[0-9a-f-]{8,40}$/i.test(route.id)) return [404, notFound(shell, P.car(route.id))];
   const { rows } = await queryListings([["select", LISTING_FIELDS], ["id", `eq.${route.id}`], ["limit", "1"]], { live: false });
   const l = rows[0];
-  if (!l) return [404, notFound(shell, paths.car(route.id))];
+  if (!l) return [404, notFound(shell, P.car(route.id))];
 
-  const url = SITE_URL + paths.car(l.id);
+  const url = SITE_URL + P.car(l.id);
   const copy = carCopy(l);
   // Other live cars of the same make (same model first), linked from the page.
   const { rows: sameMake } = await queryListings([
@@ -98,31 +200,31 @@ async function carPage(shell, route) {
   const similar = [...sameMake.filter((r) => r.model === l.model), ...sameMake.filter((r) => r.model !== l.model)].slice(0, 6);
   const gallery = (Array.isArray(l.images) && l.images.length ? l.images : [l.image]).filter(Boolean);
   const facts = [
-    ["سنة الصنع", l.year],
-    ["الممشى", l.mileage ? `${fmt(l.mileage)} كم` : null],
-    ["المواصفات", l.specs],
-    ["ناقل الحركة", l.trans],
-    ["الوقود", l.fuel],
-    ["نوع السيارة", l.body_type],
-    ["جهة المقود", l.steering],
-    ["الحالة", l.condition],
-    ["الإمارة", l.city],
+    [T("سنة الصنع", "Year"), l.year],
+    [T("الممشى", "Mileage"), l.mileage ? T(`${fmt(l.mileage)} كم`, `${num(l.mileage)} km`) : null],
+    [T("المواصفات", "Specs"), l.specs],
+    [T("ناقل الحركة", "Transmission"), l.trans],
+    [T("الوقود", "Fuel"), l.fuel],
+    [T("نوع السيارة", "Body type"), l.body_type],
+    [T("جهة المقود", "Steering"), l.steering],
+    [T("الحالة", "Condition"), l.condition],
+    [T("الإمارة", "Emirate"), l.city],
   ].map(([k, v]) => [k, v || "-"]);
 
   const crumbs = [
-    ["الرئيسية", "/"],
-    ["سيارات مستعملة", paths.all()],
-    MAKE_SLUGS[l.make] ? [l.make, paths.make(l.make)] : null,
-    MAKE_SLUGS[l.make] && modelSlug(l.model) ? [`${l.make} ${l.model}`, paths.model(l.make, l.model)] : null,
-    [carTitle(l), paths.car(l.id)],
+    [T("الرئيسية", "Home"), P.home()],
+    [T("سيارات مستعملة", "Used cars"), P.all()],
+    MAKE_SLUGS[l.make] ? [tr(l.make), P.make(l.make)] : null,
+    MAKE_SLUGS[l.make] && modelSlug(l.model) ? [tr(`${l.make} ${l.model}`), P.model(l.make, l.model)] : null,
+    [carTitle(l), P.car(l.id)],
   ].filter(Boolean);
 
   const structured = {
     "@context": "https://schema.org",
     "@type": "Car",
     name: carTitle(l),
-    brand: { "@type": "Brand", name: l.make },
-    model: l.model,
+    brand: { "@type": "Brand", name: tr(l.make) },
+    model: tr(l.model),
     vehicleModelDate: l.year ? String(l.year) : undefined,
     mileageFromOdometer: l.mileage ? { "@type": "QuantitativeValue", value: l.mileage, unitCode: "KMT" } : undefined,
     fuelType: l.fuel || undefined,
@@ -138,7 +240,7 @@ async function carPage(shell, route) {
       priceCurrency: "AED",
       availability: l.sold ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
       url,
-      areaServed: l.city || "الإمارات العربية المتحدة",
+      areaServed: tr(l.city) || T("الإمارات العربية المتحدة", "United Arab Emirates"),
     },
   };
 
@@ -149,22 +251,22 @@ ${siteHeader()}
   <article class="cm-card rounded-2xl overflow-hidden">
     ${gallery.length ? `<img src="${esc(gallery[0])}" alt="${esc(carTitle(l))}" class="w-full object-cover cm-aspect-16-9">` : ""}
     <div class="p-5">
-      ${l.sold ? `<p class="cm-badge cm-badge-red mb-2">تم بيع هذه السيارة</p>` : ""}<h1 class="cm-display font-extrabold text-2xl">${esc(carTitle(l))}${l.sold ? "" : " للبيع"}</h1>
-      <p class="text-2xl font-black mt-2">${l.price ? fmt(l.price) + " د.إ" : "السعر عند التواصل"}${l.negotiable ? ` <span class="cm-badge cm-badge-blue">قابل للتفاوض</span>` : ""}</p>
-      ${l.previous_price && Number(l.previous_price) > Number(l.price) ? `<p class="text-sm cm-text-muted">السعر السابق: <s>${fmt(l.previous_price)} د.إ</s></p>` : ""}
+      ${l.sold ? `<p class="cm-badge cm-badge-red mb-2">${T("تم بيع هذه السيارة", "This car has been sold")}</p>` : ""}<h1 class="cm-display font-extrabold text-2xl">${esc(carTitle(l))}${l.sold ? "" : T(" للبيع", " for sale")}</h1>
+      <p class="text-2xl font-black mt-2">${l.price ? aed(l.price) : T("السعر عند التواصل", "Price on request")}${l.negotiable ? ` <span class="cm-badge cm-badge-blue">${T("قابل للتفاوض", "Negotiable")}</span>` : ""}</p>
+      ${l.previous_price && Number(l.previous_price) > Number(l.price) ? `<p class="text-sm cm-text-muted">${T("السعر السابق", "Previous price")}: <s>${aed(l.previous_price)}</s></p>` : ""}
       <dl class="grid grid-cols-2 gap-2 mt-4 text-sm">
         ${facts.map(([k, v]) => `<div class="cm-spec px-3 py-2"><dt class="text-xs cm-text-muted">${esc(k)}</dt><dd class="font-bold">${esc(v)}</dd></div>`).join("")}
       </dl>
-      ${l.description ? `<h2 class="font-bold mt-5 mb-1">الوصف</h2><p class="text-sm leading-relaxed">${esc(l.description)}</p>` : ""}
-      <p class="text-sm cm-text-muted mt-5">للتواصل مع البائع، افتح الإعلان على ${SITE_NAME} وسجّل الدخول لعرض رقم الجوال.</p>
+      ${l.description ? `<h2 class="font-bold mt-5 mb-1">${T("الوصف", "Description")}</h2><p class="text-sm leading-relaxed">${esc(l.description)}</p>` : ""}
+      <p class="text-sm cm-text-muted mt-5">${T(`للتواصل مع البائع، افتح الإعلان على ${SITE_NAME} وسجّل الدخول لعرض رقم الجوال.`, `To contact the seller, open the listing on ${SITE_NAME} and sign in to see the phone number.`)}</p>
     </div>
   </article>
-  ${gallery.length > 1 ? `<div class="grid grid-cols-4 gap-2 mt-3">${gallery.slice(1, 8).map((src, i) => `<img src="${esc(src)}" alt="${esc(`${carTitle(l)} صورة ${i + 2}`)}" loading="lazy" class="rounded-lg object-cover cm-aspect-4-3">`).join("")}</div>` : ""}
-  ${similar.length ? `<section class="mt-8"><h2 class="font-bold mb-3">سيارات ${esc(l.make)} أخرى للبيع</h2><ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${similar.map(card).join("")}</ul></section>` : ""}
+  ${gallery.length > 1 ? `<div class="grid grid-cols-4 gap-2 mt-3">${gallery.slice(1, 8).map((src, i) => `<img src="${esc(src)}" alt="${esc(`${carTitle(l)} ${T("صورة", "photo")} ${i + 2}`)}" loading="lazy" class="rounded-lg object-cover cm-aspect-4-3">`).join("")}</div>` : ""}
+  ${similar.length ? `<section class="mt-8"><h2 class="font-bold mb-3">${esc(T(`سيارات ${l.make} أخرى للبيع`, `More ${tr(l.make)} cars for sale`))}</h2><ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${similar.map(card).join("")}</ul></section>` : ""}
   <nav class="mt-6 text-sm">
-    ${MAKE_SLUGS[l.make] ? `<a class="cm-link" href="${paths.make(l.make)}">كل سيارات ${esc(l.make)} المستعملة</a> · ` : ""}
-    ${CITY_SLUGS[l.city] ? `<a class="cm-link" href="${paths.city(l.city)}">سيارات مستعملة في ${esc(l.city)}</a> · ` : ""}
-    <a class="cm-link" href="${paths.all()}">كل السيارات المستعملة</a>
+    ${MAKE_SLUGS[l.make] ? `<a class="cm-link" href="${P.make(l.make)}">${esc(T(`كل سيارات ${l.make} المستعملة`, `All used ${tr(l.make)} cars`))}</a> · ` : ""}
+    ${CITY_SLUGS[l.city] ? `<a class="cm-link" href="${P.city(l.city)}">${esc(T(`سيارات مستعملة في ${l.city}`, `Used cars in ${tr(l.city)}`))}</a> · ` : ""}
+    <a class="cm-link" href="${P.all()}">${T("كل السيارات المستعملة", "All used cars")}</a>
   </nav>
 </main>`;
 
@@ -195,7 +297,7 @@ async function categoryPage(shell, route, page = 1) {
   }
   if (route.kind === "dealer") {
     const [dealer] = await queryTable("dealers", [["select", "*"], ["slug", `eq.${route.slug}`], ["limit", "1"]]);
-    if (!dealer) return [404, notFound(shell, paths.dealer(route.slug))];
+    if (!dealer) return [404, notFound(shell, P.dealer(route.slug))];
     route = { ...route, id: dealer.id, name: dealer.name, verified: dealer.verified, instagram: dealer.instagram };
   }
   const filters = [];
@@ -213,32 +315,38 @@ async function categoryPage(shell, route, page = 1) {
     getFacets(),
   ]);
 
-  const path = route.kind === "model" ? paths.model(route.make, route.model)
-    : route.kind === "dealer" ? paths.dealer(route.slug)
-    : route.kind === "make" ? paths.make(route.make)
-    : route.kind === "city" ? paths.city(route.city)
-    : route.kind === "budget" ? paths.budget(route.max)
-    : paths.all();
+  const path = route.kind === "model" ? P.model(route.make, route.model)
+    : route.kind === "dealer" ? P.dealer(route.slug)
+    : route.kind === "make" ? P.make(route.make)
+    : route.kind === "city" ? P.city(route.city)
+    : route.kind === "budget" ? P.budget(route.max)
+    : P.all();
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   if (page > pages) return [404, notFound(shell, path)];
   const pageHref = (n) => (n > 1 ? `${path}?page=${n}` : path);
   const url = SITE_URL + pageHref(page);
   const copy = categoryCopy(route, total);
-  if (page > 1) { copy.title = `${copy.title} — صفحة ${page}`; copy.description = `صفحة ${page}: ${copy.description}`; }
+  if (page > 1) { copy.title = `${copy.title} — ${T("صفحة", "Page")} ${page}`; copy.description = `${T("صفحة", "Page")} ${page}: ${copy.description}`; }
   const prices = rows.map((r) => Number(r.price)).filter(Boolean);
 
   const crumbs = [
-    ["الرئيسية", "/"],
-    ["سيارات مستعملة", paths.all()],
-    route.kind === "model" ? [route.make, paths.make(route.make)] : null,
+    [T("الرئيسية", "Home"), P.home()],
+    [T("سيارات مستعملة", "Used cars"), P.all()],
+    route.kind === "model" ? [tr(route.make), P.make(route.make)] : null,
     route.kind !== "all" ? [copy.h1, path] : null,
   ].filter(Boolean);
 
-  const intro = total
-    ? `يوجد حاليًا ${fmt(total)} إعلان${prices.length ? `، بأسعار تبدأ من ${fmt(Math.min(...prices))} وتصل إلى ${fmt(Math.max(...prices))} درهم` : ""}. كل الإعلانات من البائعين مباشرة، بدون وسيط.`
-    : "لا توجد إعلانات في هذا القسم حاليًا. تصفح باقي السيارات أو انشر سيارتك مجانًا.";
+  const directAr = "كل الإعلانات من البائعين مباشرة، بدون وسيط.";
+  const directEn = "All listings come straight from the sellers.";
+  const intro = EN()
+    ? (total
+      ? `${num(total)} listings right now${prices.length ? `, priced from AED ${num(Math.min(...prices))} to AED ${num(Math.max(...prices))}` : ""}. ${directEn}`
+      : "There are no listings in this section right now. Browse the other cars or sell your car for free.")
+    : (total
+      ? `يوجد حاليًا ${fmt(total)} إعلان${prices.length ? `، بأسعار تبدأ من ${fmt(Math.min(...prices))} وتصل إلى ${fmt(Math.max(...prices))} درهم` : ""}. ${directAr}`
+      : "لا توجد إعلانات في هذا القسم حاليًا. تصفح باقي السيارات أو انشر سيارتك مجانًا.");
   const dealerIntro = route.kind === "dealer"
-    ? `<p class="text-sm mb-5">${route.verified ? `<span class="cm-badge cm-badge-mint">وسيط معتمد</span> ` : ""}${route.instagram ? `<a class="cm-link" href="https://instagram.com/${esc(route.instagram.replace(/^@/, ""))}" rel="noopener">@${esc(route.instagram.replace(/^@/, ""))}</a>` : ""}</p>`
+    ? `<p class="text-sm mb-5">${route.verified ? `<span class="cm-badge cm-badge-mint">${T("وسيط معتمد", "Verified dealer")}</span> ` : ""}${route.instagram ? `<a class="cm-link" href="https://instagram.com/${esc(route.instagram.replace(/^@/, ""))}" rel="noopener">@${esc(route.instagram.replace(/^@/, ""))}</a>` : ""}</p>`
     : "";
   // Links to this make's model pages (other models when on a model page).
   const modelTally = {};
@@ -246,18 +354,18 @@ async function categoryPage(shell, route, page = 1) {
   const modelChips = Object.entries(modelTally)
     .filter(([m]) => !(route.kind === "model" && m === route.model))
     .sort((a, b) => b[1] - a[1]).slice(0, 30)
-    .map(([m, n]) => `<li><a class="cm-chip" href="${paths.model(route.make, m)}">${esc(`${route.make} ${m}`)} (${fmt(n)})</a></li>`);
+    .map(([m, n]) => `<li><a class="cm-chip" href="${P.model(route.make, m)}">${esc(tr(`${route.make} ${m}`))} (${fmt(n)})</a></li>`);
 
   const body = `
 ${siteHeader()}
 <main class="max-w-6xl mx-auto px-4 py-6">
   ${breadcrumbs(crumbs)}
   <h1 class="cm-display font-extrabold text-2xl mb-2">${esc(copy.h1)}</h1>
-  <p class="cm-text-muted text-sm mb-5">${esc(route.kind === "dealer" ? intro.replace("كل الإعلانات من البائعين مباشرة، بدون وسيط.", "") : intro)}</p>
+  <p class="cm-text-muted text-sm mb-5">${esc(route.kind === "dealer" ? intro.replace(directAr, "").replace(directEn, "") : intro)}</p>
   ${dealerIntro}
   ${rows.length ? `<ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${rows.map(card).join("")}</ul>` : ""}
   ${pager(page, pages, pageHref)}
-  ${modelChips.length ? `<section class="mt-8 text-sm"><h2 class="font-bold">موديلات ${esc(route.make)}</h2><ul class="flex flex-wrap gap-2 mt-2">${modelChips.join("")}</ul></section>` : ""}
+  ${modelChips.length ? `<section class="mt-8 text-sm"><h2 class="font-bold">${esc(T(`موديلات ${route.make}`, `${tr(route.make)} models`))}</h2><ul class="flex flex-wrap gap-2 mt-2">${modelChips.join("")}</ul></section>` : ""}
   ${relatedLinks(facets, route)}
 </main>`;
 
@@ -273,7 +381,7 @@ ${siteHeader()}
       "@type": "ItemList",
       name: copy.h1,
       numberOfItems: total,
-      itemListElement: rows.map((l, i) => ({ "@type": "ListItem", position: (page - 1) * PAGE_SIZE + i + 1, url: SITE_URL + paths.car(l.id), name: carTitle(l) })),
+      itemListElement: rows.map((l, i) => ({ "@type": "ListItem", position: (page - 1) * PAGE_SIZE + i + 1, url: SITE_URL + P.car(l.id), name: carTitle(l) })),
     }) : ""),
     body,
   })];
@@ -287,26 +395,27 @@ async function homePage(shell) {
     queryListings([["select", LISTING_FIELDS], ["order", "created_at.desc"], ["limit", "24"]], { count: true }),
     getFacets(),
   ]);
-  const title = `${SITE_NAME} — سوق السيارات المستعملة في الإمارات`;
-  const description = `${SITE_NAME} سوق السيارات المستعملة في الإمارات: تصفح ${total ? `${fmt(total)} ` : ""}سيارة للبيع في دبي وأبوظبي والشارقة وباقي الإمارات، أو انشر سيارتك مجانًا وتواصل مع المشترين مباشرة.`;
+  const title = T(`${SITE_NAME} — سوق السيارات المستعملة في الإمارات`, `${SITE_NAME} — Used cars for sale in the UAE`);
+  const description = T(`${SITE_NAME} سوق السيارات المستعملة في الإمارات: تصفح ${total ? `${fmt(total)} ` : ""}سيارة للبيع في دبي وأبوظبي والشارقة وباقي الإمارات، أو انشر سيارتك مجانًا وتواصل مع المشترين مباشرة.`,
+    `${SITE_NAME} is the UAE's used car marketplace: browse ${total ? `${num(total)} ` : ""}cars for sale in Dubai, Abu Dhabi, Sharjah and across the UAE, or sell your car for free and deal with buyers directly.`);
   const body = `
 ${siteHeader()}
 <main class="max-w-6xl mx-auto px-4 py-6">
-  <h1 class="cm-display font-extrabold text-2xl mb-2">سوق السيارات المستعملة في الإمارات</h1>
-  <p class="cm-text-muted text-sm mb-5">${total ? `${fmt(total)} سيارة معروضة للبيع الآن. ` : ""}تصفح السيارات المستعملة حسب الماركة أو الإمارة أو الميزانية، أو انشر إعلان سيارتك مجانًا.</p>
-  <p class="mb-6"><a class="cm-link font-bold" href="${paths.all()}">تصفح كل السيارات المستعملة</a></p>
-  ${rows.length ? `<h2 class="font-bold mb-3">أحدث السيارات</h2><ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${rows.map(card).join("")}</ul>` : ""}
+  <h1 class="cm-display font-extrabold text-2xl mb-2">${T("سوق السيارات المستعملة في الإمارات", "Used cars for sale in the UAE")}</h1>
+  <p class="cm-text-muted text-sm mb-5">${T(`${total ? `${fmt(total)} سيارة معروضة للبيع الآن. ` : ""}تصفح السيارات المستعملة حسب الماركة أو الإمارة أو الميزانية، أو انشر إعلان سيارتك مجانًا.`, `${total ? `${num(total)} cars for sale right now. ` : ""}Browse used cars by make, emirate or budget, or list your car for free.`)}</p>
+  <p class="mb-6"><a class="cm-link font-bold" href="${P.all()}">${T("تصفح كل السيارات المستعملة", "Browse all used cars")}</a></p>
+  ${rows.length ? `<h2 class="font-bold mb-3">${T("أحدث السيارات", "Latest cars")}</h2><ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${rows.map(card).join("")}</ul>` : ""}
   ${relatedLinks(facets, { kind: "home" })}
 </main>`;
   return fillShell(shell, {
     title,
     description,
-    canonical: SITE_URL + "/",
+    canonical: SITE_URL + P.home(),
     headExtra: seedScript({ listings: rows }) + (photo(rows[0] || {}) ? preloadImage(photo(rows[0]), [384, 640, 828], "(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw") : "") + jsonLd({
       "@context": "https://schema.org",
       "@graph": [
         { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: SITE_NAME, url: `${SITE_URL}/`, logo: `${SITE_URL}/icon-512.png`, email: "carsuae@carsuae.net", areaServed: "AE" },
-        { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: SITE_NAME, alternateName: "كارز يو إيه إي", url: `${SITE_URL}/`, inLanguage: "ar-AE", publisher: { "@id": `${SITE_URL}/#org` } },
+        { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: SITE_NAME, alternateName: "كارز يو إيه إي", url: `${SITE_URL}/`, inLanguage: T("ar-AE", "en-AE"), publisher: { "@id": `${SITE_URL}/#org` } },
       ],
     }),
     body,
@@ -329,7 +438,7 @@ function blocksHtml(body) {
 }
 
 function infoPage(shell, pg) {
-  const crumbs = [["الرئيسية", "/"], [pg.title, pg.path]];
+  const crumbs = [[T("الرئيسية", "Home"), P.home()], [pg.title, pg.path]];
   const updated = !["/terms", "/privacy"].includes(pg.path) ? "" : `<p class="text-xs cm-text-muted mb-6">آخر تحديث: ${esc(formatArticleDate(LEGAL_UPDATED))}</p>`;
   const body = `
 ${siteHeader()}
@@ -345,6 +454,7 @@ ${siteHeader()}
     title: `${pg.title} | ${SITE_NAME}`,
     description: pg.description,
     canonical: SITE_URL + pg.path,
+    arOnly: true,
     headExtra: jsonLd(breadcrumbLd(crumbs)) + faqLd(pg.body),
     body,
   });
@@ -365,20 +475,20 @@ function faqLd(body) {
 function blogPage(shell) {
   const title = `مقالات ونصائح شراء وبيع السيارات في الإمارات | ${SITE_NAME}`;
   const description = "نصائح عملية لشراء وبيع السيارات المستعملة في الإمارات: الفحص قبل الشراء، الفرق بين الخليجي والوارد، الأسعار ونقل الملكية.";
-  const crumbs = [["الرئيسية", "/"], ["المقالات", paths.blog()]];
+  const crumbs = [[T("الرئيسية", "Home"), P.home()], ["المقالات", P.blog()]];
   const body = `
 ${siteHeader()}
 <main class="max-w-3xl mx-auto px-4 py-8">
   ${breadcrumbs(crumbs)}
   <h1 class="cm-display font-extrabold text-2xl mb-2">مقالات ونصائح</h1>
   <p class="cm-text-muted text-sm mb-6">${esc(description)}</p>
-  <ul class="space-y-4">${ARTICLES.map((a) => `<li class="cm-card rounded-xl p-5"><a href="${paths.article(a.slug)}" class="block">
+  <ul class="space-y-4">${ARTICLES.map((a) => `<li class="cm-card rounded-xl p-5"><a href="${P.article(a.slug)}" class="block">
     <h2 class="cm-section-title">${esc(a.title)}</h2>
     <p class="text-sm cm-text-muted mt-1">${esc(a.description)}</p>
     <p class="text-xs cm-text-muted mt-2">${esc(formatArticleDate(a.date))} · ${fmt(a.readMinutes)} دقائق قراءة</p></a></li>`).join("")}</ul>
 </main>`;
   return fillShell(shell, {
-    title, description, canonical: SITE_URL + paths.blog(),
+    title, description, canonical: SITE_URL + paths.blog(), arOnly: true,
     headExtra: jsonLd(breadcrumbLd(crumbs)),
     body,
   });
@@ -386,7 +496,7 @@ ${siteHeader()}
 
 function articlePage(shell, a) {
   const url = SITE_URL + paths.article(a.slug);
-  const crumbs = [["الرئيسية", "/"], ["المقالات", paths.blog()], [a.title, paths.article(a.slug)]];
+  const crumbs = [[T("الرئيسية", "Home"), P.home()], ["المقالات", P.blog()], [a.title, P.article(a.slug)]];
   const body = `
 ${siteHeader()}
 <main class="max-w-3xl mx-auto px-4 py-8">
@@ -396,12 +506,13 @@ ${siteHeader()}
     <p class="text-xs cm-text-muted mb-6">${esc(formatArticleDate(a.date))} · ${fmt(a.readMinutes)} دقائق قراءة</p>
     ${blocksHtml(a.body)}
   </article>
-  <p class="mt-8"><a class="cm-link font-bold" href="${paths.blog()}">كل المقالات</a></p>
+  <p class="mt-8"><a class="cm-link font-bold" href="${P.blog()}">كل المقالات</a></p>
 </main>`;
   return fillShell(shell, {
     title: `${a.title} | ${SITE_NAME}`,
     description: a.description,
     canonical: url,
+    arOnly: true,
     headExtra: jsonLd({
       "@context": "https://schema.org",
       "@type": "Article",
@@ -422,28 +533,29 @@ ${siteHeader()}
 // --- VIN check tool --------------------------------------------------------
 
 function vinPage(shell) {
-  const title = `فحص رقم الشاصي مجانًا (VIN) | ${SITE_NAME}`;
-  const description = "افحص رقم الشاصي لأي سيارة مجانًا: بلد الصنع، الشركة المصنعة، سنة الموديل، مواصفات المحرك وناقل الحركة، ونداءات الاستدعاء. أداة مجانية من CarsUAE قبل شراء سيارتك المستعملة في الإمارات.";
+  const title = T(`فحص رقم الشاصي مجانًا (VIN) | ${SITE_NAME}`, `Free VIN check (chassis number) | ${SITE_NAME}`);
+  const description = T("افحص رقم الشاصي لأي سيارة مجانًا: بلد الصنع، الشركة المصنعة، سنة الموديل، مواصفات المحرك وناقل الحركة، ونداءات الاستدعاء. أداة مجانية من CarsUAE قبل شراء سيارتك المستعملة في الإمارات.",
+    "Check any car's VIN for free: country of manufacture, maker, model year, engine and transmission specs, and safety recalls. A free CarsUAE tool before you buy a used car in the UAE.");
   const body = `
 ${siteHeader()}
 <main class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="cm-display font-extrabold text-2xl mb-2">فحص رقم الشاصي مجانًا</h1>
-  <p class="cm-text-muted text-sm mb-5">اكتب رقم الشاصي (VIN) المكوّن من 17 حرفًا ورقمًا، واعرف بلد الصنع والشركة المصنعة وسنة الموديل ومواصفات المصنع، قبل ما تشتري السيارة.</p>
-  <h2 class="font-bold mt-6 mb-2">وين ألقى رقم الشاصي؟</h2>
-  <p class="text-sm">في ملكية السيارة (الكارت)، أو أسفل الزجاج الأمامي من جهة السائق، أو على باب السائق من الداخل.</p>
-  <p class="mt-6"><a class="cm-link font-bold" href="${paths.all()}">تصفح السيارات المستعملة للبيع</a></p>
+  <h1 class="cm-display font-extrabold text-2xl mb-2">${T("فحص رقم الشاصي مجانًا", "Free VIN check")}</h1>
+  <p class="cm-text-muted text-sm mb-5">${T("اكتب رقم الشاصي (VIN) المكوّن من 17 حرفًا ورقمًا، واعرف بلد الصنع والشركة المصنعة وسنة الموديل ومواصفات المصنع، قبل ما تشتري السيارة.", "Enter the 17-character VIN (chassis number) to see the country of manufacture, maker, model year and factory specs before you buy the car.")}</p>
+  <h2 class="font-bold mt-6 mb-2">${T("وين ألقى رقم الشاصي؟", "Where do I find the VIN?")}</h2>
+  <p class="text-sm">${T("في ملكية السيارة (الكارت)، أو أسفل الزجاج الأمامي من جهة السائق، أو على باب السائق من الداخل.", "On the car's registration card (mulkiya), at the bottom of the windscreen on the driver's side, or inside the driver's door.")}</p>
+  <p class="mt-6"><a class="cm-link font-bold" href="${P.all()}">${T("تصفح السيارات المستعملة للبيع", "Browse used cars for sale")}</a></p>
 </main>`;
   return fillShell(shell, {
     title,
     description,
-    canonical: SITE_URL + paths.vin(),
+    canonical: SITE_URL + P.vin(),
     headExtra: jsonLd({
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      name: "فحص رقم الشاصي",
-      url: SITE_URL + paths.vin(),
+      name: T("فحص رقم الشاصي", "VIN check"),
+      url: SITE_URL + P.vin(),
       applicationCategory: "UtilitiesApplication",
-      inLanguage: "ar-AE",
+      inLanguage: T("ar-AE", "en-AE"),
       offers: { "@type": "Offer", price: "0", priceCurrency: "AED" },
     }),
     body,
@@ -467,31 +579,31 @@ function preloadImage(src, widths, sizes) {
 }
 
 function siteHeader() {
-  return `<header class="cm-header"><div class="max-w-6xl mx-auto px-4 py-3"><a href="/" class="cm-display font-extrabold text-lg" dir="ltr">Cars<span class="cm-grad-text">UAE</span></a></div></header>`;
+  return `<header class="cm-header"><div class="max-w-6xl mx-auto px-4 py-3"><a href="${P.home()}" class="cm-display font-extrabold text-lg" dir="ltr">Cars<span class="cm-grad-text">UAE</span></a></div></header>`;
 }
 
 function breadcrumbs(crumbs) {
-  return `<nav aria-label="مسار التصفح" class="text-xs cm-text-muted mb-4">${crumbs
+  return `<nav aria-label="${T("مسار التصفح", "Breadcrumb")}" class="text-xs cm-text-muted mb-4">${crumbs
     .map(([name, href], i) => (i === crumbs.length - 1 ? `<span>${esc(name)}</span>` : `<a class="cm-link" href="${href}">${esc(name)}</a>`))
-    .join(" ‹ ")}</nav>`;
+    .join(T(" ‹ ", " › "))}</nav>`;
 }
 
 function breadcrumbLd(crumbs) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: crumbs.map(([name, href], i) => ({ "@type": "ListItem", position: i + 1, name, item: SITE_URL + href })),
+    itemListElement: crumbs.map(([name, href], i) => ({ "@type": "ListItem", position: i + 1, name: tr(name), item: SITE_URL + href })),
   };
 }
 
 function card(l) {
   const img = photo(l);
-  const facts = [l.year || "-", l.mileage ? `${fmt(l.mileage)} كم` : "- كم", l.specs || "-", l.city || "-"].join(" · ");
-  return `<li class="cm-card rounded-xl overflow-hidden"><a href="${paths.car(l.id)}" class="block">
+  const facts = [l.year || "-", l.mileage ? T(`${fmt(l.mileage)} كم`, `${num(l.mileage)} km`) : T("- كم", "- km"), l.specs || "-", l.city || "-"].join(" · ");
+  return `<li class="cm-card rounded-xl overflow-hidden"><a href="${P.car(l.id)}" class="block">
     ${img ? `<img src="${esc(imgSrc(img, 640))}" srcset="${esc(imgSrcSet(img, [384, 640, 828]) || "")}" sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" width="640" height="400" alt="${esc(carTitle(l))}" loading="lazy" decoding="async" class="w-full object-cover cm-aspect-16-10">` : ""}
     <div class="p-3.5"><h2 class="cm-display font-bold text-sm">${esc(carTitle(l))}</h2>
     <p class="text-xs cm-text-muted mt-1">${esc(facts)}</p>
-    <p class="font-bold mt-2">${l.price ? fmt(l.price) + " د.إ" : "السعر عند التواصل"}${l.negotiable ? " · قابل للتفاوض" : ""}</p></div>
+    <p class="font-bold mt-2">${l.price ? aed(l.price) : T("السعر عند التواصل", "Price on request")}${l.negotiable ? T(" · قابل للتفاوض", " · Negotiable") : ""}</p></div>
   </a></li>`;
 }
 
@@ -500,13 +612,13 @@ function pager(page, pages, href) {
   if (pages <= 1) return "";
   const nums = [...new Set([1, page - 2, page - 1, page, page + 1, page + 2, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
   const items = [];
-  if (page > 1) items.push(`<a class="cm-link" rel="prev" href="${href(page - 1)}">السابق</a>`);
+  if (page > 1) items.push(`<a class="cm-link" rel="prev" href="${href(page - 1)}">${T("السابق", "Previous")}</a>`);
   nums.forEach((n, i) => {
     if (i && n - nums[i - 1] > 1) items.push(`<span>…</span>`);
     items.push(n === page ? `<span class="font-bold" aria-current="page">${fmt(n)}</span>` : `<a class="cm-link" href="${href(n)}">${fmt(n)}</a>`);
   });
-  if (page < pages) items.push(`<a class="cm-link" rel="next" href="${href(page + 1)}">التالي</a>`);
-  return `<nav aria-label="الصفحات" class="flex flex-wrap gap-3 items-center justify-center text-sm mt-6">${items.join("")}</nav>`;
+  if (page < pages) items.push(`<a class="cm-link" rel="next" href="${href(page + 1)}">${T("التالي", "Next")}</a>`);
+  return `<nav aria-label="${T("الصفحات", "Pages")}" class="flex flex-wrap gap-3 items-center justify-center text-sm mt-6">${items.join("")}</nav>`;
 }
 
 function relatedLinks(facets, route) {
@@ -516,21 +628,21 @@ function relatedLinks(facets, route) {
   const list = (items) => `<ul class="flex flex-wrap gap-2 mt-2">${items.join("")}</ul>`;
   const chip = (href, text) => `<li><a class="cm-chip" href="${href}">${esc(text)}</a></li>`;
   return `<section class="mt-10 space-y-5 text-sm">
-    ${makes.length ? `<div><h2 class="font-bold">حسب الماركة</h2>${list(makes.map(([m, n]) => chip(paths.make(m), `${m} (${fmt(n)})`)))}</div>` : ""}
-    ${cities.length ? `<div><h2 class="font-bold">حسب الإمارة</h2>${list(cities.map(([c, n]) => chip(paths.city(c), `${c} (${fmt(n)})`)))}</div>` : ""}
-    <div><h2 class="font-bold">حسب الميزانية</h2>${list(budgets.map((b) => chip(paths.budget(b), `تحت ${fmt(b)} درهم`)))}</div>
+    ${makes.length ? `<div><h2 class="font-bold">${T("حسب الماركة", "By make")}</h2>${list(makes.map(([m, n]) => chip(P.make(m), `${m} (${fmt(n)})`)))}</div>` : ""}
+    ${cities.length ? `<div><h2 class="font-bold">${T("حسب الإمارة", "By emirate")}</h2>${list(cities.map(([c, n]) => chip(P.city(c), `${c} (${fmt(n)})`)))}</div>` : ""}
+    <div><h2 class="font-bold">${T("حسب الميزانية", "By budget")}</h2>${list(budgets.map((b) => chip(P.budget(b), T(`تحت ${fmt(b)} درهم`, `Under AED ${num(b)}`))))}</div>
   </section>`;
 }
 
 function notFound(shell, path) {
   return fillShell(shell, {
-    title: `الصفحة غير موجودة | ${SITE_NAME}`,
-    description: "الإعلان أو الصفحة غير موجودة. ربما بيعت السيارة أو حُذف الإعلان.",
+    title: T(`الصفحة غير موجودة | ${SITE_NAME}`, `Page not found | ${SITE_NAME}`),
+    description: T("الإعلان أو الصفحة غير موجودة. ربما بيعت السيارة أو حُذف الإعلان.", "This listing or page does not exist. The car may have been sold or the listing removed."),
     canonical: SITE_URL + path,
     noindex: true,
     body: `${siteHeader()}<main class="max-w-6xl mx-auto px-4 py-16 text-center">
-      <h1 class="cm-display font-extrabold text-xl mb-2">الإعلان غير موجود</h1>
-      <p class="cm-text-muted text-sm mb-4">ربما بيعت السيارة أو حذف البائع الإعلان.</p>
-      <a class="cm-link" href="${paths.all()}">تصفح السيارات المتاحة</a></main>`,
+      <h1 class="cm-display font-extrabold text-xl mb-2">${T("الإعلان غير موجود", "Listing not found")}</h1>
+      <p class="cm-text-muted text-sm mb-4">${T("ربما بيعت السيارة أو حذف البائع الإعلان.", "The car may have been sold or the seller removed the listing.")}</p>
+      <a class="cm-link" href="${P.all()}">${T("تصفح السيارات المتاحة", "Browse available cars")}</a></main>`,
   });
 }

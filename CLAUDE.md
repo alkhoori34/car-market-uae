@@ -119,6 +119,19 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   skeleton cards while loading; fonts load non-blocking from index.html;
   `html { overflow-y: scroll }` stops RTL sideways jumps. Measured on
   PageSpeed Insights before this work (2026-10-21): mobile 66, desktop 72.
+- **English version (since 2026-10-24):** every page also exists under `/en`
+  (`/en`, `/en/used-cars/toyota`, `/en/car/<id>` …). `middleware.js` sends
+  `/en/*` to `api/page.js` with `lang=en`, which renders English titles,
+  meta, body and `hreflang` ar/en/x-default links (helpers `T`, `tr`, `P`
+  over AsyncLocalStorage; `translateHtml` covers short leftover text). The
+  sitemap lists both copies. Articles, `/blog` and info pages are Arabic
+  only (`arOnly`: canonical to the Arabic URL, noindex on /en). In the
+  browser `src/i18n.js` turns on English when the path starts with `/en`:
+  LTR, in-place translation of interface text (dictionary + patterns;
+  seller descriptions stay as written; anything inside `[data-no-i18n]` is
+  skipped) and `/en` prefixing of internal links and history. The header
+  button «EN / عربي» switches language. New interface text needs an entry in
+  the `UI` dictionary of `src/i18n.js`; new Arabic model names in `MODELS`.
 - WhatsApp button on every listing (`waNumber` normalises UAE numbers).
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is
