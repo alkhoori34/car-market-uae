@@ -213,6 +213,13 @@ accounts (e.g. smsar_fujairah: last post June 2020). Check dates via
 `/p/<code>/` og:description ("on <date>"), not the media API, which Instagram
 blocks after heavy pulls (a 198-post pull from 70x triggered a checkpoint).
 
+**Instagram account for reading broker posts (since 2026-10-23):** Chrome has
+two Instagram accounts: the brand account `carsuaenet` and `cars00971`, added
+only for fetching. Always switch to `cars00971` (account switcher) before
+any Instagram fetch; never scrape with `carsuaenet`. Its feed posts were
+blocked ("restrict certain activity") after heavy pulls. Our own posting
+goes through Metricool and does not use the Chrome session.
+
 ## Open work
 
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
