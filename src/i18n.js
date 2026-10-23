@@ -101,6 +101,7 @@ const UI = {
   // blog
   "المقالة غير موجودة": "Article not found", "كل المقالات": "All articles", "نصائح عملية لشراء وبيع السيارات المستعملة في الإمارات.": "Practical tips for buying and selling used cars in the UAE.",
   "دقائق قراءة": "min read", "راسلنا": "Message us",
+  "من": "From", "إلى": "To", "أقل من": "Under", "خليجية": "GCC", "وكالة": "Dealer", "مواصفات خاصة": "Special specs", "وارد قطر": "Qatar import",
   // messages (toasts)
   "البريد أو كلمة المرور غير صحيحة": "Wrong email or password", "هذا البريد مسجّل مسبقًا. جرّب تسجيل الدخول.": "This email is already registered. Try signing in.",
   "كلمة المرور يجب أن تكون 6 أحرف على الأقل": "Password must be at least 6 characters", "محاولات كثيرة. انتظر دقيقة ثم حاول مرة أخرى.": "Too many attempts. Wait a minute and try again.",
@@ -146,7 +147,11 @@ const MODELS = {
   "سويفت": "Swift", "جيمني": "Jimny", "فيتارا": "Vitara", "جراند فيتارا": "Grand Vitara", "بالينو": "Baleno", "سياز": "Ciaz", "دزاير": "Dzire",
   "جولف": "Golf", "باسات": "Passat", "تيجوان": "Tiguan", "جيتا": "Jetta", "بولو": "Polo", "مونجارو": "Monjaro", "نوتيلوس": "Nautilus", "أفياتور": "Aviator",
   "كوبر": "Cooper", "كنتري مان": "Countryman", "كانتري مان": "Countryman", "ليوبارد 5": "Leopard 5", "ليوبارد 7": "Leopard 7", "ليوبارد 8": "Leopard 8",
-  "أداماس": "Adamas", "موديل Y": "Model Y", "موديل 3": "Model 3", "أخرى": "Other",
+  "أداماس": "Adamas", "موديل Y": "Model Y", "موديل 3": "Model 3", "موديل X": "Model X", "أخرى": "Other",
+  "الفئة V": "V-Class", "الفئة X": "X-Class", "CS35 بلس": "CS35 Plus", "بارتنر": "Partner", "بريفيس": "Previa", "بوكستر": "Boxster",
+  "تاكوما": "Tacoma", "تندرا": "Tundra", "تورس": "Taurus", "جوك": "Juke", "جيب ويليز": "Jeep Willys", "جينيسيس 3.8": "Genesis 3.8",
+  "ديستروير 05": "Destroyer 05", "ريو": "Rio", "سونج": "Song", "سيل 05": "Seal 05", "سيل 6": "Seal 6", "طوارق": "Touareg",
+  "كادينزا": "Cadenza", "كين بلس": "Keyton Plus",
 };
 
 // Words inside short strings ("نيسان باترول مستعمل", "سيارات مستعملة في دبي").
