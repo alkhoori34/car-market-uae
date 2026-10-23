@@ -160,3 +160,4 @@ body { overflow-x: clip; }
 
 /* English mode (src/i18n.js): language button in the header */
 .cm-lang-btn { font-family: inherit; min-width: 2.5rem; }
+.cm-en .text-right { text-align: left; }
