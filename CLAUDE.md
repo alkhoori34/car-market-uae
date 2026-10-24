@@ -235,6 +235,14 @@ accounts (e.g. smsar_fujairah: last post June 2020). Check dates via
 `/p/<code>/` og:description ("on <date>"), not the media API, which Instagram
 blocks after heavy pulls (a 198-post pull from 70x triggered a checkpoint).
 
+**Confirmation messages (owner rule, 2026-10-24):** whenever a new broker
+agrees («موافق») and is added, or a new ad from a seller/showroom is
+published, send the confirmation on the CarsUAE WhatsApp without asking
+first. Seller ad: «هلا فيك 🌷 نزلنا إعلان سيارتك (<السيارة>) على موقعنا 👇
+<link> …بلغنا هنا 👍». New broker: thanks + their page
+`carsuae.net/dealer/<slug>` + the credit line + "new ads are taken daily".
+Any other kind of message still needs the owner's approval.
+
 **Instagram account for reading broker posts (since 2026-10-23):** Chrome has
 two Instagram accounts: the brand account `carsuaenet` and `cars00971`, added
 only for fetching. Always switch to `cars00971` (account switcher) before
