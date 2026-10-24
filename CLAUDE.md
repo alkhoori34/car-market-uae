@@ -259,6 +259,11 @@ goes through Metricool and does not use the Chrome session.
   smsar_988, uaecars, dxb.smsar (~45 new ads/day together). Mostly
   duplicates: smsardxb, smsar_sharjha, smsar.adcars, smsarcars3, smsaruaq0.
   Any reminder message needs the owner's approval.
+  New accounts found 2026-10-25 via hashtags (not contacted yet): 971.oldcars,
+  sar.suvv, smsar_vtcc, dealspote, smsar_froska, smsarlaqta, motor_car_777,
+  smsar.carzz, smsar.seart (~22 new ads/day). Unchecked (Instagram started
+  refusing page fetches): uuae.4, car2uae, star_emirates, lexus.570,
+  jabri.cars, sold.ae, smsar_4car, smsar_4car2, saad84.90, u.a.ecars.
 
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
   record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
