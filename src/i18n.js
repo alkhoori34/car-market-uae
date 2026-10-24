@@ -24,7 +24,7 @@ const UI = {
   "سيدان": "Sedan", "دفع رباعي (SUV)": "SUV", "بيك أب": "Pickup", "هاتشباك": "Hatchback", "كوبيه": "Coupe", "فان": "Van", "رياضية": "Sports",
   "تحت 25 ألف": "Under 25k", "تحت 50 ألف": "Under 50k", "تحت 100 ألف": "Under 100k", "تحت 200 ألف": "Under 200k",
   "الآن": "Just now", "د.إ": "AED", "د.إ ·": "AED ·", "درهم": "AED", "كم": "km", "السعر عند التواصل": "Price on request",
-  "الكل": "All", "للبيع": "For sale", "البائع": "Seller", "مشاهدة": "views", "مُباعة": "Sold", "سيارة": "cars", "سيارة جديدة": "New car",
+  "الكل": "All", "⭐ مميز": "⭐ Featured", "مميز": "Featured", "إلغاء التمييز": "Remove featured", "تم إلغاء تمييز الإعلان": "Listing no longer featured", "للبيع": "For sale", "البائع": "Seller", "مشاهدة": "views", "مُباعة": "Sold", "سيارة": "cars", "سيارة جديدة": "New car",
   "إعلان": "listing",
   // header & menu
   "الصفحة الرئيسية": "Home", "السيارات": "Cars", "القائمة": "Menu", "تصفح السيارات": "Browse cars", "بيع سيارتك": "Sell your car",
@@ -199,6 +199,7 @@ const PATTERNS = [
   [/^تعذر التحديث: ([\s\S]*)$/, "Couldn't update: $1"], [/^تعذر حذف البلاغات: ([\s\S]*)$/, "Couldn't delete the reports: $1"],
   [/^حُذف الإعلان، لكن تعذر حذف الصور: ([\s\S]*)$/, "Listing deleted, but the photos couldn't be deleted: $1"],
   [/^حذف الوسيط (.+)؟ إعلاناته تبقى بدون وسيط\.$/, "Delete dealer $1? Their listings stay, without a dealer."],
+  [/^صار الإعلان مميز (\d+) أيام$/, "Listing featured for $1 days"], [/^⭐ تمييز (\d+) أيام$/, "⭐ Feature for $1 days"],
   [/^ينتهي بعد (\d+) يوم$/, "ends in $1 days"], [/^تم تجديد الإعلان (\d+) يومًا$/, "Listing renewed for $1 days"],
   [/^إعادة الإرسال بعد (\d+) ثانية$/, "Resend in $1 s"], [/^رقم الشاصي يتكون من 17 خانة، وكتبت (\d+)$/, "A VIN has 17 characters; you typed $1"],
 ];

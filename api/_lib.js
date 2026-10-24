@@ -11,7 +11,7 @@ const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_
 export const REPORT_THRESHOLD = 3;
 
 export const LISTING_FIELDS =
-  "id,make,model,body_type,year,price,previous_price,negotiable,mileage,city,fuel,trans,condition,specs,steering,description,seller_name,image,images,created_at,sold,dealer_id";
+  "id,make,model,body_type,year,price,previous_price,negotiable,mileage,city,fuel,trans,condition,specs,steering,description,seller_name,image,images,created_at,sold,dealer_id,featured_until";
 
 // Queries Supabase's REST API. `params` is an array of [key, value] pairs so
 // the same column can be filtered twice. Returns { rows, total }.

@@ -135,6 +135,12 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   skipped) and `/en` prefixing of internal links and history. The header
   button «EN / عربي» switches language. New interface text needs an entry in
   the `UI` dictionary of `src/i18n.js`; new Arabic model names in `MODELS`.
+- **Featured (مميز, since 2026-10-24):** `listings.featured_until`; while it
+  is in the future the card gets a «⭐ مميز» tag and gold outline and the car
+  is listed first (home and the "newest" sort). Admin panel button
+  «⭐ تمييز 7 أيام» / «إلغاء التمييز» (`FEATURE_DAYS`); the trigger
+  `listings_check_featured` stops non-admins from setting it
+  (`listings-featured.sql`).
 - WhatsApp button on every listing (`waNumber` normalises UAE numbers).
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is
@@ -146,7 +152,7 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   city, fuel, trans, condition, description, phone, seller_name, image,
   images, created_at, reports_count, specs, steering, phone_verified,
   negotiable, previous_price, sold, sold_at, expires_at, views, dealer_id,
-  social_posted_at
+  social_posted_at, featured_until
 - `dealers` — id, slug (lowercase letters/digits/hyphens), name, instagram, phone, city, verified, user_id
 - `visits` — id, path, source, listing_id, created_at (admins read only)
 - `admins` — user_id

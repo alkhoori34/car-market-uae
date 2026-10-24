@@ -82,6 +82,8 @@
 .cm-tag-mint { background:var(--cm-green); color:#fff; }
 .cm-tag-red { background:var(--cm-red); color:#fff; }
 .cm-tag-dark { background:rgba(17,24,39,0.75); color:#fff; }
+.cm-tag-gold { background:#f59e0b; color:#fff; }
+.cm-card-featured { box-shadow: 0 0 0 2px #f59e0b; }
 .cm-tag-blue { background:var(--cm-accent-soft); color:var(--cm-accent); }
 .cm-heart-on { color:var(--cm-red); fill:var(--cm-red); }
 

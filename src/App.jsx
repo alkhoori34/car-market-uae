@@ -34,6 +34,10 @@ const REPORT_THRESHOLD = 3;
 const LISTING_DAYS = 30;
 const isExpired = (l) => Boolean(l.expires_at) && Date.parse(l.expires_at) <= Date.now();
 const isLive = (l) => !l.sold && !isExpired(l);
+// Featured (مميز): set by an admin for FEATURE_DAYS; shown first with a tag.
+const FEATURE_DAYS = 7;
+const isFeatured = (l) => Boolean(l.featured_until) && Date.parse(l.featured_until) > Date.now();
+const featuredFirst = (a, b) => Number(isFeatured(b)) - Number(isFeatured(a));
 const daysLeft = (l) => (l.expires_at ? Math.ceil((Date.parse(l.expires_at) - Date.now()) / 86400000) : null);
 const renewedExpiry = () => new Date(Date.now() + LISTING_DAYS * 86400000).toISOString();
 // "05xxxxxxxx" / "+9715xxxxxxxx" -> "9715xxxxxxxx" for wa.me links.
@@ -1219,6 +1223,8 @@ export default function CarMarket() {
   }
   const markSold = (l, sold = true) =>
     updateListing(l.id, { sold, sold_at: sold ? new Date().toISOString() : null }, sold ? "تم تعليم السيارة كمُباعة" : "رجع الإعلان للبيع");
+  const featureListing = (l, on = true) =>
+    updateListing(l.id, { featured_until: on ? new Date(Date.now() + FEATURE_DAYS * 86400000).toISOString() : null }, on ? `صار الإعلان مميز ${FEATURE_DAYS} أيام` : "تم إلغاء تمييز الإعلان");
   const renewListing = (l) =>
     updateListing(l.id, { expires_at: renewedExpiry() }, `تم تجديد الإعلان ${LISTING_DAYS} يومًا`);
 
@@ -1267,7 +1273,7 @@ export default function CarMarket() {
 
 
   // Sold and expired listings stay in the database but leave the public pages.
-  const liveListings = useMemo(() => listings.filter(isLive), [listings]);
+  const liveListings = useMemo(() => listings.filter(isLive).sort(featuredFirst), [listings]);
 
   const filtered = useMemo(() => {
     const rows = liveListings.filter((l) => {
@@ -1289,7 +1295,7 @@ export default function CarMarket() {
     });
 
     const sorters = {
-      newest: (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+      newest: (a, b) => featuredFirst(a, b) || Date.parse(b.created_at) - Date.parse(a.created_at),
       priceAsc: (a, b) => a.price - b.price,
       priceDesc: (a, b) => b.price - a.price,
       yearDesc: (a, b) => b.year - a.year,
@@ -1732,6 +1738,7 @@ export default function CarMarket() {
                         <button onClick={() => openListing(l)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><Eye size={13} /> عرض</button>
                         <button onClick={() => markSold(l, !l.sold)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">{l.sold ? <><Undo2 size={13} /> إرجاع للبيع</> : <><CircleCheck size={13} /> تم البيع</>}</button>
                         {!l.sold && <button onClick={() => renewListing(l)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"><RefreshCw size={13} /> تجديد {LISTING_DAYS} يوم</button>}
+                        {!l.sold && <button onClick={() => featureListing(l, !isFeatured(l))} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">{isFeatured(l) ? "إلغاء التمييز" : <>⭐ تمييز {FEATURE_DAYS} أيام</>}</button>}
                         {reps.length > 0 && <button onClick={() => dismissReports(l.id)} className="cm-btn-ghost text-xs font-bold px-3 py-1.5 rounded-lg">تجاهل البلاغات</button>}
                         {dealers.length > 0 && (
                           <select value={l.dealer_id || ""} onChange={(e) => setListingDealer(l, e.target.value)} className="cm-input text-xs" style={{ width: "auto", padding: "0.3rem 0.5rem" }}>
@@ -2679,7 +2686,7 @@ function ListingCard({ l, onOpen, isFav, onFav, dealer, eager = false }) {
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter") onOpen(); }}
-      className="text-right cm-card rounded-xl overflow-hidden transition group cursor-pointer flex flex-col"
+      className={`text-right cm-card rounded-xl overflow-hidden transition group cursor-pointer flex flex-col ${isFeatured(l) && !l.sold ? "cm-card-featured" : ""}`}
     >
       <div className="cm-aspect-16-10 cm-media flex items-center justify-center overflow-hidden relative">
         {photo ? (
@@ -2700,6 +2707,7 @@ function ListingCard({ l, onOpen, isFav, onFav, dealer, eager = false }) {
 
         <div className="absolute top-2 right-2 flex flex-wrap gap-1 z-10">
           {l.sold && <span className="cm-tag cm-tag-dark">تم البيع</span>}
+          {!l.sold && isFeatured(l) && <span className="cm-tag cm-tag-gold">⭐ مميز</span>}
           {!l.sold && isRecent(l.created_at) && <span className="cm-tag cm-tag-mint">جديد</span>}
           {discount > 0 && <span className="cm-tag cm-tag-red">خصم {discount}%</span>}
           {l.condition === "جديدة" && <span className="cm-tag cm-tag-dark">سيارة جديدة</span>}
