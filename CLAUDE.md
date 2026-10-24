@@ -252,6 +252,14 @@ goes through Metricool and does not use the Chrome session.
 
 ## Open work
 
+- Broker outreach follow-up (owner: "review later"): on 2026-10-24 the ~34
+  contacted broker accounts were scored by new ads/day and duplicate share.
+  Worth following up: smsar_uae_33, smsar_4all, uae_cars_market, lexuscarz,
+  smsaruae_971, kfnsmsar, smsar3alain, uaecarsale, smsar__, smsar_car_,
+  smsar_988, uaecars, dxb.smsar (~45 new ads/day together). Mostly
+  duplicates: smsardxb, smsar_sharjha, smsar.adcars, smsarcars3, smsaruaq0.
+  Any reminder message needs the owner's approval.
+
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
   record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
   2026-10-10. Model pages and dealer pages are live and in the sitemap.
