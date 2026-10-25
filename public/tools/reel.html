@@ -219,9 +219,9 @@ async function make() {
     const sess = key && JSON.parse(localStorage.getItem(key));
     if (!sess || !sess.access_token) throw new Error('not signed in');
     const path = `${sess.user.id}/reel-${D.id || Date.now()}.mp4`;
-    const r = await fetch(`${SB}/storage/v1/object/car-images/${path}`, { method: 'POST', headers: { Authorization: 'Bearer ' + sess.access_token, apikey: ANON, 'Content-Type': 'video/mp4' }, body: blob });
+    const r = await fetch(`${SB}/storage/v1/object/reels/${path}`, { method: 'POST', headers: { Authorization: 'Bearer ' + sess.access_token, apikey: ANON, 'Content-Type': 'video/mp4' }, body: blob });
     if (!r.ok) throw new Error('upload ' + r.status + ' ' + (await r.text()).slice(0, 120));
-    R.url = `${SB}/storage/v1/object/public/car-images/${path}`;
+    R.url = `${SB}/storage/v1/object/public/reels/${path}`;
     out.innerHTML += ` · <a href="${R.url}" target="_blank">رابط الفيديو</a>`;
     say('تم ✅');
   } catch (e) { R.uploadError = String(e); say('الفيديو جاهز للتحميل (ما انرفع: ' + e.message + ')'); }
