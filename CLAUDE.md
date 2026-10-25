@@ -215,14 +215,16 @@ the chosen `dealer_id` and the credit line "📢 الإعلان من حساب �
 the owner's browser, so imports cost no Claude usage; Claude only helps when
 asked to check rows.
 
-## Daily broker import + social posts (since 2026-10-22)
+## Daily broker import + social posts (since 2026-10-22; split 2026-10-25)
 
-A scheduled task "CarsUAE daily import + social posts" runs every day at 10:41
-Dubai: it pulls new ads from the approved brokers (rows in `dealers`, plus the
-@050k stories for smsar.ajman.1) through the admin Importer in the owner's
-Chrome, then schedules that day's car posts on Instagram/Facebook/TikTok via
-Metricool (blog 7350493) with an Instagram story for each. Daily target starts
-at 12 posts on 2026-10-23 and grows by 2 a week (max 20; TikTok max 14/day).
+Two scheduled tasks (owner's schedule, lighter since 2026-10-25 to save usage):
+- "CarsUAE nightly broker import", every day ~10:53 pm Dubai: pulls new ads
+  from the approved brokers (rows in `dealers`, plus @smsar2rak and the
+  @050k stories for smsar.ajman.1, max 15 posts per broker) through the admin
+  Importer in the owner's Chrome. Needs the Chrome window open (not minimized).
+- "CarsUAE daily social posts", every day ~10:53 am Dubai: schedules 6 car
+  posts on Facebook + TikTok (Instagram max 4, ≥90 min apart, with a story
+  each) via Metricool (blog 7350493). No browser.
 `listings.social_posted_at` marks listings already posted to social, so they
 are not posted twice. Every social caption credits the broker
 ("📢 الإعلان من حساب @handle") and links to `carsuae.net/car/<id>`.
