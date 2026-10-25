@@ -3,7 +3,7 @@
 // shown to the admin for review before anything is published.
 
 const MAKES = [
-  ["مرسيدس", /مرسيدس|مرسدس|مارسيدس|مرسيدش|mercedes|benz|بنز|amg|g ?63|g ?500|s ?500|e ?300|c ?300|glc|gle|gls|cls|مايباخ/i],
+  ["مرسيدس", /\b[ces] ?63|مرسيدس|مرسدس|مارسيدس|مرسيدش|mercedes|benz|بنز|amg|g ?63|g ?500|s ?500|e ?300|c ?300|glc|gle|gls|cls|مايباخ/i],
   ["بي إم دبليو", /bmw|بي ?ام|بي إم|بيم|\bm[2-8]\b|\bx[3-7]\b/i],
   ["رولز رويس", /رولز|روز رايز|rolls|كولينان|cullinan|غوست|ghost|فانتوم/i],
   ["بي واي دي", /\bbyd\b|بي واي دي|ليوبارد|leopard/i],
@@ -50,19 +50,69 @@ const MAKES = [
   ["رينو", /رينو|renault/i],
 ];
 
+// Real brand names. A brand named in the ad beats a model nickname such as
+// "استيشن" or "فتك", and the brand named first wins.
+const BRANDS = {
+  "مرسيدس": /مرسيدس|مرسدس|مارسيدس|مرسيدش|mercedes|benz|بنز(?!ين)/i,
+  "بي إم دبليو": /bmw|بي ?ام ?دبليو|بي إم/i,
+  "رولز رويس": /رولز|rolls/i,
+  "بي واي دي": /\bbyd\b|بي واي دي/i,
+  "روكس": /\brox\b|روكس/i,
+  "جي إم سي": /جمس|جي ?ام ?سي|gmc/i,
+  "لكزس": /لكزس|ليكزس|لكسز|لكزز|lexus/i,
+  "نيسان": /نيسان|nissan/i,
+  "تويوتا": /تويوتا|تيوتا|toyota/i,
+  "إنفينيتي": /انفنتي|انفينيتي|انفنيتي|infiniti/i,
+  "كاديلاك": /كاديلاك|كادلك|cadillac/i,
+  "شيفروليه": /شفروليه|شيفروليه|شفرليه|شفرولية|chevrolet|chevy/i,
+  "فورد": /فورد|ford/i,
+  "دودج": /دودج|dodge/i,
+  "رام": /\bram\b/i,
+  "جيب": /جيب|jeep/i,
+  "لاند روفر": /لاند ?روفر|land ?rover|رن?ي?ج ?روفر|range ?rover/i,
+  "بورش": /بورش|porsche/i,
+  "أودي": /اودي|أودي|audi/i,
+  "فولكس واجن": /فولكس|volkswagen|\bvw\b/i,
+  "كيا": /\bkia\b|كيا /i,
+  "هيونداي": /هيونداي|هونداي|hyundai/i,
+  "جينيسيس": /جينيسيس|جنسس|genesis/i,
+  "ميتسوبيشي": /ميتسوبيشي|متسوبيشي|mitsubishi/i,
+  "هوندا": /هوندا|honda/i,
+  "مازدا": /مازدا|mazda/i,
+  "لينكولن": /لينكولن|لنكولن|lincoln/i,
+  "بنتلي": /بنتلي|bentley/i,
+  "مِيني": /ميني كوبر|mini cooper|\bmini\b/i,
+  "فيراري": /فيراري|ferrari/i,
+  "لامبورغيني": /لامبورغيني|لمبرقيني|لامبورجيني|lamborghini/i,
+  "مازيراتي": /مازيراتي|maserati/i,
+  "تسلا": /تسلا|tesla/i,
+  "هامر": /همر|هامر|hummer/i,
+  "سوزوكي": /سوزوكي|suzuki/i,
+  "إيسوزو": /ايسوزو|إيسوزو|isuzu/i,
+  "جيتور": /جيتور|jetour/i,
+  "شانجان": /شانجان|تشانجان|changan/i,
+  "إم جي": /\bmg\b|ام جي/i,
+  "جيلي": /جيلي|geely/i,
+  "هافال": /هافال|haval/i,
+  "جاكوار": /جاكوار|jaguar/i,
+  "فولفو": /فولفو|volvo/i,
+  "بيجو": /بيجو|peugeot/i,
+  "رينو": /رينو|renault/i,
+};
+
 const MODELS = {
-  "تويوتا": [["برادو", /برادو|prado/i], ["لاند كروزر", /لاند ?كروزر|لاندكروز|land ?cruiser|استيشن|ستيشن|vxr|gxr|exr/i], ["تندرا", /تندرا|تاندرا|tundra/i], ["تاكوما", /تاكوما|tacoma/i], ["كامري", /كامري|camry/i], ["فورتشنر", /فورتشنر|fortuner/i], ["هايلكس", /هايلكس|هايلوكس|hilux/i], ["كورولا", /كورولا|corolla/i], ["سيكويا", /سيكويا|sequoia/i], ["يارس", /يارس|yaris/i], ["راف فور", /راف ?فور|rav ?4/i], ["أفالون", /افالون|avalon/i], ["إف جي كروزر", /اف ?جي|\bfj\b/i], ["سوبرا", /supra|سوبرا/i]],
-  "نيسان": [["باترول سفاري", /سفاري|safari|فتك/i], ["باترول", /باترول|بترول se|patrol|نيسمو|nismo|بلاتينيوم|تيتانيوم|platinum|titanium/i], ["التيما", /التيما|altima/i], ["صني", /صني|sunny/i], ["أرمادا", /ارمادا|armada/i], ["باثفايندر", /باثفايندر|pathfinder/i], ["مكسيما", /ماكسيما|مكسيما|maxima/i], ["GT-R", /gtr|gt-r/i], ["إكس تريل", /تريل|x-?trail/i]],
-  "لكزس": [["LX", /\blx|ال اكس/i], ["ES", /\bes ?\d/i], ["RC", /\brc ?\d|\brc\b/i], ["IS", /\bis ?\d|\bisf\b/i], ["LS", /\bls ?\d/i], ["GX", /\bgx ?\d/i], ["RX", /\brx ?\d/i], ["NX", /\bnx ?\d/i]],
-  "مرسيدس": [["الفئة G", /\bg ?\d{2,3}\b|جي ?63|جي كلاس|g-?class|g ?wagon/i], ["AMG GT", /amg ?gt|\bgtr\b|gt r/i], ["CLS", /cls/i], ["GLC", /glc/i], ["GLE", /gle/i], ["GLS", /gls/i], ["GLA", /gla/i], ["CLA", /cla/i], ["الفئة S", /\bs ?\d{3}|s-?class|اس كلاس/i], ["الفئة E", /\be ?\d{3}|e-?class|اي كلاس/i], ["الفئة C", /\bc ?\d{3}|c-?class|سي كلاس/i], ["الفئة A", /\ba ?\d{3}\b|a-?class/i]],
+  "تويوتا": [["برادو", /برادو|prado/i], ["فورتشنر", /فورتشنر|fortuner/i], ["سيكويا", /سيكويا|sequoia/i], ["لاند كروزر", /لاند ?كروزر|لاندكروز|land ?cruiser|استيشن|ستيشن|vxr|gxr|exr/i], ["تندرا", /تندرا|تاندرا|tundra/i], ["تاكوما", /تاكوما|tacoma/i], ["كامري", /كامري|camry/i], ["هايلكس", /هايلكس|هايلوكس|hilux/i], ["كورولا", /كورولا|corolla/i], ["يارس", /يارس|yaris/i], ["راف فور", /راف ?فور|rav ?4/i], ["أفالون", /افالون|avalon/i], ["إف جي كروزر", /اف ?جي|\bfj\b/i], ["سوبرا", /supra|سوبرا/i]],
+  "نيسان": [["GT-R", /gtr|gt-r|جي تي ار|جي تي آر/i], ["370Z", /370 ?z/i], ["350Z", /350 ?z/i], ["280ZX", /280 ?zx|زد ?إ?ا?كس/i], ["سكايلاين", /سكاي ?لاين|skyline/i], ["باترول سفاري", /سفاري|safari|فتك/i], ["باترول", /باترول|بترول se|patrol|نيسمو|nismo|بلاتينيوم|تيتانيوم|platinum|titanium/i], ["التيما", /التيما|altima/i], ["صني", /صني|sunny/i], ["أرمادا", /ارمادا|armada/i], ["باثفايندر", /باثفايندر|pathfinder/i], ["مكسيما", /ماكسيما|مكسيما|maxima/i], ["إكس تريل", /تريل|x-?trail/i]],
+  "لكزس": [["LX", /\blx|ال اكس/i], ["ES", /\bes ?\d/i], ["RC", /\brc ?\d|\brc\b/i], ["IS", /\bis ?\d|\bisf\b/i], ["LS", /\bls ?\d/i], ["GS", /\bgs ?f?\b|\bgs ?\d/i], ["GX", /\bgx ?\d/i], ["RX", /\brx ?\d/i], ["NX", /\bnx ?\d/i]],
+  "مرسيدس": [["الفئة G", /\bg ?\d{2,3}\b|جي ?63|جي كلاس|g-?class|g-?wagon|جي واجن/i], ["AMG GT", /amg ?gt|\bgtr\b|gt r/i], ["CLS", /\bcls/i], ["GLC", /\bglc/i], ["GLE", /\bgle/i], ["GLS", /\bgls/i], ["GLA", /\bgla/i], ["CLA", /\bcla\b|\bcla ?\d/i], ["الفئة S", /\bs ?\d{3}|s-?class|اس كلاس/i], ["الفئة E", /\be ?\d{3}|e-?class|اي كلاس/i], ["الفئة C", /\bc ?\d{3}|c-?class|سي كلاس/i], ["الفئة A", /\ba ?\d{3}\b|a-?class/i]],
   "بي إم دبليو": [["الفئة 7", /\b7\d\d|7 ?series|الفئة السابعة/i], ["الفئة 5", /\b5\d\d[a-z]|5 ?series|\bm5\b/i], ["الفئة 4", /\b4\d\d[a-z]|\bm4\b/i], ["الفئة 3", /\b3\d\d[a-z]|\bm3\b/i], ["X5", /x5/i], ["X6", /x6/i], ["X7", /x7/i], ["X3", /x3/i], ["X4", /x4/i]],
-  "جي إم سي": [["يوكن", /يوكن|يوكون|yukon|دينالي|denali/i], ["سييرا", /سييرا|sierra/i], ["أكاديا", /اكاديا|acadia/i]],
+  "جي إم سي": [["أكاديا", /اكاديا|acadia/i], ["سييرا", /سييرا|sierra/i], ["يوكن", /يوكن|يوكون|yukon|دينالي|denali/i]],
   "شيفروليه": [["تاهو", /تاهو|tahoe/i], ["كابريس", /كابرس|كابريس|caprice/i], ["سيلفرادو", /سلفرادو|سيلفرادو|silverado/i], ["كامارو", /كمارو|كامارو|camaro/i], ["سوبربان", /سوبربان|suburban/i], ["كورفيت", /كورفيت|كورفت|corvette/i], ["SSR", /\bssr\b/i]],
   "فورد": [["F-150", /f-?150|رابتر|raptor/i], ["موستنج", /موستنج|موستانج|mustang/i], ["إكسبلورر", /اكسبلورر|explorer/i], ["إكسبيديشن", /اكسبديشن|اكسبيديشن|expedition/i], ["برونكو", /برونكو|bronco/i], ["تورس", /تورس|taurus/i]],
   "دودج": [["تشارجر", /تشارجر|charger/i], ["تشالنجر", /جالنجر|تشالنجر|challenger/i], ["دورانجو", /دورانجو|durango/i]],
   "رام": [["TRX", /trx/i], ["1500", /1500/], ["2500", /2500/]],
   "جيب": [["رانجلر", /رانجلر|رانقلر|wrangler/i], ["جراند شيروكي", /جراند|كراند|grand/i], ["غلاديتور", /غلاديتور|gladiator/i]],
-  "لاند روفر": [["ديفندر", /دفندر|ديفندر|defender/i], ["رينج روفر سبورت", /رنج سبورت|رينج سبورت|range rover sport/i], ["إيفوك", /ايفوك|evoque/i], ["فيلار", /فيلار|velar/i], ["ديسكفري", /ديسكفري|discovery/i], ["رينج روفر", /رنج|رينج|range|فوج|vogue/i]],
+  "لاند روفر": [["ديفندر", /دفندر|ديفندر|defender/i], ["رينج روفر سبورت", /رن?ي?ج ?(روفر)? ?\(?سبورت|range ?rover ?\(?sport/i], ["إيفوك", /ايفوك|evoque/i], ["فيلار", /فيلار|velar/i], ["ديسكفري", /ديسكفري|discovery/i], ["رينج روفر", /رنج|رينج|range|فوج|vogue/i]],
   "بورش": [["كايين", /كايين|كاين|cayenne/i], ["ماكان", /ماكان|macan/i], ["باناميرا", /باناميرا|panamera/i], ["بوكستر", /بوكستر|boxster/i], ["911", /911|كاريرا|carrera/i], ["تايكان", /تايكان|taycan/i]],
   "كيا": [["تيلورايد", /تيلورايد|ترولايت|telluride/i], ["سورينتو", /سورينتو|sorento/i], ["سبورتاج", /سبورتاج|sportage/i], ["كارنيفال", /كارنفال|كارنيفال|carnival/i], ["K5", /k5|اوبتيما/i], ["سيراتو", /سيراتو|cerato/i]],
   "هيونداي": [["النترا", /النترا|elantra/i], ["سوناتا", /سوناتا|sonata/i], ["توسان", /توسان|tucson/i], ["سنتافي", /سنتافي|santa/i], ["باليسايد", /باليسيد|باليسايد|palisade/i]],
@@ -73,19 +123,20 @@ const MODELS = {
   "أودي": [["A6", /\ba6/i], ["A8", /\ba8/i], ["Q7", /\bq7/i], ["Q8", /q8/i], ["RS6", /rs ?6/i]],
   "فولكس واجن": [["طوارق", /طوارق|touareg/i], ["جولف", /جولف|قولف|golf|gti/i], ["تيرامونت", /تيرامونت|teramont/i]],
   "رولز رويس": [["كولينان", /كولينان|cullinan/i], ["غوست", /غوست|ghost/i], ["فانتوم", /فانتوم|phantom/i]],
-  "بي واي دي": [["ليوبارد 5", /ليوبارد|leopard/i], ["كين بلس", /qin/i], ["سيل 05", /seal/i], ["ديستروير 05", /destroyer/i]],
+  "بي واي دي": [["ليوبارد 8", /ليوبارد ?8|leopard ?8/i], ["ليوبارد 5", /ليوبارد|leopard/i], ["كين بلس", /qin/i], ["سيل 05", /seal/i], ["ديستروير 05", /destroyer/i]],
   "روكس": [["أداماس", /ادماس|admas|adamas/i], ["01", /\b01\b/]],
-  "تسلا": [["Model 3", /model ?3|مودل 3/i], ["Model Y", /model ?y/i], ["Model S", /model ?s/i], ["Model X", /model ?x/i]],
+  "تسلا": [["Model 3", /model ?3|مو?دي?ل ?3/i], ["موديل Y", /model ?y|مو?دي?ل ?(y|واي)/i], ["Model S", /model ?s\b|مو?دي?ل ?s\b/i], ["موديل X", /model ?x|مو?دي?ل ?x/i]],
   "جيتور": [["T2", /\bt2\b/i], ["X70", /x70/i], ["X90", /x90/i]],
   "بيجو": [["بارتنر", /بارتنر|partner/i]],
 };
 
 const SUV = "دفع رباعي (SUV)";
 const BODY = [
-  [/لاند كروزر|باترول|برادو|فورتشنر|سيكويا|LX|GX|RX|NX|الفئة G|GLC|GLA|GLE|GLS|يوكن|تاهو|سوبربان|ديفندر|رينج|إيفوك|فيلار|ديسكفري|كايين|ماكان|رانجلر|جراند شيروكي|أرمادا|باثفايندر|طوارق|تيرامونت|تيلورايد|سورينتو|سبورتاج|سنتافي|توسان|باليسايد|أداماس|^01$|T2|X70|X90|QX|ليوبارد|إسكاليد|كولينان|X\d|إكسبلورر|إكسبيديشن|برونكو|دورانجو|نافيجيتور|باجيرو|بايلوت|Q7|Q8/, SUV],
+  [/لاند كروزر|باترول|برادو|فورتشنر|سيكويا|LX|GX|RX|NX|الفئة G|GLC|GLA|GLE|GLS|يوكن|تاهو|سوبربان|ديفندر|رينج|إيفوك|فيلار|ديسكفري|كايين|ماكان|رانجلر|جراند شيروكي|أرمادا|باثفايندر|طوارق|تيرامونت|تيلورايد|سورينتو|سبورتاج|سنتافي|توسان|باليسايد|أداماس|^01$|T2|X70|X90|QX|ليوبارد|إسكاليد|كولينان|X\d|إكسبلورر|إكسبيديشن|برونكو|دورانجو|نافيجيتور|باجيرو|بايلوت|Q7|Q8|موديل Y|موديل X|CS\d\d/, SUV],
   [/تندرا|تاكوما|سييرا|سيلفرادو|هايلكس|TRX|SSR|F-150|1500|2500|L200|غلاديتور/, "بيك أب"],
   [/كورفيت|911|بوكستر|AMG GT|GT-R|كامارو|موستنج|سوبرا/, "رياضية"],
-  [/RC|الفئة 4|تشالنجر/, "كوبيه"],
+  [/RC|الفئة 4|الفئة 6|تشالنجر|370Z|350Z|280ZX|سكايلاين/, "كوبيه"],
+  [/جولف|كوبر|يارس/, "هاتشباك"],
   [/بارتنر/, "فان"],
 ];
 
@@ -108,9 +159,20 @@ export function excludeReason(caption, imageCount) {
 }
 
 export function parseCaption(caption) {
-  const c = toAsciiDigits(caption || "").replace(/[‎‏]/g, "");
-  const make = (MAKES.find(([, r]) => r.test(c)) || [""])[0];
-  const model = ((MODELS[make] || []).find(([, r]) => r.test(c)) || [""])[0];
+  const c = toAsciiDigits(caption || "").replace(/[\u200e\u200f]/g, "")
+    // "Long Range" (Tesla) is not a Range Rover.
+    .replace(/لونج ?رينج|لونق ?رينج|long ?range/gi, "طويل_المدى");
+  // The car's name is in the first line(s): look there first (later text
+  // often mentions other cars, e.g. "for sale or swap with a Tesla").
+  const head = c.slice(0, 120);
+  const earliest = (pairs, text) => pairs.map(([name, r], i) => { const m = r.exec(text); return m ? [name, m.index, i] : null; })
+    .filter(Boolean).sort((x, y) => x[1] - y[1] || x[2] - y[2])[0];
+  const brandPairs = Object.entries(BRANDS);
+  const make = ((earliest(brandPairs, head) || earliest(MAKES, head) || earliest(brandPairs, c) || earliest(MAKES, c)) || [""])[0];
+  // Models are listed most specific first (GT-R before Skyline, Super Safari
+  // before Patrol, Range Rover Sport before Range Rover).
+  const list = MODELS[make] || [];
+  const model = ((list.find(([, r]) => r.test(head)) || list.find(([, r]) => r.test(c))) || [""])[0];
   const years = (c.match(/\b(19[6-9]\d|20[0-2]\d)\b/g) || []).map(Number).filter((y) => y <= new Date().getFullYear() + 1);
 
   let price = null;
@@ -159,7 +221,8 @@ export function parseCaption(caption) {
   const negotiable = /غير قابل|non.?negotiable|نهائي/i.test(c) ? false : /قابل|negotiable|تفاوض/i.test(c);
   const trans = /قير عادي|قير يدوي|مانيوال|manual|جير عادي/i.test(c) ? "مانيوال" : "أوتوماتيك";
   const fuel = /هايبرد|هجين|hybrid|بلقن/i.test(c) ? "هجين"
-    : /كهربائي|كهربائيه|electric/i.test(c) && !/بترول/.test(c) ? "كهربائي"
+    // "كراسي كهربائية" (electric seats) does not make a car electric.
+    : make === "تسلا" || /\bev\b|كهربائية بالكامل|كهربائي بالكامل|full(y)? electric|100% ?كهرب/i.test(c) ? "كهربائي"
     : /ديزل|diesel/i.test(c) ? "ديزل" : "بنزين";
   const condition = /زيرو كيلو|صفر كيلو|تسليم فوري|zero km|\bnew\b/i.test(c) ? "جديدة" : "مستعملة";
   const body = (BODY.find(([r]) => r.test(model)) || [null, model ? "سيدان" : ""])[1];
