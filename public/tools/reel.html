@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>CarsUAE — صانع الريلز</title>
+<style>
+  body{margin:0;background:#0b1020;color:#e5e7eb;font-family:Tahoma,Arial,sans-serif;display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px}
+  canvas{width:min(360px,90vw);height:auto;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.5);background:#000}
+  button{background:#1d4ed8;color:#fff;border:0;border-radius:12px;padding:12px 22px;font-size:16px;font-weight:700;cursor:pointer}
+  #st{font-size:14px;min-height:20px;text-align:center}
+  a{color:#93c5fd}
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<div id="st">جاري التحميل…</div>
+<div><button id="go" disabled>اصنع الريل</button></div>
+<div id="out"></div>
+<script type="module">
+const SB = 'https://bfdyxoycbwlibzcovxef.supabase.co';
+const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmZHl4b3ljYndsaWJ6Y292eGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NTM1NTIsImV4cCI6MjEwMzQyOTU1Mn0.dJu21JyKSehKRjoO4qcf5UNR-0EOypQiBNP-2rH10Ao';
+const W = 1080, H = 1920, FPS = 30, DUR = 15;
+const qs = new URLSearchParams(location.search);
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const st = document.getElementById('st'), out = document.getElementById('out'), go = document.getElementById('go');
+const R = window.__reel = { state: 'loading', url: null, error: null, progress: 0 };
+const say = (t) => { st.textContent = t; };
+
+const cl = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const p = (t, a, b) => cl((t - a) / (b - a));
+const E = { out: t => 1 - Math.pow(1 - t, 3), in: t => t * t * t, back: t => { const c = 1.70158, c3 = c + 1; return 1 + c3 * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); } };
+const fmt = n => Number(n).toLocaleString('en-US');
+const CAR = new Path2D('M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2M9 17h6');
+
+let D = null, IMGS = [], MUSIC = null;
+
+async function loadAll() {
+  const fonts = [['900', 'Tajawal-Black.ttf'], ['700', 'Tajawal-Bold.ttf'], ['500', 'Tajawal-Medium.ttf']];
+  await Promise.all(fonts.map(async ([w, f]) => { const ff = new FontFace('Taj', `url(/media/reel/${f})`, { weight: w }); await ff.load(); document.fonts.add(ff); }));
+  if (qs.get('data')) D = JSON.parse(qs.get('data'));
+  else {
+    const id = qs.get('id'); if (!id) throw new Error('no id');
+    const r = await fetch(`${SB}/rest/v1/listings?id=eq.${encodeURIComponent(id)}&select=*`, { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } });
+    const j = await r.json(); if (!j[0]) throw new Error('listing not found'); D = j[0];
+  }
+  const credit = (D.description || '').match(/@([A-Za-z0-9._]+)/);
+  D._credit = qs.get('credit') ?? (credit ? '@' + credit[1] : '');
+  D._title = qs.get('title') || [D.make, D.model].filter(Boolean).join(' ');
+  const srcs = (D.images && D.images.length ? D.images : [D.image]).filter(Boolean).slice(0, 6);
+  IMGS = (await Promise.all(srcs.map(src => new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = src; })))).filter(Boolean);
+  if (!IMGS.length) throw new Error('no images');
+  try { const buf = await (await fetch('/media/reel/music.m4a')).arrayBuffer(); MUSIC = await new OfflineAudioContext(2, 48000 * DUR, 48000).decodeAudioData(buf); } catch (e) { MUSIC = null; }
+}
+
+// ---------- drawing ----------
+function cover(im, x, y, w, h, s = 1, dx = 0, dy = 0) {
+  const r = Math.max(w / im.width, h / im.height) * s;
+  const iw = im.width * r, ih = im.height * r;
+  ctx.drawImage(im, x + (w - iw) / 2 + dx, y + (h - ih) / 2 + dy, iw, ih);
+}
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function text(s, x, y, size, weight, color, align = 'center', alpha = 1) {
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.font = `${weight} ${size}px Taj`; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.direction = 'rtl'; ctx.fillText(s, x, y); ctx.restore();
+}
+function logo(cx, cy, sc, alpha = 1) {
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(cx, cy); ctx.scale(sc, sc);
+  // icon (left) + wordmark (right) laid out LTR
+  ctx.direction = 'ltr';
+  ctx.font = '900 64px Taj';
+  const wm = 'CarsUAE', w1 = ctx.measureText('Cars').width, w2 = ctx.measureText('UAE').width;
+  const total = 84 + 18 + w1 + w2; let x = -total / 2;
+  rr(x, -42, 84, 84, 22); ctx.fillStyle = '#1d4ed8'; ctx.fill();
+  ctx.save(); ctx.translate(x + 12, -30); ctx.scale(2.5, 2.5); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(CAR);
+  ctx.beginPath(); ctx.arc(7, 17, 2, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(17, 17, 2, 0, 7); ctx.stroke(); ctx.restore();
+  x += 84 + 18; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff'; ctx.fillText('Cars', x, 4); ctx.fillStyle = '#60a5fa'; ctx.fillText('UAE', x + w1, 4);
+  ctx.restore();
+}
+function pill(label, x, y, alpha, dy) {
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.font = '700 46px Taj'; ctx.direction = 'rtl';
+  const w = ctx.measureText(label).width + 84;
+  rr(x - w, y - 40 + dy, w, 80, 40); ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x - 34, y + dy, 9, 0, 7); ctx.fillStyle = '#f59e0b'; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(label, x - 58, y + 3 + dy);
+  ctx.restore(); return w;
+}
+
+function slots() {
+  const n = IMGS.length, endT = 11.8, seg = endT / n;
+  return IMGS.map((im, i) => ({ im, a: i * seg, b: (i + 1) * seg + .3 }));
+}
+const specs = () => {
+  const s = [];
+  if (D.mileage) s.push(fmt(D.mileage) + ' كم');
+  if (D.specs) s.push(D.specs);
+  if (D.city) s.push(D.city);
+  if (D.fuel && D.fuel !== 'بنزين') s.push(D.fuel);
+  else if (D.trans) s.push(D.trans);
+  return s.slice(0, 4);
+};
+
+function draw(t) {
+  ctx.save(); ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#060d24'; ctx.fillRect(0, 0, W, H);
+  // photos with blurred background + full photo in frame
+  for (const [i, s] of slots().entries()) {
+    if (t < s.a - .01 || t > s.b) continue;
+    const fade = i === 0 ? 1 : E.out(p(t, s.a, s.a + .35));
+    const k = p(t, s.a, s.b), zoom = 1.04 + .08 * k, pan = (i % 2 ? 1 : -1) * 30 * (k - .5);
+    ctx.save(); ctx.globalAlpha = fade;
+    ctx.filter = 'blur(38px) brightness(.55)'; cover(s.im, -60, -60, W + 120, H + 120, 1.05); ctx.filter = 'none';
+    const fh = Math.min(1500, W / (s.im.width / s.im.height));
+    ctx.save(); rr(0, 250, W, 1200, 0); ctx.clip(); cover(s.im, 0, 250 + (1200 - Math.max(fh, 1200)) / 2, W, Math.max(fh, 1200), zoom, pan, 0); ctx.restore();
+    ctx.restore();
+  }
+  // gradients for legibility
+  let g = ctx.createLinearGradient(0, 0, 0, 380); g.addColorStop(0, 'rgba(6,13,36,.85)'); g.addColorStop(1, 'rgba(6,13,36,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, 380);
+  g = ctx.createLinearGradient(0, 1150, 0, H); g.addColorStop(0, 'rgba(6,13,36,0)'); g.addColorStop(.35, 'rgba(6,13,36,.82)'); g.addColorStop(1, 'rgba(6,13,36,.97)'); ctx.fillStyle = g; ctx.fillRect(0, 1150, W, H - 1150);
+  // header: logo + for-sale tag
+  const hA = 1 - p(t, 11.6, 11.9);
+  logo(330, 150, 1, hA * E.out(p(t, .1, .5)));
+  { const a = hA * E.out(p(t, .3, .7)); ctx.save(); ctx.globalAlpha = a; rr(W - 60 - 200, 112, 200, 76, 38); ctx.fillStyle = '#f59e0b'; ctx.fill(); ctx.restore(); text('للبيع', W - 160, 152, 46, 900, '#1f1300', 'center', a); }
+  // title + year
+  const tIn = E.out(p(t, .35, .9)), tA = tIn * (1 - p(t, 9.3, 9.6));
+  ctx.save(); ctx.font = '900 96px Taj'; let tw = ctx.measureText(D._title).width; ctx.restore();
+  const tSize = tw > 900 ? 96 * 900 / tw : 96;
+  text(D._title, W - 70, 1470 + (1 - tIn) * 60, tSize, 900, '#fff', 'right', tA);
+  if (D.year) { const a = tA * E.out(p(t, .6, 1.0)); ctx.save(); ctx.globalAlpha = a; rr(W - 70 - 190, 1316, 190, 84, 24); ctx.fillStyle = '#1d4ed8'; ctx.fill(); ctx.restore(); text(String(D.year), W - 70 - 95, 1360, 54, 900, '#fff', 'center', a); }
+  // spec pills
+  let x = W - 70, y = 1610;
+  specs().forEach((s, i) => {
+    const a0 = 1.2 + i * .35, a = E.out(p(t, a0, a0 + .4)) * (1 - p(t, 9.3, 9.6));
+    ctx.save(); ctx.font = '700 46px Taj'; const w = ctx.measureText(s).width + 84; ctx.restore();
+    if (x - w < 70) { x = W - 70; y += 104; }
+    pill(s, x, y, a, (1 - E.out(p(t, a0, a0 + .4))) * 40); x -= w + 18;
+  });
+  // price card
+  if (t > 9.4 && t < 12) {
+    const a = E.out(p(t, 9.5, 9.9)) * (1 - p(t, 11.6, 11.9)), sc = .85 + .15 * E.back(p(t, 9.5, 10.0));
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, 1620); ctx.scale(sc, sc);
+    rr(-430, -170, 860, 340, 48); ctx.fillStyle = 'rgba(6,13,36,.78)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(245,158,11,.75)'; ctx.stroke();
+    ctx.restore();
+    const priceTxt = D.price ? fmt(D.price) + ' درهم' : 'السعر عند التواصل';
+    text('السعر', W / 2, 1620 - 85 * sc, 50, 700, '#cbd5e1', 'center', a);
+    text(priceTxt, W / 2, 1620 + 30 * sc, D.price ? 112 : 80, 900, '#f59e0b', 'center', a);
+    text(D._title + (D.year ? ' ' + D.year : ''), W / 2, 1380, 64, 900, '#fff', 'center', a);
+  }
+  // end card
+  if (t > 11.6) {
+    const a = E.out(p(t, 11.6, 12.0));
+    ctx.save(); ctx.globalAlpha = a; const bg = ctx.createRadialGradient(W / 2, 700, 100, W / 2, 900, 1400); bg.addColorStop(0, '#1d3fa8'); bg.addColorStop(.55, '#0b1a4a'); bg.addColorStop(1, '#060d24'); ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H); ctx.restore();
+    logo(W / 2, 700, 1.8 * (.6 + .4 * E.back(p(t, 11.7, 12.3))), a);
+    const b = E.out(p(t, 12.2, 12.6)), sc = (.7 + .3 * E.back(p(t, 12.2, 12.7))) * (1 + .03 * Math.sin((t - 12.7) * 6) * (t > 12.7));
+    ctx.save(); ctx.globalAlpha = b; ctx.translate(W / 2, 960); ctx.scale(sc, sc); rr(-300, -66, 600, 132, 66); ctx.fillStyle = '#f59e0b'; ctx.shadowColor = 'rgba(245,158,11,.6)'; ctx.shadowBlur = 50; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.globalAlpha = b; ctx.translate(W / 2, 966); ctx.scale(sc, sc); ctx.font = '900 64px Taj'; ctx.fillStyle = '#1f1300'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'ltr'; ctx.fillText('carsuae.net', 0, 0); ctx.restore();
+    text('تفاصيل الإعلان والتواصل على الموقع', W / 2, 1140, 52, 700, '#e5e7eb', 'center', E.out(p(t, 12.6, 13.0)));
+    text('الرابط في البايو 👆', W / 2, 1230, 48, 700, '#93c5fd', 'center', E.out(p(t, 12.9, 13.3)));
+    if (D._credit) { ctx.save(); ctx.globalAlpha = E.out(p(t, 13.2, 13.6)); ctx.font = '500 40px Taj'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'rtl'; ctx.fillText('الإعلان من حساب \u2066' + D._credit + '\u2069', W / 2, 1700); ctx.restore(); }
+  }
+  // fade out last 0.4s
+  if (t > DUR - .4) { ctx.fillStyle = `rgba(6,13,36,${p(t, DUR - .4, DUR)})`; ctx.fillRect(0, 0, W, H); }
+  ctx.restore();
+}
+window.__draw = draw;
+
+// ---------- encode ----------
+async function make() {
+  R.state = 'encoding'; go.disabled = true;
+  const { Muxer, ArrayBufferTarget } = await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/+esm');
+  let vcodec = null;
+  for (const c of ['avc1.640028', 'avc1.4d0028', 'avc1.42e028']) {
+    const s = await VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: 9e6, framerate: FPS });
+    if (s.supported) { vcodec = c; break; }
+  }
+  if (!vcodec) throw new Error('H.264 encoder not supported in this browser');
+  let audioOK = false;
+  if (MUSIC && 'AudioEncoder' in window) {
+    try { audioOK = (await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 })).supported; } catch (e) { }
+  }
+  const target = new ArrayBufferTarget();
+  const muxer = new Muxer({ target, fastStart: 'in-memory', video: { codec: 'avc', width: W, height: H, frameRate: FPS }, ...(audioOK ? { audio: { codec: 'aac', sampleRate: 48000, numberOfChannels: 2 } } : {}) });
+  let err = null;
+  const ve = new VideoEncoder({ output: (ch, meta) => muxer.addVideoChunk(ch, meta), error: e => err = e });
+  ve.configure({ codec: vcodec, width: W, height: H, bitrate: 9e6, framerate: FPS, avc: { format: 'avc' } });
+  const N = DUR * FPS;
+  for (let i = 0; i < N; i++) {
+    if (err) throw err;
+    draw(i / FPS);
+    const fr = new VideoFrame(cv, { timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    ve.encode(fr, { keyFrame: i % 60 === 0 }); fr.close();
+    while (ve.encodeQueueSize > 8) await new Promise(r => setTimeout(r, 5));
+    if (i % 15 === 0) { R.progress = Math.round(i / N * 100); say('جاري صنع الفيديو… ' + R.progress + '%'); await new Promise(r => setTimeout(r, 0)); }
+  }
+  await ve.flush();
+  if (audioOK) {
+    const ae = new AudioEncoder({ output: (ch, meta) => muxer.addAudioChunk(ch, meta), error: e => err = e });
+    ae.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 });
+    const L = MUSIC.getChannelData(0), Rr = MUSIC.numberOfChannels > 1 ? MUSIC.getChannelData(1) : L;
+    const total = Math.min(L.length, 48000 * DUR), CH = 1024;
+    for (let s = 0; s < total; s += CH) {
+      const n = Math.min(CH, total - s), buf = new Float32Array(n * 2);
+      buf.set(L.subarray(s, s + n), 0); buf.set(Rr.subarray(s, s + n), n);
+      const ad = new AudioData({ format: 'f32-planar', sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(s * 1e6 / 48000), data: buf });
+      ae.encode(ad); ad.close();
+    }
+    await ae.flush();
+  }
+  if (err) throw err;
+  muxer.finalize();
+  const blob = new Blob([target.buffer], { type: 'video/mp4' });
+  R.size = blob.size; R.audio = audioOK; R.codec = vcodec;
+  const local = URL.createObjectURL(blob);
+  out.innerHTML = `<a href="${local}" download="reel-${D.id || 'car'}.mp4">⬇️ تحميل الفيديو</a>`;
+  // upload with the signed-in admin session (if any)
+  say('جاري الرفع…');
+  try {
+    const key = Object.keys(localStorage).find(k => /^sb-.*-auth-token$/.test(k));
+    const sess = key && JSON.parse(localStorage.getItem(key));
+    if (!sess || !sess.access_token) throw new Error('not signed in');
+    const path = `${sess.user.id}/reel-${D.id || Date.now()}.mp4`;
+    const r = await fetch(`${SB}/storage/v1/object/car-images/${path}`, { method: 'POST', headers: { Authorization: 'Bearer ' + sess.access_token, apikey: ANON, 'Content-Type': 'video/mp4' }, body: blob });
+    if (!r.ok) throw new Error('upload ' + r.status + ' ' + (await r.text()).slice(0, 120));
+    R.url = `${SB}/storage/v1/object/public/car-images/${path}`;
+    out.innerHTML += ` · <a href="${R.url}" target="_blank">رابط الفيديو</a>`;
+    say('تم ✅');
+  } catch (e) { R.uploadError = String(e); say('الفيديو جاهز للتحميل (ما انرفع: ' + e.message + ')'); }
+  R.state = 'done'; go.disabled = false;
+}
+window.makeReel = () => make().catch(e => { R.state = 'error'; R.error = String(e); say('خطأ: ' + e.message); go.disabled = false; });
+go.onclick = window.makeReel;
+
+loadAll().then(() => {
+  R.state = 'ready'; say('جاهز — ' + D._title + ' · ' + IMGS.length + ' صور'); go.disabled = false;
+  const pv = qs.get('t'); draw(pv ? +pv : 1.5);
+  if (qs.get('auto') === '1') window.makeReel();
+}).catch(e => { R.state = 'error'; R.error = String(e); say('خطأ: ' + e.message); });
+</script>
+</body>
+</html>
