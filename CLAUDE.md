@@ -225,6 +225,11 @@ Two scheduled tasks (owner's schedule, lighter since 2026-10-25 to save usage):
 - "CarsUAE daily social posts", every day ~10:53 am Dubai: schedules 6 car
   posts on Facebook + TikTok (Instagram max 4, ≥90 min apart, with a story
   each) via Metricool (blog 7350493). No browser.
+**New brokers (owner rule, 2026-10-25):** when a broker is newly added to
+`dealers`, import their last 14 days of posts right away (not just the
+nightly window), skipping anything already on the site (phone+make+year),
+repeats inside the batch, posts with no year, and non-cars. Done first for
+dealspote (99 ads).
 `listings.social_posted_at` marks listings already posted to social, so they
 are not posted twice. Every social caption credits the broker
 ("📢 الإعلان من حساب @handle") and links to `carsuae.net/car/<id>`.
