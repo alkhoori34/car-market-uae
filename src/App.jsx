@@ -429,11 +429,12 @@ function Badge({ children, tone = "blue" }) {
 }
 
 // Shown under the seller's own cards: sold, expired, or days left.
-function ListingStatus({ l }) {
+// The views count is for the admin only (owner's request, 2026-10-25).
+function ListingStatus({ l, showViews }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <ListingState l={l} />
-      <Badge tone="muted"><Eye size={11} /> {formatNumber(l.views || 0)} مشاهدة</Badge>
+      {showViews && <Badge tone="muted"><Eye size={11} /> {formatNumber(l.views || 0)} مشاهدة</Badge>}
     </div>
   );
 }
@@ -1586,7 +1587,7 @@ export default function CarMarket() {
                         {view === "mine" && (
                           <>
                             <div className="pt-2">
-                              <ListingStatus l={l} />
+                              <ListingStatus l={l} showViews={isAdmin} />
                             </div>
                             <div className="flex gap-2 pt-2">
                               {l.sold ? (
@@ -2202,7 +2203,7 @@ export default function CarMarket() {
                   <h3 className="cm-display font-extrabold text-xl">{active.make} {active.model}</h3>
                   <p className="text-xs cm-text-muted mt-1 flex flex-wrap items-center gap-1">
                     <span>{timeAgo(active.created_at)} · {active.city || "-"}</span>
-                    <span>· <Eye size={11} className="inline" /> {formatNumber(active.views || 0)} مشاهدة</span>
+                    {isAdmin && <span>· <Eye size={11} className="inline" /> {formatNumber(active.views || 0)} مشاهدة</span>}
                   </p>
                   {makeSlug(active.make) && modelSlug(active.model) && (
                     <a href={paths.model(active.make, active.model)} onClick={(e) => { e.preventDefault(); setActive(null); applyRoute({ kind: "model", make: active.make, modelSlug: modelSlug(active.model) }); window.history.pushState({}, "", paths.model(active.make, active.model)); }} className="text-xs cm-link font-bold mt-1 inline-block">
