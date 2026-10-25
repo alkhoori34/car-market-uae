@@ -156,7 +156,6 @@ function draw(t) {
     ctx.save(); ctx.globalAlpha = b; ctx.translate(W / 2, 966); ctx.scale(sc, sc); ctx.font = '900 64px Taj'; ctx.fillStyle = '#1f1300'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'ltr'; ctx.fillText('carsuae.net', 0, 0); ctx.restore();
     text('تفاصيل الإعلان والتواصل على الموقع', W / 2, 1140, 52, 700, '#e5e7eb', 'center', E.out(p(t, 12.6, 13.0)));
     text('الرابط في البايو 👆', W / 2, 1230, 48, 700, '#93c5fd', 'center', E.out(p(t, 12.9, 13.3)));
-    if (D._credit) { ctx.save(); ctx.globalAlpha = E.out(p(t, 13.2, 13.6)); ctx.font = '500 40px Taj'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'rtl'; ctx.fillText('الإعلان من حساب \u2066' + D._credit + '\u2069', W / 2, 1700); ctx.restore(); }
   }
   // fade out last 0.4s
   if (t > DUR - .4) { ctx.fillStyle = `rgba(6,13,36,${p(t, DUR - .4, DUR)})`; ctx.fillRect(0, 0, W, H); }

@@ -229,7 +229,7 @@ Two scheduled tasks (owner's schedule, lighter since 2026-10-25 to save usage):
   photo posts if Chrome is not available.
 - **Reel maker** `public/tools/reel.html?id=<listing id>` (optional `&title=`):
   draws a 15 s 1080x1920 reel (photos, title/year, spec pills, price card,
-  end card, credit) on a canvas and encodes MP4 with WebCodecs + mp4-muxer
+  end card) on a canvas and encodes MP4 with WebCodecs + mp4-muxer
   (jsdelivr) in the browser, music `public/media/reel/music.m4a`, fonts
   Tajawal (OFL) in the same folder. With an admin session it uploads to the
   public Storage bucket `reels` (`reels-bucket.sql`; `car-images` only
