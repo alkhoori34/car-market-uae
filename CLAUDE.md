@@ -222,7 +222,7 @@ Two scheduled tasks (owner's schedule, lighter since 2026-10-25 to save usage):
   from the approved brokers (rows in `dealers`, plus @smsar2rak and the
   @050k stories for smsar.ajman.1, max 15 posts per broker) through the admin
   Importer in the owner's Chrome. Needs the Chrome window open (not minimized).
-- "CarsUAE daily social posts", every day ~10:53 am Dubai: schedules 6 car
+- "CarsUAE daily social posts", every day ~10:53 am Dubai: schedules 10 car
   posts on Facebook + TikTok (Instagram max 4, ≥90 min apart) via Metricool
   (blog 7350493). Since 2026-10-26 (owner's choice) they are animated REELS
   made per listing by the reel maker in the owner's Chrome; falls back to
