@@ -223,8 +223,17 @@ Two scheduled tasks (owner's schedule, lighter since 2026-10-25 to save usage):
   @050k stories for smsar.ajman.1, max 15 posts per broker) through the admin
   Importer in the owner's Chrome. Needs the Chrome window open (not minimized).
 - "CarsUAE daily social posts", every day ~10:53 am Dubai: schedules 6 car
-  posts on Facebook + TikTok (Instagram max 4, ≥90 min apart, with a story
-  each) via Metricool (blog 7350493). No browser.
+  posts on Facebook + TikTok (Instagram max 4, ≥90 min apart) via Metricool
+  (blog 7350493). Since 2026-10-26 (owner's choice) they are animated REELS
+  made per listing by the reel maker in the owner's Chrome; falls back to
+  photo posts if Chrome is not available.
+- **Reel maker** `public/tools/reel.html?id=<listing id>` (optional `&title=`):
+  draws a 15 s 1080x1920 reel (photos, title/year, spec pills, price card,
+  end card, credit) on a canvas and encodes MP4 with WebCodecs + mp4-muxer
+  (jsdelivr) in the browser, music `public/media/reel/music.m4a`, fonts
+  Tajawal (OFL) in the same folder. With an admin session it uploads to the
+  public Storage bucket `reels` (`reels-bucket.sql`; `car-images` only
+  accepts images). `window.makeReel()` / `window.__reel` for automation.
 **New brokers (owner rule, 2026-10-25):** when a broker is newly added to
 `dealers`, import their last 14 days of posts right away (not just the
 nightly window), skipping anything already on the site (phone+make+year),
