@@ -338,6 +338,83 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "car-ownership-transfer-uae": {
+    title: "Used car ownership transfer in Dubai and the UAE: steps and documents",
+    description: "How to transfer ownership of a used car in Dubai and the other emirates: documents, fines and mortgage, insurance and inspection, the online sale agreement, and mistakes to avoid.",
+    body: [
+      ["p", "Agreed on the car and paid a deposit? Good, but the deal isn't done until the car is officially in the buyer's name. Transferring ownership in the UAE is easier than it used to be and mostly happens on your phone, but there are steps and documents, and missing one stalls the whole thing. This guide walks through the Dubai process step by step as the Roads and Transport Authority (RTA) describes it, and what to do if the car is registered in another emirate."],
+
+      ["h2", "1. First: clear the car's file"],
+      ["p", "Most stalled transfers come down to one thing: the car's file isn't clean. The seller should sort these out before starting:"],
+      ["ul", [
+        "Pay every traffic fine on the car, in Dubai and in the other emirates too.",
+        "If the car is mortgaged to a bank, settle the loan and release the mortgage. In Dubai the release is electronic once the bank sends it.",
+        "If the registration has expired, pay the non-renewal fine.",
+      ]],
+      ["tip", "Buyers: don't pay in full before confirming the car has no mortgage and no fines. If the seller is paying off the loan with your money, pay the bank directly with clear paperwork."],
+
+      ["h2", "2. Documents you need"],
+      ["p", "The list is short, but every item matters:"],
+      ["ul", [
+        "A valid Emirates ID for the seller and the buyer.",
+        "New electronic insurance in the buyer's name.",
+        "A passed electronic technical inspection. New cars under three years old usually don't need one, but confirm at the time.",
+        "If the customs card shows the car isn't GCC spec (imported), proof of compliance with GCC specifications is required.",
+        "If someone acts for the seller or buyer: a power of attorney covering the sale and disposal of vehicles. A power of attorney issued outside the UAE must be attested by the Ministry of Foreign Affairs.",
+        "A buyer without a traffic file: Emirates ID for citizens, or passport, residence visa and an Emirates ID copy for residents.",
+      ]],
+      ["cta", { text: "Before finishing the paperwork, make sure the VIN matches the car and see what it tells you.", href: "/vin-check", label: "Check the VIN" }],
+
+      ["h2", "3. The steps in Dubai, from your phone"],
+      ["p", "Dubai's RTA now uses an electronic sale and purchase agreement, and traditional paper agreements are no longer accepted at service centres. The seller starts the transaction:"],
+      ["ol", [
+        "The seller logs in to the RTA app, the RTA website or the Dubai Now app with UAE Pass and chooses the change vehicle ownership service.",
+        "They select the car and pay any fines.",
+        "They enter the buyer's Emirates ID number and mobile number.",
+        "They choose what to do with the plate: hand it over or reserve it.",
+        "The buyer receives a link by message, signs the agreement and pays the fees.",
+        "The seller then signs and hands over the plate.",
+        "The buyer completes insurance, inspection and registration at a service centre.",
+      ]],
+      ["p", "If you'd rather not use the app, you can do it at a Customer Happiness Centre or a vehicle registration and inspection centre: staff send you a link to upload the documents and sign electronically."],
+
+      ["h2", "4. Important things to know"],
+      ["ul", [
+        "The online sale agreement is valid for 14 days only. If you don't finish within that time it is cancelled and you start again, and the RTA advises completing the whole transaction within 14 days to avoid fines.",
+        "If anything in the agreement changes after both of you sign, it becomes void.",
+        "Ownership moves to the buyer only after the seller hands over the plate.",
+        "If the seller isn't available, the buyer can complete it with a sale agreement from an accredited Dubai showroom.",
+        "The online agreement is for Dubai. A car registered in another emirate follows that emirate's system.",
+      ]],
+
+      ["h2", "5. Car registered in Abu Dhabi, Sharjah or another emirate?"],
+      ["p", "Each emirate has its own licensing authority, and the idea is roughly the same: a clean file, insurance in the buyer's name, inspection where required, and both parties present or signing electronically."],
+      ["ul", [
+        "Abu Dhabi: the service is on the TAMM platform.",
+        "Other emirates: through the Ministry of Interior app and website, or the emirate's licensing centres.",
+        "Conditions and fees change from time to time, so check them on the authority's own site before you go rather than relying on figures from other websites.",
+      ]],
+
+      ["h2", "6. Mistakes that ruin the deal"],
+      ["ul", [
+        "Handing over the car or the key before the full amount arrives. Make payment happen at the transfer, and a bank transfer is safer than a lot of cash.",
+        "Buying without an inspection. Have the car checked at an approved centre before you sign anything.",
+        "Agreeing on a private paper without an official transfer. Until ownership moves, the car is legally the seller's, and any fine or accident comes back to them.",
+        "Not checking the seller. Match the name on their Emirates ID with the name on the registration, and ask for the power of attorney if someone else is selling for them.",
+      ]],
+
+      ["h2", "7. Sellers: what to do after the sale"],
+      ["p", "Deal done? A few small things protect you from headaches later:"],
+      ["ul", [
+        "Confirm in the app that the car is no longer registered in your name. Until then, any fine on it comes back to you.",
+        "If you reserved the plate, check that it is now reserved in your name.",
+        "Dubai's change of ownership service gives you an insurance refund certificate for the sold car. Call your insurer and ask about a refund of the remaining period or moving it to your new car.",
+        "If you advertised the car on CarsUAE, press «Mark as sold» so the ad disappears and the calls stop.",
+      ]],
+      ["tip", "Keep photos of the agreement and the payment receipt, and put the whole deal in writing on WhatsApp: the price, the deposit and who pays the fees. That avoids disputes later."],
+      ["cta", { text: "Looking for a used car? See the latest ads across the UAE and contact sellers directly.", href: "/used-cars", label: "Browse cars" }],
+    ],
+  },
   "sell-used-car-uae-guide": {
     title: "How to sell your used car fast and at a good price in the UAE",
     description: "A practical guide to selling your used car in the UAE: setting the right price, preparing the car, taking photos and writing the ad, and handling the bank loan and ownership transfer without headaches.",
