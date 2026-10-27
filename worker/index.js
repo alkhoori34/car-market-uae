@@ -111,18 +111,32 @@ export default {
       if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method not allowed", { status: 405 });
       const path = url.pathname.slice(5);
       if (!path || path.includes("..")) return new Response("Not found", { status: 404 });
+      // ?w= picks a resized copy (WebP when the browser accepts it).
+      const w = [384, 640, 1080].includes(Number(url.searchParams.get("w"))) ? Number(url.searchParams.get("w")) : 0;
+      const webp = /image\/webp/.test(request.headers.get("Accept") || "");
       const cache = caches.default;
-      const key = new Request(`https://carsuae.net/img/${path}`);
+      const key = new Request(`https://carsuae.net/img/${path}?w=${w}&f=${w ? (webp ? "webp" : "jpeg") : "orig"}`);
       const hit = await cache.match(key);
       if (hit) return hit;
-      const src = await fetch(`https://bfdyxoycbwlibzcovxef.supabase.co/storage/v1/object/public/${path}`, {
-        cf: { cacheEverything: true, cacheTtl: 31536000 },
-      });
+      const origin = `https://bfdyxoycbwlibzcovxef.supabase.co/storage/v1/object/public/${path}`;
+      let src = null;
+      if (w) {
+        // Image Transformations (enabled on the carsuae.net zone). Over the
+        // free monthly quota, or on workers.dev, it fails: use the original.
+        try {
+          const t = await fetch(origin, {
+            cf: { image: { width: w, fit: "scale-down", quality: 75, format: webp ? "webp" : "jpeg" }, cacheEverything: true, cacheTtl: 31536000 },
+          });
+          if (t.ok && (t.headers.get("content-type") || "").startsWith("image/") && !t.headers.get("cf-resized")?.includes("err=")) src = t;
+        } catch {}
+      }
+      if (!src) src = await fetch(origin, { cf: { cacheEverything: true, cacheTtl: 31536000 } });
       if (!src.ok) return new Response(null, { status: src.status === 400 ? 404 : src.status });
       const res = new Response(src.body, src);
       for (const h of ["set-cookie", "x-robots-tag"]) res.headers.delete(h);
       res.headers.set("Cache-Control", "public, max-age=31536000, immutable");
       res.headers.set("Access-Control-Allow-Origin", "*");
+      res.headers.set("Vary", "Accept");
       ctx.waitUntil(cache.put(key, res.clone()));
       return res;
     }

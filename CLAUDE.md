@@ -110,13 +110,14 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   form). Footer order is `FOOTER_PAGES`; the sign-in dialog links terms and
   privacy. `/dealers` is the page to send brokers in outreach messages. The privacy page lists what the site collects
   and which services it uses: update it when that changes.
-- **Speed:** since the move to Cloudflare (2026-10-27) photos are served as
-  uploaded: `src/img.js` has `IMG_OPTIMIZER = false` (the Vercel optimizer
-  `/_vercel/image` does not exist on Cloudflare). Supabase Storage is slow
-  from the UAE (1–4 s per photo), so `imgSrc` rewrites public storage URLs to
-  `/img/<path>`, which the worker serves from Cloudflare's edge cache (1 year,
-  immutable); vercel.json has a matching rewrite. The car modal preloads all
-  photos of the open car. `worker/index.js` mirrors
+- **Speed:** since the move to Cloudflare (2026-10-27) `src/img.js` turns
+  Supabase public-storage photo URLs into `/img/<path>?w=384|640|1080`. The
+  worker resizes them with Cloudflare Image Transformations (enabled on the
+  carsuae.net zone; free 5,000 unique transformations/month, then it falls
+  back to the original file; paid is $0.50 per 1,000), WebP when accepted,
+  and keeps them in the edge cache for a year. Supabase Storage itself is slow
+  from the UAE (1–4 s per photo). vercel.json has a plain `/img` rewrite for
+  the old host. The car modal preloads all photos of the open car. `worker/index.js` mirrors
   vercel.json/middleware.js routing (keep `run_worker_first` in
   wrangler.jsonc in sync when adding server-rendered paths) and caches pages
   that send `s-maxage` in Cloudflare's cache. Server pages embed their rows as `window.__SEED__` (home:
