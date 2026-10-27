@@ -9,8 +9,13 @@ const LOCAL_DIRS = ["/l/", "/listings/", "/media/"]; // keep in sync with vercel
 
 // Returns the optimizer URL for an image, or the original URL when the image
 // cannot go through it (blob: previews, unknown hosts, local dev).
+// Since 2026-10-27 the site runs on Cloudflare (no /_vercel/image there), so
+// photos are served as uploaded. Set IMG_OPTIMIZER = true only on Vercel.
+const IMG_OPTIMIZER = false;
+
 export function imgSrc(src, width = 640, quality = 70) {
   if (!src || typeof src !== "string") return src;
+  if (!IMG_OPTIMIZER) return src;
   if (typeof window !== "undefined" && /^(localhost|127\.)/.test(window.location.hostname)) return src;
   let path = src;
   const own = src.match(/^https?:\/\/(?:www\.)?carsuae\.net(\/.*)$/);

@@ -75,6 +75,13 @@ async function readBundledShell() {
   return bundledShell;
 }
 export async function getShell(req) {
+  // Cloudflare Workers (worker/index.js): read index.html from this
+  // deployment's own static assets.
+  if (globalThis.__CF_ASSETS) {
+    const r = await globalThis.__CF_ASSETS.fetch(new Request("https://assets.local/"));
+    const html = r.ok ? await r.text() : "";
+    if (html.includes("/assets/")) return html;
+  }
   const bundled = await readBundledShell();
   if (bundled) return bundled;
   const host = req.headers["x-forwarded-host"] || req.headers.host;

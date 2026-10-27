@@ -1,0 +1,28 @@
+// Cloudflare Workers config (site moved from Vercel on 2026-10-27).
+// Build: `npm run build` (Vite → dist/), deploy: `npx wrangler deploy`.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "carsuae",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Server-rendered pages, sitemap and API run the worker first; every
+    // other path is a static file (free and unlimited on Cloudflare).
+    "run_worker_first": [
+      "/", "/en", "/en/*",
+      "/used-cars", "/used-cars/*", "/car/*", "/dealer/*",
+      "/blog", "/blog/*", "/vin-check",
+      "/sell", "/faq", "/safety", "/dealers", "/about", "/terms", "/privacy", "/contact",
+      "/sitemap.xml", "/api/*"
+    ]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://bfdyxoycbwlibzcovxef.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmZHl4b3ljYndsaWJ6Y292eGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NTM1NTIsImV4cCI6MjEwMzQyOTU1Mn0.dJu21JyKSehKRjoO4qcf5UNR-0EOypQiBNP-2rH10Ao"
+  },
+  "observability": { "enabled": true }
+}
