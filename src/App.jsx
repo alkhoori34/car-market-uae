@@ -495,6 +495,14 @@ export default function CarMarket() {
   const [photoIdx, setPhotoIdx] = useState(0);
   // Full-screen photo viewer (tap a listing photo to open, pinch / double-tap to zoom).
   const [viewerOpen, setViewerOpen] = useState(false);
+  // Photos are served full size since the move to Cloudflare (no optimizer),
+  // so fetch every photo of the open car in the background: switching photos
+  // is then instant instead of waiting for each download.
+  useEffect(() => {
+    if (!active) return;
+    const gallery = (active.images?.length ? active.images : [active.image]).filter(Boolean);
+    gallery.forEach((u) => { const im = new Image(); im.decoding = "async"; im.src = imgSrc(u, 1080, 75); });
+  }, [active]);
   const [checking, setChecking] = useState(false);
   const [toast, setToast] = useState(null);
   const [saving, setSaving] = useState(false);
