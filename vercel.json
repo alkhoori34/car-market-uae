@@ -70,6 +70,10 @@
       "destination": "/api/page?route=/dealer/:slug"
     },
     {
+      "source": "/img/:path*",
+      "destination": "https://bfdyxoycbwlibzcovxef.supabase.co/storage/v1/object/public/:path*"
+    },
+    {
       "source": "/((?!api/|assets/).*)",
       "destination": "/index.html"
     }

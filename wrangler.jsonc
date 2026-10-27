@@ -17,7 +17,7 @@
       "/used-cars", "/used-cars/*", "/car/*", "/dealer/*",
       "/blog", "/blog/*", "/vin-check",
       "/sell", "/faq", "/safety", "/dealers", "/about", "/terms", "/privacy", "/contact",
-      "/sitemap.xml", "/api/*"
+      "/sitemap.xml", "/api/*", "/img/*"
     ]
   },
   "vars": {

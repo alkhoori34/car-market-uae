@@ -2645,7 +2645,7 @@ function PhotoViewer({ images, index, onIndex, onClose }) {
         onMouseLeave={() => { drag.current = null; }}
       >
         <img
-          src={images[index]}
+          src={imgSrc(images[index], 1080, 75)}
           alt=""
           draggable={false}
           className="w-full h-full object-contain"

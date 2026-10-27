@@ -9,13 +9,23 @@ const LOCAL_DIRS = ["/l/", "/listings/", "/media/"]; // keep in sync with vercel
 
 // Returns the optimizer URL for an image, or the original URL when the image
 // cannot go through it (blob: previews, unknown hosts, local dev).
+// Supabase Storage answers slowly from the UAE (often 1–4 s per photo), so
+// public photos go through our own /img/<path> route: worker/index.js fetches
+// them once and keeps them in Cloudflare's edge cache for a year (file names
+// never change). vercel.json has the same /img rewrite for the old host.
+const STORAGE_PREFIX = `https://${"bfdyxoycbwlibzcovxef.supabase.co"}/storage/v1/object/public/`;
+function viaEdge(src) {
+  if (typeof window !== "undefined" && /^(localhost|127\.)/.test(window.location.hostname)) return src;
+  return src.startsWith(STORAGE_PREFIX) ? `/img/${src.slice(STORAGE_PREFIX.length)}` : src;
+}
+
 // Since 2026-10-27 the site runs on Cloudflare (no /_vercel/image there), so
 // photos are served as uploaded. Set IMG_OPTIMIZER = true only on Vercel.
 const IMG_OPTIMIZER = false;
 
 export function imgSrc(src, width = 640, quality = 70) {
   if (!src || typeof src !== "string") return src;
-  if (!IMG_OPTIMIZER) return src;
+  if (!IMG_OPTIMIZER) return viaEdge(src);
   if (typeof window !== "undefined" && /^(localhost|127\.)/.test(window.location.hostname)) return src;
   let path = src;
   const own = src.match(/^https?:\/\/(?:www\.)?carsuae\.net(\/.*)$/);
@@ -31,6 +41,7 @@ export function imgSrc(src, width = 640, quality = 70) {
 
 // srcset for responsive <img>, e.g. imgSrcSet(src, [384, 640, 828]).
 export function imgSrcSet(src, widths = [384, 640, 828]) {
+  if (!IMG_OPTIMIZER) return undefined;
   const first = imgSrc(src, widths[0]);
   if (first === src) return undefined;
   return widths.map((w) => `${imgSrc(src, w)} ${w}w`).join(", ");

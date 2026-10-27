@@ -112,7 +112,11 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   and which services it uses: update it when that changes.
 - **Speed:** since the move to Cloudflare (2026-10-27) photos are served as
   uploaded: `src/img.js` has `IMG_OPTIMIZER = false` (the Vercel optimizer
-  `/_vercel/image` does not exist on Cloudflare). `worker/index.js` mirrors
+  `/_vercel/image` does not exist on Cloudflare). Supabase Storage is slow
+  from the UAE (1–4 s per photo), so `imgSrc` rewrites public storage URLs to
+  `/img/<path>`, which the worker serves from Cloudflare's edge cache (1 year,
+  immutable); vercel.json has a matching rewrite. The car modal preloads all
+  photos of the open car. `worker/index.js` mirrors
   vercel.json/middleware.js routing (keep `run_worker_first` in
   wrangler.jsonc in sync when adding server-rendered paths) and caches pages
   that send `s-maxage` in Cloudflare's cache. Server pages embed their rows as `window.__SEED__` (home:

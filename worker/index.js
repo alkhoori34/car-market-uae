@@ -105,6 +105,28 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
 
+    // Photos from Supabase Storage, cached at Cloudflare's edge for a year
+    // (src/img.js rewrites storage URLs to /img/...). Only GET of public files.
+    if (url.pathname.startsWith("/img/")) {
+      if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method not allowed", { status: 405 });
+      const path = url.pathname.slice(5);
+      if (!path || path.includes("..")) return new Response("Not found", { status: 404 });
+      const cache = caches.default;
+      const key = new Request(`https://carsuae.net/img/${path}`);
+      const hit = await cache.match(key);
+      if (hit) return hit;
+      const src = await fetch(`https://bfdyxoycbwlibzcovxef.supabase.co/storage/v1/object/public/${path}`, {
+        cf: { cacheEverything: true, cacheTtl: 31536000 },
+      });
+      if (!src.ok) return new Response(null, { status: src.status === 400 ? 404 : src.status });
+      const res = new Response(src.body, src);
+      for (const h of ["set-cookie", "x-robots-tag"]) res.headers.delete(h);
+      res.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      res.headers.set("Access-Control-Allow-Origin", "*");
+      ctx.waitUntil(cache.put(key, res.clone()));
+      return res;
+    }
+
     if (url.pathname === "/sitemap.xml") return cached(request, ctx, () => runNode(sitemap, request, q));
     if (url.pathname === "/api/vin") return runNode(vin, request, q);
     if (url.pathname === "/api/page") return cached(request, ctx, () => runNode(page, request, q));

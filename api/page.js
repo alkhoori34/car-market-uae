@@ -575,7 +575,7 @@ function preloadImage(src, widths, sizes) {
   const set = imgSrcSet(src, widths);
   return set
     ? `<link rel="preload" as="image" href="${esc(imgSrc(src, widths[0]))}" imagesrcset="${esc(set)}" imagesizes="${esc(sizes)}" fetchpriority="high">`
-    : `<link rel="preload" as="image" href="${esc(src)}" fetchpriority="high">`;
+    : `<link rel="preload" as="image" href="${esc(imgSrc(src, widths[0]))}" fetchpriority="high">`;
 }
 
 function siteHeader() {
