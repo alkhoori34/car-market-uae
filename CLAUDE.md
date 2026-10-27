@@ -13,9 +13,9 @@ connected tools allow it.
 | Piece | Where |
 |---|---|
 | Frontend | React 18 + Vite + Tailwind 3, single page app |
-| Hosting | Vercel project `car-market-uae-v2`, auto-deploys every push to `main` |
+| Hosting | **Cloudflare Workers** `carsuae` (account Alkhoori34@gmail.com, since 2026-10-27; Workers Builds deploys every push to `main`: `npm run build` + `npx wrangler deploy`, config `wrangler.jsonc`, entry `worker/index.js`, test URL carsuae.alkhoori34.workers.dev). The old Vercel project `car-market-uae-v2` still builds but Vercel's free plan paused it on 2026-10-27 |
 | Backend | Supabase project ref `bfdyxoycbwlibzcovxef` (auth, Postgres, Storage) |
-| Domain / DNS | Namecheap (BasicDNS). A `@` → Vercel, CNAME `www` → Vercel |
+| Domain / DNS | Registered at Namecheap; DNS on Cloudflare (nameservers lana/pedro.ns.cloudflare.com, zone carsuae.net). `carsuae.net` and `www` are Worker custom domains; Zoho MX/SPF/DKIM/DMARC, Resend (`resend._domainkey`, CNAMEs `send`, `rsend`) and Google verification TXT copied over |
 | Transactional email | Resend (SMTP wired into Supabase Auth) |
 | Mailbox | Zoho Mail, `carsuae@carsuae.net` (MX/SPF/DKIM/DMARC set in Namecheap) |
 
@@ -110,10 +110,12 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   form). Footer order is `FOOTER_PAGES`; the sign-in dialog links terms and
   privacy. `/dealers` is the page to send brokers in outreach messages. The privacy page lists what the site collects
   and which services it uses: update it when that changes.
-- **Speed:** listing photos go through Vercel's image optimizer
-  (`src/img.js` `imgSrc`/`imgSrcSet`, allowed hosts and sizes in vercel.json
-  `images`; a new photo folder under public/ must be added to both
-  `localPatterns` and `LOCAL_DIRS` or its photos return 400). Server pages embed their rows as `window.__SEED__` (home:
+- **Speed:** since the move to Cloudflare (2026-10-27) photos are served as
+  uploaded: `src/img.js` has `IMG_OPTIMIZER = false` (the Vercel optimizer
+  `/_vercel/image` does not exist on Cloudflare). `worker/index.js` mirrors
+  vercel.json/middleware.js routing (keep `run_worker_first` in
+  wrangler.jsonc in sync when adding server-rendered paths) and caches pages
+  that send `s-maxage` in Cloudflare's cache. Server pages embed their rows as `window.__SEED__` (home:
   `listings`, car page: `car`, without the phone column) so the app draws
   cards at once; full rows arrive from Supabase after. The home shows
   skeleton cards while loading; fonts load non-blocking from index.html;
@@ -170,9 +172,11 @@ of the SQL in the repo root (see `listings-*.sql`).
 ## Working here
 
 - There is no local `npm install` in the cloud session (the npm registry is
-  blocked). Syntax-check with the preinstalled esbuild, then rely on the
-  Vercel build after pushing and confirm the deployment reaches `READY`.
-- Push straight to `main`; Vercel deploys it within about a minute. For
+  blocked). Syntax-check with the preinstalled esbuild (bundle
+  `worker/index.js` and run it in node with a fake ASSETS to test routes),
+  then check the Cloudflare build (dashboard → Workers & Pages → carsuae →
+  Deployments, in the owner's Chrome).
+- Push straight to `main`; Cloudflare deploys it within about a minute. For
   visible changes, push a branch first and show the owner the preview.
 - The repo is **public**: never commit keys, OAuth secrets or `.env.local`.
 
