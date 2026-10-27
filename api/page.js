@@ -24,6 +24,7 @@ import { translate } from "../src/i18n.js";
 import { articlesIn, articleIn, articleBySlug, formatArticleDate as formatArticleDateIn } from "../src/articles.js";
 import { imgSrc, imgSrcSet } from "../src/img.js";
 import { infoPageIn, CONTACT_EMAIL, LEGAL_UPDATED } from "../src/legal.js";
+import { priceCompare, priceCompareText } from "../src/price-compare.js";
 import {
   LISTING_FIELDS, queryListings, queryTable, getShell, fillShell as fillShellBase, send, esc, jsonLd, fmt, photo,
 } from "./_lib.js";
@@ -198,6 +199,11 @@ async function carPage(shell, route) {
     ["select", LISTING_FIELDS], ["make", `eq.${l.make}`], ["id", `neq.${l.id}`],
     ["order", "created_at.desc"], ["limit", "24"],
   ]).catch(() => ({ rows: [] }));
+  // Same make/model cars for the price comparison (phone only for de-duplication, never rendered).
+  const { rows: peers } = l.price && l.model ? await queryListings([
+    ["select", "id,make,model,year,price,phone"], ["make", `eq.${l.make}`], ["model", `eq.${l.model}`], ["limit", "500"],
+  ]).catch(() => ({ rows: [] })) : { rows: [] };
+  const pc = l.sold ? null : priceCompareText(l, priceCompare(l, peers), EN());
   const similar = [...sameMake.filter((r) => r.model === l.model), ...sameMake.filter((r) => r.model !== l.model)].slice(0, 6);
   const gallery = (Array.isArray(l.images) && l.images.length ? l.images : [l.image]).filter(Boolean);
   const facts = [
@@ -255,6 +261,7 @@ ${siteHeader()}
       ${l.sold ? `<p class="cm-badge cm-badge-red mb-2">${T("تم بيع هذه السيارة", "This car has been sold")}</p>` : ""}<h1 class="cm-display font-extrabold text-2xl">${esc(carTitle(l))}${l.sold ? "" : T(" للبيع", " for sale")}</h1>
       <p class="text-2xl font-black mt-2">${l.price ? aed(l.price) : T("السعر عند التواصل", "Price on request")}${l.negotiable ? ` <span class="cm-badge cm-badge-blue">${T("قابل للتفاوض", "Negotiable")}</span>` : ""}</p>
       ${l.previous_price && Number(l.previous_price) > Number(l.price) ? `<p class="text-sm cm-text-muted">${T("السعر السابق", "Previous price")}: <s>${aed(l.previous_price)}</s></p>` : ""}
+      ${pc ? `<section class="cm-spec px-3 py-2 mt-3 text-sm"><h2 class="text-xs cm-text-muted">${esc(pc.title)}</h2><p class="font-bold">${esc(pc.verdict)}</p><p class="text-xs cm-text-muted mt-1">${esc(pc.basis)}</p></section>` : ""}
       <dl class="grid grid-cols-2 gap-2 mt-4 text-sm">
         ${facts.map(([k, v]) => `<div class="cm-spec px-3 py-2"><dt class="text-xs cm-text-muted">${esc(k)}</dt><dd class="font-bold">${esc(v)}</dd></div>`).join("")}
       </dl>

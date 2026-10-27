@@ -7,6 +7,7 @@ import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
 import Importer from "./Importer.jsx";
+import { priceCompare, priceCompareText } from "./price-compare.js";
 import { translate, getLang, switchLang, otherLangHref } from "./i18n.js";
 
 // Text for browser dialogs (confirm/prompt), which the page translator cannot reach.
@@ -2248,6 +2249,18 @@ export default function CarMarket() {
                 {active.price > 0 && <p className="text-sm cm-text-muted mt-2" title="دفعة أولى 20%، 5 سنوات، فائدة ثابتة 3% سنويًا. للاسترشاد فقط.">
                   قسط تقريبي من <span className="font-bold cm-text-accent cm-tabular">{formatNumber(monthlyInstallment(active.price))} د.إ</span> شهريًا
                 </p>}
+                {!active.sold && (() => {
+                  const pc = priceCompareText(active, priceCompare(active, listings.filter(isLive)), getLang() === "en");
+                  if (!pc) return null;
+                  const tone = pc.verdict && /أرخص|below/.test(pc.verdict) ? "cm-text-accent" : "";
+                  return (
+                    <div className="cm-spec px-3 py-2 mt-3 text-sm" data-no-i18n>
+                      <p className="text-xs cm-text-muted">{pc.title}</p>
+                      <p className={`font-bold ${tone}`}>{pc.verdict}</p>
+                      <p className="text-xs cm-text-muted mt-1">{pc.basis}</p>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-2 gap-2.5 text-sm mb-4">
