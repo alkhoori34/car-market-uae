@@ -65,6 +65,6 @@ export function priceCompareText(car, c, en = false) {
     verdict: c.level === "below" ? `أرخص من السعر المعتاد بـ ${pct}٪`
       : c.level === "above" ? `أغلى من السعر المعتاد بـ ${pct}٪`
       : "سعرها قريب من السعر المعتاد",
-    basis: `السعر المعتاد لسيارات ${name} المشابهة${c.years ? ` (موديل ${c.years[0]}–${c.years[1]})` : ""} في CarsUAE: ${fmtAr(c.usual)} درهم، حسب ${fmtAr(c.n)} سيارات.`,
+    basis: `السعر المعتاد: ${fmtAr(c.usual)} درهم، حسب ${fmtAr(c.n)} ${c.n <= 10 ? "سيارات" : "سيارة"} ${name} مشابهة${c.years ? ` (موديل ${c.years[0]}–${c.years[1]})` : ""} في الموقع.`,
   };
 }
