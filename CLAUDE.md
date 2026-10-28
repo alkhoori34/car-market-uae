@@ -81,8 +81,10 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   listing_id)` once per page per tab (admins skipped via localStorage
   `cm_admin`); it inserts into `visits` and bumps `listings.views`. Admin
   numbers come from RPC `visit_stats(days)`.
-- **Contact clicks (since 2026-10-28):** the listing's WhatsApp, call and
-  «عرض الرقم» buttons call RPC `track_contact(listing, kind, source)` once per
+- **Seller phone is shown to everyone** (owner's choice, 2026-10-28): no
+  sign-in needed to see the number or press «اتصال».
+- **Contact clicks (since 2026-10-28):** the listing's WhatsApp and call
+  buttons call RPC `track_contact(listing, kind, source)` once per
   listing/kind per tab (`trackContact` in App.jsx; admins and bots skipped).
   Rows go to `contacts` (with the listing's `dealer_id`); the admin box
   «التواصل مع البايعين» reads RPC `contact_stats(days)` (totals, per broker,

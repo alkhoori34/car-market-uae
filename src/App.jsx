@@ -85,7 +85,7 @@ function trackVisit(client, path, listingId = null) {
   } catch { /* storage blocked: still count */ }
   client.rpc("track_visit", { p_path: path, p_source: firstSource, p_listing: listingId }).then(() => {}, () => {});
 }
-// Buyer contact clicks (whatsapp / call / show_number), once per listing and
+// Buyer contact clicks (whatsapp / call), once per listing and
 // kind per tab; admins and bots are not counted. Feeds the admin "التواصل" box.
 function trackContact(client, listingId, kind) {
   if (!listingId) return;
@@ -1729,10 +1729,9 @@ export default function CarMarket() {
                   <h2 className="cm-section-title">التواصل مع البايعين</h2>
                   <p className="text-xs cm-text-muted">اليوم <b className="cm-tabular">{formatNumber(contactStats.today || 0)}</b> · آخر 30 يوم <b className="cm-tabular">{formatNumber(contactStats.total || 0)}</b></p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-2 gap-2 mb-3">
                   <div className="cm-stat"><b className="cm-tabular">{formatNumber(contactStats.by_kind?.whatsapp || 0)}</b><span>واتساب</span></div>
                   <div className="cm-stat"><b className="cm-tabular">{formatNumber(contactStats.by_kind?.call || 0)}</b><span>اتصال</span></div>
-                  <div className="cm-stat"><b className="cm-tabular">{formatNumber(contactStats.by_kind?.show_number || 0)}</b><span>ضغط «عرض الرقم»</span></div>
                 </div>
                 {(contactStats.total || 0) === 0 ? (
                   <p className="text-sm cm-text-muted">العداد بدأ مع هذا التحديث، الأرقام تظهر أول ما يتواصل أحد.</p>
@@ -2354,11 +2353,7 @@ export default function CarMarket() {
                       </span>
                     )}
                   </p>
-                  {session ? (
-                    <p className="text-sm font-bold cm-tabular">{active.phone}</p>
-                  ) : (
-                    <p className="text-sm font-bold cm-tabular cm-text-muted">•••• ••• ••••</p>
-                  )}
+                  <p className="text-sm font-bold cm-tabular" dir="ltr">{active.phone}</p>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   {!active.sold && (
@@ -2383,17 +2378,10 @@ export default function CarMarket() {
                       <ScanLine size={15} /> افحص الشاصي
                     </button>
                   )}
-                  {active.sold ? null : session ? (
+                  {!active.sold && (
                     <a href={`tel:${active.phone}`} onClick={() => trackContact(supabase, active.id, "call")} className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
                       <Phone size={15} /> اتصال
                     </a>
-                  ) : (
-                    <button
-                      onClick={() => { trackContact(supabase, active.id, "show_number"); setAuthOpen(true); }}
-                      className="flex items-center gap-1.5 cm-btn-ghost font-bold text-sm px-4 py-2 rounded-lg"
-                    >
-                      <Phone size={15} /> عرض الرقم
-                    </button>
                   )}
                   {session && (active.seller_id === session.user.id || isAdmin) ? (
                     <>
