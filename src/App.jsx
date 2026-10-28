@@ -1401,6 +1401,21 @@ export default function CarMarket() {
                         <span className="cm-text-accent">{icon}</span> {label}
                       </a>
                     ))}
+                    {/* Account items here too: on narrow phones the header's account button sits off-screen. */}
+                    {isAdmin && (
+                      <button onClick={() => { setNavOpen(false); setActive(null); setView("admin"); window.scrollTo(0, 0); }} className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2.5 rounded-lg cm-navbtn">
+                        <span className="cm-text-accent"><ShieldCheck size={15} /></span> لوحة الإدارة
+                      </button>
+                    )}
+                    {session ? (
+                      <button onClick={() => { setNavOpen(false); handleLogout(); }} className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2.5 rounded-lg cm-navbtn">
+                        <span className="cm-text-accent"><LogOut size={15} /></span> تسجيل الخروج
+                      </button>
+                    ) : (
+                      <button onClick={() => { setNavOpen(false); setAuthOpen(true); }} className="w-full text-right flex items-center gap-2 text-sm font-bold px-2 py-2.5 rounded-lg cm-navbtn">
+                        <span className="cm-text-accent"><LogIn size={15} /></span> تسجيل الدخول
+                      </button>
+                    )}
                   </div>
                 </>
               )}
