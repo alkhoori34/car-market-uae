@@ -547,7 +547,7 @@ export default function CarMarket() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminRows, setAdminRows] = useState([]);
   const [adminReports, setAdminReports] = useState([]);
-  const [adminTab, setAdminTab] = useState("all"); // all | live | sold | expired | reported
+  const [adminTab, setAdminTab] = useState("all"); // all | live | sold | expired | duplicate | reported
   // Instagram importer panel; opened by the "CarsUAE استيراد" bookmark via carsuae.net/#import.
   const [importOpen, setImportOpen] = useState(() => typeof window !== "undefined" && window.location.hash.startsWith("#import"));
   const [adminQ, setAdminQ] = useState("");
@@ -1262,6 +1262,30 @@ export default function CarMarket() {
     loadAdmin(); loadListings();
   }
 
+  // Admin: delete every listing in a tab (e.g. «مكرر» / «منتهية») at once.
+  // Photos are removed only when no remaining listing still uses them.
+  async function deleteListingsBulk(rows, tabName) {
+    if (!rows.length) return;
+    if (!window.confirm(L(`متأكد تبي تحذف كل إعلانات «${tabName}» (${rows.length}) نهائيًا؟`))) return;
+    const ids = rows.map((r) => r.id);
+    const { error } = await supabase.from("listings").delete().in("id", ids);
+    if (error) { showToast("تعذر الحذف: " + error.message, "red"); return; }
+    const idSet = new Set(ids);
+    const stillUsed = new Set();
+    adminRows.filter((l) => !idSet.has(l.id)).forEach((l) => (l.images?.length ? l.images : [l.image]).forEach((u) => u && stillUsed.add(u)));
+    const paths = [...new Set(rows.flatMap((r) => (r.images?.length ? r.images : [r.image]).filter(Boolean)))]
+      .filter((u) => !stillUsed.has(u))
+      .map((u) => u.split("/car-images/")[1])
+      .filter(Boolean)
+      .map((p) => decodeURIComponent(p));
+    for (let i = 0; i < paths.length; i += 100) {
+      await supabase.storage.from("car-images").remove(paths.slice(i, i + 100)).then(() => {}, () => {});
+    }
+    await loadListings();
+    loadAdmin();
+    showToast(`تم حذف ${ids.length} إعلان`, "muted");
+  }
+
   async function deleteListing(id) {
     if (!window.confirm(L("متأكد تبي تحذف هذا الإعلان نهائيًا؟"))) return;
     try {
@@ -1664,8 +1688,8 @@ export default function CarMarket() {
       )}
 
       {view === "admin" && isAdmin && (() => {
-        const status = (l) => (l.reports_count >= REPORT_THRESHOLD ? "reported" : l.sold ? "sold" : isExpired(l) ? "expired" : "live");
-        const counts = { all: adminRows.length, live: 0, sold: 0, expired: 0, reported: 0 };
+        const status = (l) => (l.reports_count >= REPORT_THRESHOLD ? "reported" : l.sold ? "sold" : l.duplicate ? "duplicate" : isExpired(l) ? "expired" : "live");
+        const counts = { all: adminRows.length, live: 0, sold: 0, expired: 0, duplicate: 0, reported: 0 };
         adminRows.forEach((l) => { counts[status(l)] += 1; });
         const reportedIds = new Set(adminReports.map((r) => r.listing_id));
         const needle = adminQ.trim().toLowerCase();
@@ -1674,8 +1698,8 @@ export default function CarMarket() {
           if (!needle) return true;
           return `${l.make} ${l.model} ${l.year} ${l.seller_name || ""} ${l.phone || ""} ${l.city || ""}`.toLowerCase().includes(needle);
         });
-        const tabs = [["all", "الكل"], ["live", "ظاهرة"], ["sold", "مُباعة"], ["expired", "منتهية"], ["reported", "بلاغات"]];
-        const label = { live: ["ظاهرة", "mint"], sold: ["مُباعة", "muted"], expired: ["منتهية", "red"], reported: ["مخفية بسبب البلاغات", "red"] };
+        const tabs = [["all", "الكل"], ["live", "ظاهرة"], ["sold", "مُباعة"], ["expired", "منتهية"], ["duplicate", "مكرر"], ["reported", "بلاغات"]];
+        const label = { live: ["ظاهرة", "mint"], sold: ["مُباعة", "muted"], expired: ["منتهية", "red"], duplicate: ["مكرر", "muted"], reported: ["مخفية بسبب البلاغات", "red"] };
         return (
           <main className="max-w-6xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between gap-3 mb-4">
@@ -1779,6 +1803,13 @@ export default function CarMarket() {
               ))}
             </div>
 
+            {["expired", "duplicate"].includes(adminTab) && rows.length > 0 && (
+              <div className="flex justify-end mb-3">
+                <button onClick={() => deleteListingsBulk(rows, adminTab === "duplicate" ? "مكرر" : "منتهية")} className="flex items-center gap-1.5 cm-danger-outline text-sm font-bold px-3 py-2 rounded-lg">
+                  <Trash2 size={15} /> احذف الكل ({rows.length})
+                </button>
+              </div>
+            )}
             {rows.length === 0 ? (
               <div className="text-center py-12 rounded-xl cm-soft cm-text-muted text-sm">لا توجد إعلانات هنا.</div>
             ) : (

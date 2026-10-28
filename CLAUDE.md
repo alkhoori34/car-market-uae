@@ -74,6 +74,12 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   days). Sold/expired rows stay in the table but are hidden from the app,
   server pages and sitemap (`isLive` in the app, `queryListings({ live })` on
   the server); a sold car's own page still opens with "تم بيع هذه السيارة".
+  **Duplicates** (since 2026-10-28): a hidden duplicate gets `duplicate = true`
+  plus `expires_at = now()`; the admin panel shows it under the «مكرر» tab
+  (not «منتهية»). The «منتهية» and «مكرر» tabs have «احذف الكل»
+  (`deleteListingsBulk`; photos still used by another listing are kept).
+  The Supabase connector refuses DELETE statements, so bulk deletes go
+  through that button.
 - **Admin:** users listed in `public.admins` (owner only) get "لوحة الإدارة"
   in the account menu: search all listings, sold/renew/delete, reports
   (dismiss resets `reports_count`), dealers, and visitor stats.
@@ -168,7 +174,7 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   city, fuel, trans, condition, description, phone, seller_name, image,
   images, created_at, reports_count, specs, steering, phone_verified,
   negotiable, previous_price, sold, sold_at, expires_at, views, dealer_id,
-  social_posted_at, featured_until
+  social_posted_at, featured_until, duplicate
 - `dealers` — id, slug (lowercase letters/digits/hyphens), name, instagram, phone, city, verified, user_id
 - `visits` — id, path, source, listing_id, created_at (admins read only)
 - `contacts` — id, listing_id, dealer_id, kind (whatsapp/call/show_number), source, created_at (admins read only)
