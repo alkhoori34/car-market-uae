@@ -113,55 +113,55 @@ function draw(t) {
     ctx.save(); ctx.globalAlpha = fade;
     ctx.filter = 'blur(38px) brightness(.55)'; cover(s.im, -60, -60, W + 120, H + 120, 1.05); ctx.filter = 'none';
     const fh = Math.min(1500, W / (s.im.width / s.im.height));
-    ctx.save(); rr(0, 250, W, 1200, 0); ctx.clip(); cover(s.im, 0, 250 + (1200 - Math.max(fh, 1200)) / 2, W, Math.max(fh, 1200), zoom, pan, 0); ctx.restore();
+    ctx.save(); rr(0, 640, W, 1000, 0); ctx.clip(); cover(s.im, 0, 640 + (1000 - Math.max(fh, 1000)) / 2, W, Math.max(fh, 1000), zoom, pan, 0); ctx.restore();
     ctx.restore();
   }
   // gradients for legibility
-  let g = ctx.createLinearGradient(0, 0, 0, 380); g.addColorStop(0, 'rgba(6,13,36,.85)'); g.addColorStop(1, 'rgba(6,13,36,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, 380);
-  g = ctx.createLinearGradient(0, 1150, 0, H); g.addColorStop(0, 'rgba(6,13,36,0)'); g.addColorStop(.35, 'rgba(6,13,36,.82)'); g.addColorStop(1, 'rgba(6,13,36,.97)'); ctx.fillStyle = g; ctx.fillRect(0, 1150, W, H - 1150);
+  let g = ctx.createLinearGradient(0, 0, 0, 760); g.addColorStop(0, 'rgba(6,13,36,.9)'); g.addColorStop(.8, 'rgba(6,13,36,.75)'); g.addColorStop(1, 'rgba(6,13,36,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, 760);
+  g = ctx.createLinearGradient(0, 1450, 0, H); g.addColorStop(0, 'rgba(6,13,36,0)'); g.addColorStop(.5, 'rgba(6,13,36,.85)'); g.addColorStop(1, 'rgba(6,13,36,.97)'); ctx.fillStyle = g; ctx.fillRect(0, 1450, W, H - 1450);
   // header: logo + for-sale tag
   const hA = 1 - p(t, 11.6, 11.9);
-  logo(330, 150, 1, hA * E.out(p(t, .1, .5)));
-  { const a = hA * E.out(p(t, .3, .7)); ctx.save(); ctx.globalAlpha = a; rr(W - 60 - 200, 112, 200, 76, 38); ctx.fillStyle = '#f59e0b'; ctx.fill(); ctx.restore(); text('للبيع', W - 160, 152, 46, 900, '#1f1300', 'center', a); }
+  logo(370, 330, .9, hA * E.out(p(t, .1, .5)));
+  { const a = hA * E.out(p(t, .3, .7)); ctx.save(); ctx.globalAlpha = a; rr(W - 150 - 190, 294, 190, 72, 36); ctx.fillStyle = '#f59e0b'; ctx.fill(); ctx.restore(); text('للبيع', W - 150 - 95, 333, 44, 900, '#1f1300', 'center', a); }
   // title + year
   const tIn = E.out(p(t, .35, .9)), tA = tIn * (1 - p(t, 9.3, 9.6));
   ctx.save(); ctx.font = '900 96px Taj'; let tw = ctx.measureText(D._title).width; ctx.restore();
-  const tSize = tw > 900 ? 96 * 900 / tw : 96;
-  text(D._title, W - 70, 1470 + (1 - tIn) * 60, tSize, 900, '#fff', 'right', tA);
-  if (D.year) { const a = tA * E.out(p(t, .6, 1.0)); ctx.save(); ctx.globalAlpha = a; rr(W - 70 - 190, 1316, 190, 84, 24); ctx.fillStyle = '#1d4ed8'; ctx.fill(); ctx.restore(); text(String(D.year), W - 70 - 95, 1360, 54, 900, '#fff', 'center', a); }
+  const tSize = tw > 590 ? 96 * 590 / tw : 96;
+  text(D._title, W - 150, 460 + (1 - tIn) * 40, tSize, 900, '#fff', 'right', tA);
+  if (D.year) { const a = tA * E.out(p(t, .6, 1.0)); ctx.save(); ctx.globalAlpha = a; rr(150, 418, 170, 80, 24); ctx.fillStyle = '#1d4ed8'; ctx.fill(); ctx.restore(); text(String(D.year), 235, 460, 54, 900, '#fff', 'center', a); }
   // spec pills
-  let x = W - 70, y = 1610;
+  let x = W - 150, y = 575;
   specs().forEach((s, i) => {
     const a0 = 1.2 + i * .35, a = E.out(p(t, a0, a0 + .4)) * (1 - p(t, 9.3, 9.6));
     ctx.save(); ctx.font = '700 46px Taj'; const w = ctx.measureText(s).width + 84; ctx.restore();
-    if (x - w < 70) { x = W - 70; y += 104; }
+    if (x - w < 150) { x = W - 150; y += 96; }
     pill(s, x, y, a, (1 - E.out(p(t, a0, a0 + .4))) * 40); x -= w + 18;
   });
   // price card
   if (t > 9.4 && t < 12) {
     const a = E.out(p(t, 9.5, 9.9)) * (1 - p(t, 11.6, 11.9)), sc = .85 + .15 * E.back(p(t, 9.5, 10.0));
-    ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, 1620); ctx.scale(sc, sc);
-    rr(-430, -170, 860, 340, 48); ctx.fillStyle = 'rgba(6,13,36,.78)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(245,158,11,.75)'; ctx.stroke();
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, 980); ctx.scale(sc, sc);
+    rr(-380, -170, 760, 340, 48); ctx.fillStyle = 'rgba(6,13,36,.78)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(245,158,11,.75)'; ctx.stroke();
     ctx.restore();
     const priceTxt = D.price ? fmt(D.price) + ' درهم' : 'السعر عند التواصل';
-    text('السعر', W / 2, 1620 - 85 * sc, 50, 700, '#cbd5e1', 'center', a);
-    text(priceTxt, W / 2, 1620 + 30 * sc, D.price ? 112 : 80, 900, '#f59e0b', 'center', a);
-    text(D._title + (D.year ? ' ' + D.year : ''), W / 2, 1380, 64, 900, '#fff', 'center', a);
+    text('السعر', W / 2, 980 - 85 * sc, 50, 700, '#cbd5e1', 'center', a);
+    text(priceTxt, W / 2, 980 + 30 * sc, D.price ? 104 : 76, 900, '#f59e0b', 'center', a);
+    text(D._title + (D.year ? ' ' + D.year : ''), W / 2, 470, 64, 900, '#fff', 'center', a);
   }
   // end card
   if (t > 11.6) {
     const a = E.out(p(t, 11.6, 12.0));
     ctx.save(); ctx.globalAlpha = a; const bg = ctx.createRadialGradient(W / 2, 700, 100, W / 2, 900, 1400); bg.addColorStop(0, '#1d3fa8'); bg.addColorStop(.55, '#0b1a4a'); bg.addColorStop(1, '#060d24'); ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H); ctx.restore();
-    logo(W / 2, 700, 1.8 * (.6 + .4 * E.back(p(t, 11.7, 12.3))), a);
+    logo(W / 2, 430, 1.6 * (.6 + .4 * E.back(p(t, 11.7, 12.3))), a);
     const b = E.out(p(t, 12.2, 12.6)), sc = (.7 + .3 * E.back(p(t, 12.2, 12.7))) * (1 + .03 * Math.sin((t - 12.7) * 6) * (t > 12.7));
-    ctx.save(); ctx.globalAlpha = b; ctx.translate(W / 2, 960); ctx.scale(sc, sc); rr(-300, -66, 600, 132, 66); ctx.fillStyle = '#f59e0b'; ctx.shadowColor = 'rgba(245,158,11,.6)'; ctx.shadowBlur = 50; ctx.fill(); ctx.restore();
-    ctx.save(); ctx.globalAlpha = b; ctx.translate(W / 2, 966); ctx.scale(sc, sc); ctx.font = '900 64px Taj'; ctx.fillStyle = '#1f1300'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'ltr'; ctx.fillText('carsuae.net', 0, 0); ctx.restore();
-    text('تفاصيل الإعلان والتواصل على الموقع', W / 2, 1140, 52, 700, '#e5e7eb', 'center', E.out(p(t, 12.6, 13.0)));
-    { const a = E.out(p(t, 12.9, 13.3)); ctx.save(); ctx.globalAlpha = a; rr(W / 2 - 330, 1225, 660, 110, 55); ctx.fillStyle = '#16a34a'; ctx.fill();
-      ctx.translate(W / 2 + 250, 1280); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, 7); ctx.fill(); ctx.fillStyle = '#16a34a'; ctx.beginPath(); ctx.arc(0, 0, 21, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-26, 30); ctx.lineTo(-18, 10); ctx.lineTo(-6, 22); ctx.fill(); ctx.restore();
-      ctx.save(); ctx.globalAlpha = a; ctx.font = '900 54px Taj'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'ltr'; ctx.fillText(WA, W / 2 - 30, 1284); ctx.restore(); }
+    ctx.save(); ctx.globalAlpha = b; ctx.translate(W / 2, 650); ctx.scale(sc, sc); rr(-300, -66, 600, 132, 66); ctx.fillStyle = '#f59e0b'; ctx.shadowColor = 'rgba(245,158,11,.6)'; ctx.shadowBlur = 50; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.globalAlpha = b; ctx.translate(W / 2, 656); ctx.scale(sc, sc); ctx.font = '900 64px Taj'; ctx.fillStyle = '#1f1300'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'ltr'; ctx.fillText('carsuae.net', 0, 0); ctx.restore();
+    text('تفاصيل الإعلان والتواصل على الموقع', W / 2, 800, 52, 700, '#e5e7eb', 'center', E.out(p(t, 12.6, 13.0)));
+    { const a = E.out(p(t, 12.9, 13.3)); ctx.save(); ctx.globalAlpha = a; rr(W / 2 - 330, 870, 660, 110, 55); ctx.fillStyle = '#16a34a'; ctx.fill();
+      ctx.translate(W / 2 + 250, 925); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, 7); ctx.fill(); ctx.fillStyle = '#16a34a'; ctx.beginPath(); ctx.arc(0, 0, 21, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-26, 30); ctx.lineTo(-18, 10); ctx.lineTo(-6, 22); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.globalAlpha = a; ctx.font = '900 54px Taj'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'ltr'; ctx.fillText(WA, W / 2 - 30, 929); ctx.restore(); }
     SOCIAL.forEach(([kind, handle], i) => {
-      const a = E.out(p(t, 13.3 + i * .2, 13.7 + i * .2)), y = 1440 + i * 96;
+      const a = E.out(p(t, 13.3 + i * .2, 13.7 + i * .2)), y = 1070 + i * 92;
       ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2 - 230, y);
       if (kind === 'ig') { const g2 = ctx.createLinearGradient(-30, 30, 30, -30); g2.addColorStop(0, '#f59e0b'); g2.addColorStop(.5, '#ec4899'); g2.addColorStop(1, '#8b5cf6'); rr(-34, -34, 68, 68, 20); ctx.fillStyle = g2; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; rr(-20, -20, 40, 40, 12); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 9, 0, 7); ctx.stroke(); }
       else if (kind === 'tt') { rr(-34, -34, 68, 68, 20); ctx.fillStyle = '#000'; ctx.fill(); ctx.font = '900 46px Taj'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('♪', 0, 2); }
