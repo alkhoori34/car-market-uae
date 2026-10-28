@@ -261,7 +261,7 @@ export const INFO_PAGES_EN = {
         "Account data: your email, and your name if you sign in with Google. Your password is stored encrypted and we cannot see it.",
         "Ad data: the car's details, photos, price, emirate, the seller's name and phone number.",
         "Your activity on the site: the cars you save to favourites and the reports you send about ads.",
-        "Visit statistics: we record the page you visited and where you came from (such as Instagram, Google or a direct link), without your name or IP address, to count visits and views of each ad.",
+        "Visit statistics: we record the page you visited and where you came from (such as Instagram, Google or a direct link), without your name or IP address, to count visits and views of each ad. We also count taps on each ad's WhatsApp and call buttons, without any data about you or the content of your messages.",
         "Technical data: our hosting providers may log ordinary technical data (such as IP address and browser type) to run and protect the site.",
       ]],
 

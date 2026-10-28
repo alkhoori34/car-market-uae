@@ -85,6 +85,19 @@ function trackVisit(client, path, listingId = null) {
   } catch { /* storage blocked: still count */ }
   client.rpc("track_visit", { p_path: path, p_source: firstSource, p_listing: listingId }).then(() => {}, () => {});
 }
+// Buyer contact clicks (whatsapp / call / show_number), once per listing and
+// kind per tab; admins and bots are not counted. Feeds the admin "التواصل" box.
+function trackContact(client, listingId, kind) {
+  if (!listingId) return;
+  try {
+    if (localStorage.getItem("cm_admin") === "1") return;
+    if (navigator.webdriver || /bot|crawl|spider|slurp|preview|headless|lighthouse|facebookexternalhit/i.test(navigator.userAgent || "")) return;
+    const key = `cm_contact:${listingId}:${kind}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+  } catch { /* storage blocked: still count */ }
+  client.rpc("track_contact", { p_listing: listingId, p_kind: kind, p_source: firstSource }).then(() => {}, () => {});
+}
 
 // Twilio blocks SMS to unverified UAE numbers until the account has an approved
 // compliance profile. Until then, verification is offered but not required.
@@ -539,6 +552,7 @@ export default function CarMarket() {
   const [importOpen, setImportOpen] = useState(() => typeof window !== "undefined" && window.location.hash.startsWith("#import"));
   const [adminQ, setAdminQ] = useState("");
   const [stats, setStats] = useState(null);
+  const [contactStats, setContactStats] = useState(null);
   const [dealerForm, setDealerForm] = useState({ name: "", slug: "", instagram: "", phone: "", city: "" });
 
   const emptyForm = {
@@ -605,6 +619,8 @@ export default function CarMarket() {
     setAdminReports(reps || []);
     const { data: st } = await supabase.rpc("visit_stats", { p_days: 30 });
     setStats(st || null);
+    const { data: cs } = await supabase.rpc("contact_stats", { p_days: 30 });
+    setContactStats(cs || null);
     const { data: ds } = await supabase.from("dealers").select("*").order("name");
     setDealers(ds || []);
   }
@@ -1707,6 +1723,38 @@ export default function CarMarket() {
               );
             })()}
 
+            {contactStats && (
+              <section className="cm-card-solid rounded-xl p-4 mb-4">
+                <div className="flex items-baseline justify-between gap-2 mb-3">
+                  <h2 className="cm-section-title">التواصل مع البايعين</h2>
+                  <p className="text-xs cm-text-muted">اليوم <b className="cm-tabular">{formatNumber(contactStats.today || 0)}</b> · آخر 30 يوم <b className="cm-tabular">{formatNumber(contactStats.total || 0)}</b></p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="cm-stat"><b className="cm-tabular">{formatNumber(contactStats.by_kind?.whatsapp || 0)}</b><span>واتساب</span></div>
+                  <div className="cm-stat"><b className="cm-tabular">{formatNumber(contactStats.by_kind?.call || 0)}</b><span>اتصال</span></div>
+                  <div className="cm-stat"><b className="cm-tabular">{formatNumber(contactStats.by_kind?.show_number || 0)}</b><span>ضغط «عرض الرقم»</span></div>
+                </div>
+                {(contactStats.total || 0) === 0 ? (
+                  <p className="text-sm cm-text-muted">العداد بدأ مع هذا التحديث، الأرقام تظهر أول ما يتواصل أحد.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-bold cm-text-muted mb-1.5">حسب الوسيط</p>
+                      {(contactStats.by_dealer || []).slice(0, 10).map((r) => (
+                        <div key={r.name} className="flex justify-between text-sm py-0.5"><span className="truncate">{r.name}</span><b className="cm-tabular">{formatNumber(r.n)}</b></div>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold cm-text-muted mb-1.5">أكثر السيارات تواصلاً</p>
+                      {(contactStats.top_listings || []).slice(0, 6).map((r) => (
+                        <div key={r.listing_id} className="flex justify-between gap-2 text-sm py-0.5"><span className="truncate">{r.title}</span><b className="cm-tabular">{formatNumber(r.n)}</b></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
             <div className="relative mb-3">
               <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 cm-text-muted" />
               <input value={adminQ} onChange={(e) => setAdminQ(e.target.value)} placeholder="ابحث بالماركة، الموديل، اسم البائع أو الرقم" className="cm-input" style={{ paddingRight: "2.4rem" }} />
@@ -2320,6 +2368,7 @@ export default function CarMarket() {
                         : `السلام عليكم، شفت إعلان ${active.make} ${active.model} ${active.year} على CarsUAE وأبي أستفسر عنها: ${listingUrl(active.id)}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => trackContact(supabase, active.id, "whatsapp")}
                       className="flex items-center gap-1.5 cm-btn-wa font-bold text-sm px-4 py-2 rounded-lg"
                     >
                       <MessageCircle size={15} /> واتساب
@@ -2335,12 +2384,12 @@ export default function CarMarket() {
                     </button>
                   )}
                   {active.sold ? null : session ? (
-                    <a href={`tel:${active.phone}`} className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
+                    <a href={`tel:${active.phone}`} onClick={() => trackContact(supabase, active.id, "call")} className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
                       <Phone size={15} /> اتصال
                     </a>
                   ) : (
                     <button
-                      onClick={() => setAuthOpen(true)}
+                      onClick={() => { trackContact(supabase, active.id, "show_number"); setAuthOpen(true); }}
                       className="flex items-center gap-1.5 cm-btn-ghost font-bold text-sm px-4 py-2 rounded-lg"
                     >
                       <Phone size={15} /> عرض الرقم
