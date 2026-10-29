@@ -338,6 +338,68 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "used-land-cruiser-buying-guide": {
+    title: "Used Land Cruiser in the UAE: which generation to pick and what to check",
+    description: "A guide to buying a used Toyota Land Cruiser in the UAE: the 200 vs the 300 series, the latest recall campaigns, and what to check in the engine, gearbox and underbody.",
+    body: [
+      ["p", "In the UAE the Land Cruiser is more than a car: it's the pick for families, desert trips and hunting season. Because demand is high, used prices stay high too, so a mistake is expensive. This guide explains the generations you'll find on the market, the latest recall campaigns, and how to check the car step by step before you pay a single dirham."],
+
+      ["h2", "1. Which generation will you find?"],
+      ["p", "Most used Land Cruisers for sale today come from two generations:"],
+      ["ul", [
+        "200 series: launched in late 2007 and built until 2021, with several updates to the looks and equipment over the years. In the GCC it came with V6 and V8 engines depending on the grade, with a conventional automatic gearbox. It's known for toughness and parts are easy to find, but most examples now have high mileage.",
+        "300 series: launched in the UAE in June 2021. GCC grades came with two choices: a 4.0-litre V6 or a 3.5-litre twin-turbo V6, both with a 10-speed automatic. Known grades: EXR, GXR and VXR, later joined by GR Sport.",
+        "In 2025 a hybrid version of the 300 series arrived in the UAE, pairing the 3.5 twin-turbo with a hybrid system. It's still new and rare on the used market.",
+      ]],
+      ["tip", "Don't rely on the seller's word about the grade and engine. Check the registration card and the VIN, and compare the grade with the equipment actually in the car."],
+
+      ["h2", "2. Recall campaigns on the 300 series: you need to know"],
+      ["p", "In October 2026 Al-Futtaim Motors, in coordination with the Ministry of Economy and Tourism, announced three recall campaigns covering about 29,774 Land Cruiser 300s in the UAE built between 2021 and 2024:"],
+      ["ul", [
+        "3.5 twin-turbo engine: possible manufacturing debris that can damage the crankshaft bearings in cars built in 2023 and 2024. Symptoms: knocking, rough running, hard starting, and sometimes the engine stalling while driving. The fix is a free inspection and an engine replacement where needed.",
+        "Engine control software: a free update because engine output may not match the approved specification in some conditions.",
+        "10-speed gearbox: the largest campaign, a free inspection and reprogramming of the transmission control unit because of possible gearbox damage or fluid leaks.",
+      ]],
+      ["p", "So if you want a used Land Cruiser 300, ask the seller whether the car has been to the dealer and had the recalls done, and ask for something in writing or a service record that proves it. The campaigns are free, but it's better to confirm they were done before you buy, not after."],
+      ["cta", { text: "Have the VIN? Check it here and see the car's data and recalls where available.", href: "/vin-check", label: "Check the VIN" }],
+
+      ["h2", "3. Check the engine and gearbox"],
+      ["ul", [
+        "Start the car cold and listen for any knocking or odd noise in the first minutes.",
+        "Look at the engine oil: colour and level. Thick black oil or a very low level points to poor maintenance.",
+        "On the 200 series in particular, ask about oil consumption and check the level yourself, as some cars use more oil than normal.",
+        "Try every gear: shifts should be smooth, with no jolt or delay.",
+        "Look under the car for engine or gearbox oil leaks.",
+        "Ask for the service history, ideally from the dealer.",
+      ]],
+      ["p", "On the test drive, don't settle for a lap around the block. Take it on a fast road, try acceleration and braking, and watch for any steering shake or suspension noise over bumps. Run the AC at full blast too, because weak AC in our summer is no small thing."],
+
+      ["h2", "4. Desert and sand: check underneath"],
+      ["p", "Many Land Cruisers in the UAE spend time on dunes and in the desert, and that use shows under the car, not on top:"],
+      ["ul", [
+        "Check the chassis, sills and rear floor for knocks, bends or rust.",
+        "Inspect the front drive-shaft boots: if they're cracked or leaking grease, costs are coming.",
+        "With the steering at full lock, listen for clicking from the front.",
+        "Check the air filter: lots of sand in it means the car has done plenty of desert driving.",
+        "Make sure the tyre pressures are right; some owners deflate for sand and forget to reinflate.",
+        "Make sure the spare wheel under the car lowers normally and is in good shape.",
+      ]],
+      ["tip", "If the mileage is low but the underside is battered and full of sand, stop and ask more questions. Mileage alone doesn't tell the whole story."],
+
+      ["h2", "5. Paperwork and specs"],
+      ["ul", [
+        "Make sure the car is GCC spec if that's what you want. Imported Land Cruisers are on the market, and the spec difference affects price, cooling and parts.",
+        "Check accident history, fines and any mortgage before you pay.",
+        "Compare the mileage with the car's age and service record. If anything doesn't add up, ask.",
+        "Take the car to an approved inspection centre before you complete the deal.",
+      ]],
+      ["cta", { text: "Want to understand GCC vs imported specs and how to confirm? Read our guide.", href: "/blog/gcc-vs-american-specs", label: "GCC or imported?" }],
+
+      ["h2", "6. Bottom line: which one suits you?"],
+      ["p", "If your budget is limited and you want a proven car with easy parts, a clean 200 series with a clear service record is a sensible choice; look for reasonable mileage and a healthy underside. If you want the newest and can afford it, the 300 series is stronger and more modern, but make sure the recalls are done. Either way, a pre-purchase inspection is what protects you."],
+      ["cta", { text: "Browse the Land Cruisers and other Toyotas on CarsUAE now and contact the seller directly.", href: "/used-cars/toyota", label: "Used Toyota cars" }],
+    ],
+  },
   "car-ownership-transfer-uae": {
     title: "Used car ownership transfer in Dubai and the UAE: steps and documents",
     description: "How to transfer ownership of a used car in Dubai and the other emirates: documents, fines and mortgage, insurance and inspection, the online sale agreement, and mistakes to avoid.",
