@@ -9,6 +9,7 @@
 import page from "../api/page.js";
 import sitemap from "../api/sitemap.js";
 import vin from "../api/vin.js";
+import listings from "../api/listings.js";
 
 // Paths rendered on the server (same list as the vercel.json rewrites).
 const PAGE_EXACT = new Set([
@@ -70,24 +71,64 @@ function runNode(handler, request, query) {
   });
 }
 
-// Pages say "Cache-Control: s-maxage=…" (meant for Vercel's edge). Keep that
-// behaviour with Cloudflare's cache so busy pages don't hit Supabase each time.
+// Pages say "Cache-Control: s-maxage=N, stale-while-revalidate=M". We keep
+// them in Cloudflare's cache for N+M seconds; after N seconds the cached copy
+// is still served at once and refreshed in the background (ctx.waitUntil), so
+// a visitor almost never waits for Supabase (since 2026-10-30; before, every
+// visit after the 5-minute window waited 0.5–2 s for a fresh render).
+// Tracking parameters (utm_*, fbclid …) are dropped from the cache key so
+// visitors from social links share the cached copy.
+const KEEP_PARAMS = new Set(["page", "lang", "route", "w"]);
+function cacheKey(request) {
+  const u = new URL(request.url);
+  const kept = [...u.searchParams].filter(([k]) => KEEP_PARAMS.has(k)).sort();
+  u.search = kept.length ? "?" + new URLSearchParams(kept) : "";
+  return new Request(u.toString(), { method: "GET" });
+}
+const STORED_AT = "x-cm-stored-at";
+async function store(ctx, key, res, fresh, stale) {
+  const copy = new Response(res.body, res);
+  copy.headers.set("Cache-Control", `public, max-age=${fresh + stale}`);
+  copy.headers.set(STORED_AT, String(Date.now()));
+  copy.headers.set("x-cm-fresh", String(fresh));
+  await caches.default.put(key, copy);
+}
+function forBrowser(res, extra) {
+  const out = new Response(res.body, res);
+  // Browsers should not keep server pages: new listings must show up.
+  out.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+  out.headers.delete(STORED_AT);
+  out.headers.delete("x-cm-fresh");
+  if (extra) out.headers.set("x-cm-cache", extra);
+  return out;
+}
 async function cached(request, ctx, make) {
   if (request.method !== "GET") return make();
-  const cache = caches.default;
-  const hit = await cache.match(request);
-  if (hit) return hit;
+  const key = cacheKey(request);
+  const hit = await caches.default.match(key);
+  if (hit) {
+    const age = (Date.now() - Number(hit.headers.get(STORED_AT) || 0)) / 1000;
+    const fresh = Number(hit.headers.get("x-cm-fresh") || 300);
+    if (age > fresh) {
+      // Stale: answer now, refresh in the background.
+      ctx.waitUntil((async () => {
+        try {
+          const res = await make();
+          const m = (res.headers.get("Cache-Control") || "").match(/s-maxage=(\d+)(?:.*stale-while-revalidate=(\d+))?/);
+          if (res.status === 200 && m) await store(ctx, key, res, Number(m[1]), Number(m[2] || 86400));
+        } catch {}
+      })());
+      return forBrowser(hit, "stale");
+    }
+    return forBrowser(hit, "hit");
+  }
   const res = await make();
-  const cc = res.headers.get("Cache-Control") || "";
-  const m = cc.match(/s-maxage=(\d+)/);
+  const m = (res.headers.get("Cache-Control") || "").match(/s-maxage=(\d+)(?:.*stale-while-revalidate=(\d+))?/);
   if (res.status === 200 && m) {
-    const copy = new Response(res.clone().body, res);
-    copy.headers.set("Cache-Control", `public, max-age=${m[1]}`);
-    ctx.waitUntil(cache.put(request, copy));
-    // Browsers should not keep server pages: new listings must show up.
-    const out = new Response(res.body, res);
-    out.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
-    return out;
+    const fresh = Number(m[1]);
+    const stale = Math.max(Number(m[2] || 0), 86400);
+    ctx.waitUntil(store(ctx, key, res.clone(), fresh, stale));
+    return forBrowser(res, "miss");
   }
   return res;
 }
@@ -142,6 +183,7 @@ export default {
     }
 
     if (url.pathname === "/sitemap.xml") return cached(request, ctx, () => runNode(sitemap, request, q));
+    if (url.pathname === "/api/listings") return cached(request, ctx, () => runNode(listings, request, q));
     if (url.pathname === "/api/vin") return runNode(vin, request, q);
     if (url.pathname === "/api/page") return cached(request, ctx, () => runNode(page, request, q));
     if (url.pathname === "/api/sitemap") return cached(request, ctx, () => runNode(sitemap, request, q));

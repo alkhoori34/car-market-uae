@@ -6,7 +6,8 @@ import { cleanVin, isVinFormat } from "./vin.js";
 import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
-import Importer from "./Importer.jsx";
+// Admin-only Instagram importer: loaded on demand, not in every visitor's bundle.
+const Importer = React.lazy(() => import("./Importer.jsx"));
 import { priceCompare, priceCompareText } from "./price-compare.js";
 import { translate, getLang, switchLang, otherLangHref } from "./i18n.js";
 
@@ -480,7 +481,7 @@ export default function CarMarket() {
   });
   // The server page embeds the first listings (window.__SEED__) so cards show
   // at once instead of after the Supabase round trip. They lack the phone
-  // column; loadListings() replaces them with full rows a moment later.
+  // column; loadListings() replaces them with the cached list a moment later.
   const [seed] = useState(() => (typeof window !== "undefined" && Array.isArray(window.__SEED__?.listings) ? window.__SEED__.listings : null));
   const [listings, setListings] = useState(() => seed || []);
   const [loaded, setLoaded] = useState(() => Boolean(seed && seed.length));
@@ -497,6 +498,8 @@ export default function CarMarket() {
 
   // Auth (Supabase email/password accounts)
   const [session, setSession] = useState(null);
+  const sessionRef = useRef(null);
+  useEffect(() => { sessionRef.current = session; }, [session]);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login"); // login | signup
   const [authForm, setAuthForm] = useState({ email: "", password: "" });
@@ -568,20 +571,50 @@ export default function CarMarket() {
   // Mock OTP verification (no SMS backend connected in this prototype)
   const [otp, setOtp] = useState({ sent: false, code: "", input: "", verifiedFor: "", sending: false });
 
-  async function loadListings() {
+  // Live cars come from /api/listings, cached at Cloudflare's edge (fast from
+  // the UAE, no description/phone: the car view loads the full row when a car
+  // opens). A signed-in seller's own listings (all states, full rows) are
+  // merged in so «إعلاناتي» and editing keep working. Falls back to Supabase
+  // directly if the endpoint fails (e.g. local dev).
+  const mineRef = useRef([]);
+  function mergeMine(rows) {
+    const mine = mineRef.current;
+    if (!mine.length) return rows;
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    mine.forEach((m) => byId.set(m.id, m));
+    return [...byId.values()].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  }
+  // direct = true after the user's own change (post, edit, sold, delete):
+  // read Supabase itself so the change shows at once, not after the cache.
+  async function loadListings(direct = false) {
     try {
-      const { data, error } = await supabase
-        .from("listings")
-        .select("*")
-        .lt("reports_count", REPORT_THRESHOLD)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setListings(data || []);
+      let rows = null;
+      if (direct && sessionRef.current) await loadMine(sessionRef.current.user.id);
+      if (!direct) try {
+        const r = await fetch("/api/listings");
+        if (r.ok) rows = await r.json();
+      } catch { /* fall back below */ }
+      if (!Array.isArray(rows)) {
+        const { data, error } = await supabase
+          .from("listings")
+          .select("*")
+          .lt("reports_count", REPORT_THRESHOLD)
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        rows = data || [];
+      }
+      setListings(mergeMine(rows));
     } catch (e) {
       // leave existing state as-is on a transient fetch error
     } finally {
       setLoaded(true);
     }
+  }
+  async function loadMine(userId) {
+    if (!userId) { mineRef.current = []; return; }
+    const { data } = await supabase.from("listings").select("*").eq("seller_id", userId);
+    mineRef.current = data || [];
+    if (mineRef.current.length) setListings((cur) => mergeMine(cur));
   }
 
   useEffect(() => {
@@ -589,17 +622,19 @@ export default function CarMarket() {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
 
-    loadListings();
+    loadListings(false);
     loadFavorites();
     supabase.from("dealers").select("*").order("name").then(({ data }) => setDealers(data || []));
     if (!/^\/car\//.test(window.location.pathname)) trackVisit(supabase, window.location.pathname);
     // Light polling so new listings from other visitors show up without a manual refresh.
     // Skips the fetch while the tab is in the background — no point loading for nobody.
     const id = setInterval(() => {
-      if (document.visibilityState === "visible") loadListings();
-    }, 60000);
+      if (document.visibilityState === "visible") loadListings(false);
+    }, 180000);
     return () => { clearInterval(id); listener.subscription.unsubscribe(); };
   }, []);
+
+  useEffect(() => { loadMine(session?.user?.id); }, [session?.user?.id]);
 
   useEffect(() => {
     if (!session) { setIsAdmin(false); return; }
@@ -645,7 +680,7 @@ export default function CarMarket() {
   async function removeDealer(d) {
     if (!window.confirm(L(`حذف الوسيط ${d.name}؟ إعلاناته تبقى بدون وسيط.`))) return;
     const { error } = await supabase.from("dealers").delete().eq("id", d.id);
-    if (error) showToast("تعذر الحذف: " + error.message, "red"); else { showToast("تم حذف الوسيط", "muted"); loadAdmin(); loadListings(); }
+    if (error) showToast("تعذر الحذف: " + error.message, "red"); else { showToast("تم حذف الوسيط", "muted"); loadAdmin(); loadListings(true); }
   }
 
   const setListingDealer = (l, dealerId) =>
@@ -1110,7 +1145,7 @@ export default function CarMarket() {
         if (error) throw error;
         showToast("تم نشر إعلانك بنجاح");
       }
-      await loadListings();
+      await loadListings(true);
       setForm(emptyForm);
       setEditingId(null);
       setOtp({ sent: false, code: "", input: "", verifiedFor: "", sending: false });
@@ -1230,7 +1265,7 @@ export default function CarMarket() {
       }
       showToast("تم استلام بلاغك، شكرًا لك");
       setActive(null);
-      await loadListings();
+      await loadListings(true);
     } catch (err) {
       showToast("تعذر إرسال البلاغ: " + err.message, "red");
     }
@@ -1242,7 +1277,7 @@ export default function CarMarket() {
     const { error } = await supabase.from("listings").update(patch).eq("id", id);
     if (error) { showToast("تعذر التحديث: " + error.message, "red"); return false; }
     showToast(okMsg);
-    await loadListings();
+    await loadListings(true);
     if (isAdmin) loadAdmin();
     setActive((a) => (a && a.id === id ? { ...a, ...patch } : a));
     return true;
@@ -1259,7 +1294,7 @@ export default function CarMarket() {
     if (!error) await supabase.from("listings").update({ reports_count: 0 }).eq("id", listingId);
     if (error) showToast("تعذر حذف البلاغات: " + error.message, "red");
     else showToast("تم تجاهل البلاغات ورجع الإعلان");
-    loadAdmin(); loadListings();
+    loadAdmin(); loadListings(true);
   }
 
   // Admin: delete every listing in a tab (e.g. «مكرر» / «منتهية») at once.
@@ -1281,7 +1316,7 @@ export default function CarMarket() {
     for (let i = 0; i < paths.length; i += 100) {
       await supabase.storage.from("car-images").remove(paths.slice(i, i + 100)).then(() => {}, () => {});
     }
-    await loadListings();
+    await loadListings(true);
     loadAdmin();
     showToast(`تم حذف ${ids.length} إعلان`, "muted");
   }
@@ -1312,7 +1347,7 @@ export default function CarMarket() {
         }
       }
 
-      await loadListings();
+      await loadListings(true);
       if (isAdmin) loadAdmin();
       setActive(null);
       showToast("تم حذف الإعلان", "muted");
@@ -1711,9 +1746,11 @@ export default function CarMarket() {
             </div>
 
             {importOpen && (
+              <React.Suspense fallback={<p className="text-sm cm-text-muted">…</p>}>
               <Importer supabase={supabase} session={session} makes={Object.keys(MODELS)} cities={CITIES} specsList={SPECS} bodies={BODY_TYPES}
-                onPublished={() => { loadAdmin(); loadListings(); }}
+                onPublished={() => { loadAdmin(); loadListings(true); }}
                 onClose={() => { setImportOpen(false); if (window.location.hash.startsWith("#import")) window.history.replaceState({}, "", window.location.pathname); }} />
+              </React.Suspense>
             )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
