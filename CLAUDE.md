@@ -141,6 +141,19 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   skeleton cards while loading; fonts load non-blocking from index.html;
   `html { overflow-y: scroll }` stops RTL sideways jumps. Measured on
   PageSpeed Insights before this work (2026-10-21): mobile 66, desktop 72.
+  **Speed work 2026-10-30** (owner: visitors complained the site is slow):
+  the worker's `cached()` now serves stale copies at once and refreshes in
+  the background (s-maxage fresh, kept ≥1 day), drops utm_*/fbclid from the
+  cache key, and puts the build id (`index-<hash>.js`) in the key so a deploy
+  never serves pages pointing at deleted scripts. The app loads cars from
+  `/api/listings` (api/listings.js: live rows without description/phone,
+  paged past Supabase's 1,000-row cap, edge-cached 60 s) instead of selecting
+  every column of every listing from Supabase (~2 MB) on each visit and every
+  minute; signed-in sellers' own rows load in full (`loadMine`), and after a
+  user's own change the list is read directly. The browse grid draws 36 cards
+  at a time (it drew all 1,000+, ~28k DOM nodes). Importer is lazy-loaded.
+  Measured on carsuae.net after: TTFB ~150 ms, DOMContentLoaded ~0.4 s
+  (before: TTFB 0.5–1.8 s, first paint ~6 s on the owner's PC).
 - **English version (since 2026-10-24):** every page also exists under `/en`
   (`/en`, `/en/used-cars/toyota`, `/en/car/<id>` …). `middleware.js` sends
   `/en/*` to `api/page.js` with `lang=en`, which renders English titles,
