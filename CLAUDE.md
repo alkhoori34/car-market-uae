@@ -259,6 +259,21 @@ Two scheduled tasks (owner's schedule, lighter since 2026-10-25 to save usage):
   Tajawal (OFL) in the same folder. With an admin session it uploads to the
   public Storage bucket `reels` (`reels-bucket.sql`; `car-images` only
   accepts images). `window.makeReel()` / `window.__reel` for automation.
+- **Reels without Chrome (since 2026-10-30):** GitHub Actions workflow
+  `.github/workflows/reels.yml` (every 3 h, free for this public repo) runs
+  `scripts/make-reels.mjs`: headless Chrome opens the live reel page with
+  `&noupload=1`, takes `window.__reelBlob`, ffmpeg adds the music (Chrome on
+  Linux can't encode AAC), and the Supabase function `reel-upload`
+  (`supabase/functions/reel-upload`, auth = the workflow's GitHub OIDC token,
+  no secrets) stores it under `reels/system/` and sets `listings.reel_url` /
+  `reel_made_at`. It picks live listings from the last 10 days with ≥3 photos,
+  `social_posted_at` and `reel_url` empty. The daily social-posts task only
+  reads `reel_url` and no longer uses Chrome. Run results go to
+  `public.ops_runs` (task, ok, note) — the health log for scheduled work.
+- **Scheduled tasks and Chrome:** scheduled runs execute in the cloud and can't
+  reach the owner's Chrome unless the task has «Require this computer» turned
+  on in the desktop app (found 2026-10-30: imports stopped within 30 s on
+  29–30 Oct). The broker import and new-broker list need it.
 **New brokers (owner rule, 2026-10-25):** when a broker is newly added to
 `dealers`, import their last 14 days of posts right away (not just the
 nightly window), skipping anything already on the site (phone+make+year),
