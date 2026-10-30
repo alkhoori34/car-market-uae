@@ -223,6 +223,10 @@ async function make() {
   R.size = blob.size; R.audio = audioOK; R.codec = vcodec;
   const local = URL.createObjectURL(blob);
   out.innerHTML = `<a href="${local}" download="reel-${D.id || 'car'}.mp4">⬇️ تحميل الفيديو</a>`;
+  window.__reelBlob = blob;
+  // &noupload=1: the GitHub Actions builder (scripts/make-reels.mjs) takes the
+  // blob itself, adds the music with ffmpeg and uploads through reel-upload
+  if (qs.get('noupload')) { R.state = 'done'; go.disabled = false; say('تم ✅'); return; }
   // upload with the signed-in admin session (if any)
   say('جاري الرفع…');
   try {
