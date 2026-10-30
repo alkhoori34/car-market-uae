@@ -79,10 +79,25 @@ function runNode(handler, request, query) {
 // Tracking parameters (utm_*, fbclid …) are dropped from the cache key so
 // visitors from social links share the cached copy.
 const KEEP_PARAMS = new Set(["page", "lang", "route", "w"]);
-function cacheKey(request) {
+// The cache key also carries the build's script name (index-<hash>.js):
+// each deploy removes the old hashed files, so a page cached before a deploy
+// would load a script that no longer exists (blank, dead site). With the
+// build in the key, a new deploy simply starts a fresh set of cache entries.
+let buildId = null;
+async function currentBuild(env) {
+  if (buildId) return buildId;
+  try {
+    const html = await (await env.ASSETS.fetch(new Request("https://assets.local/"))).text();
+    const m = html.match(/assets\/index-([\w-]+)\.js/);
+    if (m) buildId = m[1];
+  } catch { /* fall through */ }
+  return buildId || "dev";
+}
+function cacheKey(request, build) {
   const u = new URL(request.url);
   const kept = [...u.searchParams].filter(([k]) => KEEP_PARAMS.has(k)).sort();
-  u.search = kept.length ? "?" + new URLSearchParams(kept) : "";
+  kept.push(["__b", build]);
+  u.search = "?" + new URLSearchParams(kept);
   return new Request(u.toString(), { method: "GET" });
 }
 const STORED_AT = "x-cm-stored-at";
@@ -102,9 +117,9 @@ function forBrowser(res, extra) {
   if (extra) out.headers.set("x-cm-cache", extra);
   return out;
 }
-async function cached(request, ctx, make) {
+async function cached(request, ctx, make, env) {
   if (request.method !== "GET") return make();
-  const key = cacheKey(request);
+  const key = cacheKey(request, await currentBuild(env));
   const hit = await caches.default.match(key);
   if (hit) {
     const age = (Date.now() - Number(hit.headers.get(STORED_AT) || 0)) / 1000;
@@ -182,18 +197,18 @@ export default {
       return res;
     }
 
-    if (url.pathname === "/sitemap.xml") return cached(request, ctx, () => runNode(sitemap, request, q));
-    if (url.pathname === "/api/listings") return cached(request, ctx, () => runNode(listings, request, q));
+    if (url.pathname === "/sitemap.xml") return cached(request, ctx, () => runNode(sitemap, request, q), env);
+    if (url.pathname === "/api/listings") return cached(request, ctx, () => runNode(listings, request, q), env);
     if (url.pathname === "/api/vin") return runNode(vin, request, q);
-    if (url.pathname === "/api/page") return cached(request, ctx, () => runNode(page, request, q));
-    if (url.pathname === "/api/sitemap") return cached(request, ctx, () => runNode(sitemap, request, q));
+    if (url.pathname === "/api/page") return cached(request, ctx, () => runNode(page, request, q), env);
+    if (url.pathname === "/api/sitemap") return cached(request, ctx, () => runNode(sitemap, request, q), env);
 
     const pr = (request.method === "GET" || request.method === "HEAD") && pageRoute(url.pathname);
     if (pr) {
       const query = { ...q, route: decodeURIComponent(pr.route) };
       delete query.lang;
       if (pr.en) query.lang = "en";
-      return cached(request, ctx, () => runNode(page, request, query));
+      return cached(request, ctx, () => runNode(page, request, query), env);
     }
 
     // Static files; unknown paths get index.html (the React app routes them).
