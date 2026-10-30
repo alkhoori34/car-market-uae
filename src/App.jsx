@@ -1389,6 +1389,20 @@ export default function CarMarket() {
     return rows.sort(sorters[sortBy] || sorters.newest);
   }, [liveListings, q, makeFilter, modelFilter, dealerFilter, currentDealer, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter, minYear, maxYear, maxKm, negotiableOnly]);
 
+  // The browse grid draws cars in steps (since 2026-10-30: drawing all 1,000+
+  // cards at once made phones slow); more appear as the visitor scrolls.
+  const PAGE_STEP = 36;
+  const [shown, setShown] = useState(PAGE_STEP);
+  useEffect(() => { setShown(PAGE_STEP); }, [q, makeFilter, modelFilter, dealerFilter, cityFilter, bodyTypeFilter, maxPrice, minPrice, sortBy, specsFilter, minYear, maxYear, maxKm, negotiableOnly]);
+  const moreRef = useRef(null);
+  useEffect(() => {
+    const el = moreRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) setShown((n) => n + PAGE_STEP); }, { rootMargin: "800px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  });
+
   const clearFilters = () => { setModelFilter(""); setDealerFilter(""); setMakeFilter("الكل"); setCityFilter("الكل"); setBodyTypeFilter("الكل"); setMaxPrice(""); setMinPrice(""); setSortBy("newest"); setSpecsFilter("الكل"); setMinYear(""); setMaxYear(""); setMaxKm(""); setNegotiableOnly(false); setQ(""); };
   const filtersActive = Boolean(modelFilter) || Boolean(dealerFilter) || makeFilter !== "الكل" || cityFilter !== "الكل" || bodyTypeFilter !== "الكل" || maxPrice || minPrice || specsFilter !== "الكل" || minYear || maxYear || maxKm || negotiableOnly || q;
 
@@ -2062,8 +2076,9 @@ export default function CarMarket() {
               </div>
             </div>
           ) : (
+            <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((l, i) => (
+              {filtered.slice(0, shown).map((l, i) => (
                 <ListingCard
                   key={l.id}
                   eager={i < 2}
@@ -2075,6 +2090,14 @@ export default function CarMarket() {
                 />
               ))}
             </div>
+            {shown < filtered.length && (
+              <div ref={moreRef} className="flex justify-center py-6">
+                <button onClick={() => setShown((n) => n + PAGE_STEP)} className="cm-btn-ghost font-bold text-sm px-5 py-2.5 rounded-lg">
+                  <span>عرض المزيد</span> <span className="cm-tabular">({formatNumber(filtered.length - shown)})</span>
+                </button>
+              </div>
+            )}
+            </>
           )}
         </main>
       )}

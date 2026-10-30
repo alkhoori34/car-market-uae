@@ -35,7 +35,7 @@ const UI = {
   // home
   "ابحث عن سيارتك": "Find your car", "سيارات مستعملة للبيع في كل الإمارات، من البائع مباشرة.": "Used cars for sale across the UAE, straight from the seller.",
   "مثال: تويوتا كامري": "e.g. Toyota Camry", "بحث": "Search", "عندك سيارة للبيع؟": "Have a car to sell?",
-  "انشر إعلانك مجانًا خلال دقيقة.": "Post your ad for free in a minute.", "أحدث السيارات": "Latest cars", "عرض الكل": "View all",
+  "انشر إعلانك مجانًا خلال دقيقة.": "Post your ad for free in a minute.", "أحدث السيارات": "Latest cars", "عرض الكل": "View all", "عرض المزيد": "Show more",
   "جارِ التحميل": "Loading", "جارِ التحميل...": "Loading...", "لا توجد سيارات معروضة بعد": "No cars listed yet", "كن أول من ينشر سيارته.": "Be the first to list your car.",
   "سيارات مستعملة للبيع في الإمارات": "Used cars for sale in the UAE", "سوق السيارات المستعملة في الإمارات": "The UAE used car market",
   // my listings
