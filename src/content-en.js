@@ -338,6 +338,73 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "flood-damaged-used-car-uae": {
+    title: "Flood-damaged car? How to spot a used car hit by floods and rain in the UAE",
+    description: "A practical guide to spotting a used car that took on rainwater in the UAE: the smell, rust, electrics, seat belts, and the questions to ask before you buy.",
+    body: [
+      ["p", "On 16 April 2024 the UAE saw its heaviest rain in around 75 years, and many cars sat in water that reached the doors and sometimes the dashboard. Some were properly repaired and came back to the market; others were only cleaned on the outside and listed as if nothing had happened. Every rainy season the same question returns: how do I know the car I'm buying wasn't flooded? This guide gives you simple steps you can do yourself before you pay."],
+
+      ["h2", "1. Why is a flooded car a big problem?"],
+      ["p", "Water doesn't just stain the upholstery. It reaches the wiring, connectors and control units under the seats and dashboard, and corrosion starts quietly. The car may drive normally for the first weeks, then electrical faults come and go, warning lights appear, or a smell never leaves. These faults are expensive and hard to fix because their source isn't obvious."],
+      ["p", "Second: if the car only had third-party insurance, the policy doesn't cover flood damage to the car itself, so the owner pays for repairs. That's why some people prefer to sell quickly rather than repair properly."],
+
+      ["h2", "2. Use your nose first"],
+      ["ul", [
+        "Open a car that has been closed in the sun and smell it before the AC is switched on. A damp or musty smell is a clear sign.",
+        "Be wary of a car that smells too fresh, or has several air fresheners. Sometimes the scent is covering something.",
+        "Turn on the AC and smell the air from the vents. A bad smell can come from moisture in the system.",
+      ]],
+
+      ["h2", "3. Interior: look for water marks"],
+      ["ul", [
+        "Pull the seat belt all the way out and look at the part that normally stays rolled up. Water stains, damp or mud there are a strong sign.",
+        "Feel the carpet under the feet and lift a corner if you can. Damp or fine silt underneath isn't normal.",
+        "Open the boot, lift the floor and check the spare-wheel well: rust, water or a mud line.",
+        "Check the seat rails and mounting bolts. Rust there on a fairly new car doesn't make sense.",
+        "Notice if the carpet or upholstery is new or a different shade from the rest of the cabin for no clear reason.",
+      ]],
+      ["tip", "Rust in places water doesn't normally reach, like under the dashboard, inside the door hinges or on the steering column, matters more than anything the seller says."],
+
+      ["h2", "4. Electrics: try every button"],
+      ["p", "Electrics are the first thing to be damaged and the last to show it. Don't rush this step:"],
+      ["ol", [
+        "Turn the ignition on and watch the dashboard warning lights: they should all light up for a moment and then go out, especially airbag and ABS. A light that never comes on may have been disconnected to hide a problem.",
+        "Test every window, mirror, central locking, radio and speakers, the screen, camera and sensors.",
+        "Check the front and rear lights: condensation or a water line inside the lens is a warning.",
+        "Run the AC at full, plus the wipers and horn.",
+        "Anything that works one moment and stops the next is one of the worst signs.",
+      ]],
+
+      ["h2", "5. Underneath and on the test drive"],
+      ["ul", [
+        "Ask for the car to be put on a lift at a garage or inspection centre, and look for rust underneath, on the suspension and around the wheels.",
+        "A line of dust or mud at the same level in the engine bay or on the doors shows how high the water reached.",
+        "On the test drive, watch for engine misfires, odd gear changes, or a warning light coming on while driving.",
+      ]],
+      ["cta", { text: "Want a full step-by-step used car inspection checklist?", href: "/blog/used-car-inspection-checklist", label: "Inspection checklist" }],
+
+      ["h2", "6. Questions to ask the seller"],
+      ["ul", [
+        "Where was the car during the rain? In a house, a basement, or on the street?",
+        "Did water get in, or was it towed away on a rainy day?",
+        "Is there an insurance claim on it? Was it repaired at the dealer?",
+        "Do you have the service history or the invoices for the last repair?",
+      ]],
+      ["p", "An honest seller answers clearly and shows the paperwork. Dodging questions or rushing the sale («another buyer wants it today») is reason enough to slow down."],
+      ["cta", { text: "Before the viewing, check the VIN and make sure the car's details match the ad.", href: "/vin-check", label: "VIN check" }],
+
+      ["h2", "7. Too cheap? Don't celebrate yet"],
+      ["p", "If you find a car of the same model, year and mileage priced far below the other ads, ask yourself why. Sometimes the seller really is in a hurry; sometimes the price hides a story like a flood or a major accident. Compare the price with similar cars on the market, and if the gap is big for no clear reason, make the inspection more thorough and ask more questions."],
+
+      ["h2", "8. The final step: an approved inspection"],
+      ["p", "Even if everything looks fine, take the car to an approved inspection centre or a garage you trust before you pay. Inspection centres in the UAE offer full pre-purchase checks covering the electrics, chassis and underbody, and the cost is small next to losing money on a flooded car. Ask the centre to note any signs of water or unusual rust in the report."],
+      ["tip", "Never transfer any money before you have seen and checked the car yourself. If it doesn't feel right, walk away: the market is full of options."],
+
+      ["h2", "Summary"],
+      ["p", "A flooded car can be spotted if you take your time: smell the cabin, pull the seat belt, lift the carpet, test every button and look underneath. Ask the seller clear questions, and let an approved inspection have the last word before you pay."],
+      ["cta", { text: "Browse the used cars for sale on CarsUAE now and contact sellers directly.", href: "/used-cars", label: "Browse cars" }],
+    ],
+  },
   "used-land-cruiser-buying-guide": {
     title: "Used Land Cruiser in the UAE: which generation to pick and what to check",
     description: "A guide to buying a used Toyota Land Cruiser in the UAE: the 200 vs the 300 series, the latest recall campaigns, and what to check in the engine, gearbox and underbody.",
