@@ -159,8 +159,9 @@ export function categoryCopy(route, count) {
   }
 }
 
+// Make, model and year; skips any that are missing (some imported ads have no model or year).
 export function carTitle(l) {
-  return `${l.make} ${l.model} ${l.year}`;
+  return [l.make, l.model, l.year].filter(Boolean).join(" ");
 }
 
 export function carCopy(l) {
