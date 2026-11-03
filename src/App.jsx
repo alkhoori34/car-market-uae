@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight, Menu as MenuIcon } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import { langPath, paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy } from "./seo-data.js";
+import { langPath, paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy, carTitle } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
 import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
@@ -818,7 +818,7 @@ export default function CarMarket() {
   // browsers show, and what someone sees in their history.
   useEffect(() => {
     document.title = active
-      ? `${active.make} ${active.model} ${active.year} — ${active.price ? formatNumber(active.price) + " د.إ" : "للبيع"} | CarsUAE`
+      ? `${carTitle(active)} — ${active.price ? formatNumber(active.price) + " د.إ" : "للبيع"} | CarsUAE`
       : view === "browse"
         ? sectionTitle
         : view === "vin"
@@ -1191,7 +1191,7 @@ export default function CarMarket() {
 
   async function shareListing(l) {
     const url = l.dealerSlug ? `${window.location.origin}${langPath(paths.dealer(l.dealerSlug), getLang() === "en")}` : listingUrl(l.id);
-    const title = L(l.dealerSlug ? `سيارات ${l.make} على CarsUAE` : `${l.make} ${l.model} ${l.year} — ${l.price ? formatNumber(l.price) + " د.إ" : "للبيع"}`);
+    const title = L(l.dealerSlug ? `سيارات ${l.make} على CarsUAE` : `${carTitle(l)} — ${l.price ? formatNumber(l.price) + " د.إ" : "للبيع"}`);
     if (navigator.share) {
       try { await navigator.share({ title, url }); return; } catch { /* user cancelled */ }
     }
@@ -1745,7 +1745,7 @@ export default function CarMarket() {
         const rows = adminRows.filter((l) => {
           if (adminTab === "reported" ? !(reportedIds.has(l.id) || l.reports_count > 0) : adminTab !== "all" && status(l) !== adminTab) return false;
           if (!needle) return true;
-          return `${l.make} ${l.model} ${l.year} ${l.seller_name || ""} ${l.phone || ""} ${l.city || ""}`.toLowerCase().includes(needle);
+          return `${carTitle(l)} ${l.seller_name || ""} ${l.phone || ""} ${l.city || ""}`.toLowerCase().includes(needle);
         });
         const tabs = [["all", "الكل"], ["live", "ظاهرة"], ["sold", "مُباعة"], ["expired", "منتهية"], ["duplicate", "مكرر"], ["reported", "بلاغات"]];
         const label = { live: ["ظاهرة", "mint"], sold: ["مُباعة", "muted"], expired: ["منتهية", "red"], duplicate: ["مكرر", "muted"], reported: ["مخفية بسبب البلاغات", "red"] };
@@ -2465,8 +2465,8 @@ export default function CarMarket() {
                   {!active.sold && (
                     <a
                       href={`https://wa.me/${waNumber(active.phone)}?text=${encodeURIComponent(getLang() === "en"
-                        ? `Hello, I saw your ${translate(`${active.make} ${active.model}`)} ${active.year} on CarsUAE and would like to ask about it: ${listingUrl(active.id)}`
-                        : `السلام عليكم، شفت إعلان ${active.make} ${active.model} ${active.year} على CarsUAE وأبي أستفسر عنها: ${listingUrl(active.id)}`)}`}
+                        ? `Hello, I saw your ${[translate(`${active.make} ${active.model}`), active.year].filter(Boolean).join(" ")} on CarsUAE and would like to ask about it: ${listingUrl(active.id)}`
+                        : `السلام عليكم، شفت إعلان ${carTitle(active)} على CarsUAE وأبي أستفسر عنها: ${listingUrl(active.id)}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackContact(supabase, active.id, "whatsapp")}
@@ -2859,7 +2859,7 @@ function ListingCard({ l, onOpen, isFav, onFav, dealer, eager = false }) {
             src={imgSrc(photo, 640)}
             srcSet={imgSrcSet(photo, [384, 640, 828])}
             sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
-            alt={`${l.make} ${l.model} ${l.year}`}
+            alt={carTitle(l)}
             loading={eager ? "eager" : "lazy"}
             fetchpriority={eager ? "high" : undefined}
             decoding="async"
