@@ -203,6 +203,12 @@ The Supabase connector cancels statements containing `drop`, so write
 migrations with plain `create` / `alter ... add` and run them via SQL. Run schema changes as Supabase migrations and keep a copy
 of the SQL in the repo root (see `listings-*.sql`).
 
+- **Missing model or year (owner rule 2026-11-03):** broker ads with no
+  model year or no model name are still published, with `year` null and/or
+  `model` '' (the admin importer refuses blanks, so publish with a
+  placeholder and clear it with SQL). Build car names with `carTitle()` from
+  `src/seo-data.js`, which skips missing parts, never `${make} ${model} ${year}`.
+
 ## Working here
 
 - There is no local `npm install` in the cloud session (the npm registry is
