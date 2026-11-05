@@ -595,13 +595,23 @@ export default function CarMarket() {
         if (r.ok) rows = await r.json();
       } catch { /* fall back below */ }
       if (!Array.isArray(rows)) {
-        const { data, error } = await supabase
-          .from("listings")
-          .select("*")
-          .lt("reports_count", REPORT_THRESHOLD)
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        rows = data || [];
+        // Supabase returns at most 1,000 rows per request: page through, or
+        // the browse count stops at ~1,000 (seen 2026-11-05: «989 سيارة»
+        // with 1,351 live cars).
+        rows = [];
+        for (let from = 0; from < 20000; from += 1000) {
+          const { data, error } = await supabase
+            .from("listings")
+            .select("*")
+            .lt("reports_count", REPORT_THRESHOLD)
+            .not("duplicate", "is", true)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, from + 999);
+          if (error) throw error;
+          rows.push(...(data || []));
+          if (!data || data.length < 1000) break;
+        }
       }
       setListings(mergeMine(rows));
     } catch (e) {
@@ -646,8 +656,19 @@ export default function CarMarket() {
   }, [session]);
 
   async function loadAdmin() {
-    const [{ data: rows }, { data: reps }] = await Promise.all([
-      supabase.from("listings").select("*").order("created_at", { ascending: false }),
+    const allRows = async () => {
+      const out = [];
+      for (let from = 0; from < 20000; from += 1000) {
+        const { data } = await supabase.from("listings").select("*")
+          .order("created_at", { ascending: false }).order("id", { ascending: false })
+          .range(from, from + 999);
+        out.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      return out;
+    };
+    const [rows, { data: reps }] = await Promise.all([
+      allRows(),
       supabase.from("reports").select("*").order("created_at", { ascending: false }),
     ]);
     setAdminRows(rows || []);
