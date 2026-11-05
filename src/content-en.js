@@ -338,6 +338,71 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "used-car-scam-signs-uae": {
+    title: "Used car scams in the UAE: signs of a fake ad and how to protect yourself",
+    description: "Signs of a scam used-car ad in the UAE, the tricks fraudsters use on sellers such as forged cheques and fake transfer receipts, and where to report fraud.",
+    body: [
+      ["p", "Buying and selling cars online is easier than ever in the UAE: take photos, post the ad, and buyers call. Fraudsters exploit that same ease. Police in Dubai, Abu Dhabi and Sharjah have warned several times about tricks aimed at both sellers and buyers, and gangs have been caught buying expensive cars with forged cheques. This guide covers the signs of a scam ad, the tricks aimed at sellers, and what to do if it happens to you."],
+
+      ["h2", "1. Signs of a scam ad when you're buying"],
+      ["ul", [
+        "The price is far below the market for no clear reason. Compare with cars of the same model, year and mileage, and if the gap is big, ask why.",
+        "The seller asks for a deposit or transfer before you see the car, saying \"lots of buyers want it\" or \"I'll hold it for you\".",
+        "The seller says he is travelling or abroad, and the car will be \"delivered\" after you transfer the money.",
+        "He refuses a viewing or an inspection at an approved centre, or wants to meet somewhere odd and remote.",
+        "The photos are taken from the internet or another ad, or are all close-ups that hide the plate and location.",
+        "The name on the registration card differs from the person you're talking to, with no clear authorisation.",
+      ]],
+      ["p", "Watch the style more than the words. A fraudster is usually friendly and quick to reply, with a convincing story: travelling, needing money fast, or the car is with a relative. Whenever you ask a precise question or ask to see the car, he pushes you on time again. An honest seller doesn't mind you seeing and inspecting the car and taking your time, because he trusts his car."],
+      ["tip", "Golden rule: don't transfer a single dirham before you have seen the car, test-driven it, and confirmed the registration is in the seller's name or that he has an official authorisation."],
+
+      ["h2", "2. Check the car itself before paying"],
+      ["ol", [
+        "Ask for a copy of the registration card and compare its chassis number with the number on the car (usually at the windscreen and on the door pillar).",
+        "Check the VIN and make sure the make, model and year match the ad.",
+        "Take the car to an approved inspection centre or a garage you trust before you agree.",
+        "Make the ownership transfer and the payment happen at the same time, in an official place such as a vehicle registration centre.",
+      ]],
+      ["cta", { text: "Before the viewing, check the VIN for free and see the car's details.", href: "/vin-check", label: "Check a VIN" }],
+
+      ["h2", "3. When you're selling: the fake buyer's tricks"],
+      ["p", "Fraud isn't only aimed at buyers. Many people have sold their cars and never received a dirham. The best-known tricks police have warned about:"],
+      ["ul", [
+        "Forged transfer receipt: the buyer inspects the car and sends a photo of a bank transfer receipt, saying the money will arrive in a few days. You hand over the car and the money never comes. Abu Dhabi Police warned about this in May 2024.",
+        "Forged cheque at weekends and holidays: a fake cheque is deposited at an ATM on a holiday, your bank texts that the cheque is \"under collection\", and you think the money is on its way. Sharjah Police warned about this method.",
+        "\"Company representative\": in 2025 Dubai Police caught a gang buying expensive cars from online ads; one member negotiated, another posed as a company representative and handed over a forged cheque, and the cars were shipped abroad within hours of the ownership transfer.",
+        "Late-night rush: fraudsters like to close the deal at night or before a holiday, so you can't check with the bank.",
+      ]],
+
+      ["h2", "4. How to protect yourself when selling"],
+      ["ul", [
+        "Don't hand over the car or transfer ownership until the full amount has actually reached your account, not a receipt photo or an \"under collection\" text.",
+        "If paid by cheque, call the bank and confirm the cheque is genuine and has cleared before handover. This is exactly what Dubai Police advise.",
+        "Avoid closing a sale at weekends or on public holidays when banks are closed.",
+        "Meet the buyer in a public place with cameras, such as an inspection or registration centre, not an empty spot.",
+        "Don't share more copies of your personal documents or bank details than needed.",
+      ]],
+      ["cta", { text: "Learn the ownership transfer steps and required papers before you buy or sell.", href: "/blog/car-ownership-transfer-uae", label: "Ownership transfer guide" }],
+
+      ["h2", "5. Suspicious messages and links"],
+      ["p", "Sometimes the \"buyer\" sends a link that supposedly lets you receive the money or confirm shipping, and asks for your card details or the verification code from your bank. That's fraud. Receiving money never needs your card number or OTP. Don't open strange links and never share a code with anyone, whatever they say."],
+
+      ["h2", "6. Been scammed? Where to report"],
+      ["p", "The sooner you report, the better the chance police can stop the fraudster. Official channels:"],
+      ["ul", [
+        "The nearest police station, or call 999 in an emergency.",
+        "The Ministry of Interior eCrimes platform, in the MOI UAE app.",
+        "Dubai Police eCrime at ecrime.ae or the Dubai Police app.",
+        "Abu Dhabi Police Aman service.",
+        "The federal Public Prosecution's My Safe Society app.",
+      ]],
+      ["tip", "Keep everything: the fraudster's number, the chats, photos of the receipt or cheque, and the ad link. They help the police a lot."],
+
+      ["h2", "Summary"],
+      ["p", "Most used-car fraud relies on one thing: making you rush. See the car yourself, check the registration and VIN, and don't hand over or accept anything until the money is really in the account. If something doesn't feel right, walk away; there are plenty of other cars."],
+      ["cta", { text: "Browse used cars on CarsUAE, contact the seller directly, and see the car before paying anything.", href: "/used-cars", label: "Browse cars" }],
+    ],
+  },
   "flood-damaged-used-car-uae": {
     title: "Flood-damaged car? How to spot a used car hit by floods and rain in the UAE",
     description: "A practical guide to spotting a used car that took on rainwater in the UAE: the smell, rust, electrics, seat belts, and the questions to ask before you buy.",
