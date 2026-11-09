@@ -338,6 +338,73 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "used-nissan-patrol-buying-guide": {
+    title: "Used Nissan Patrol in the UAE: buying guide and what to check before you pay",
+    description: "Buying a used Nissan Patrol in the UAE? The difference between the Y61, Y62 and Y63, and what to check in the gearbox, hydraulic suspension and engine before paying.",
+    body: [
+      ["p", "In the UAE the Patrol is more than a car: it is part of desert trips and weekends outdoors, which is why it is one of the most searched used cars. But it is heavy and powerful, and most have seen sand, heat and dune drives, so an inspection before buying matters. This guide covers the generations you will find on the market, what to check on each, and how to close the deal with peace of mind."],
+
+      ["h2", "1. Which generation will you find?"],
+      ["ul", [
+        "Y61 (the older Patrol, including Safari and Super Safari): launched in the late 1990s. The best-known UAE versions use the 4.8-litre six-cylinder petrol engine (TB48). Desert fans like it for being simple and tough.",
+        "Y62 (2010 on): revealed in Abu Dhabi in February 2010, and the most common modern used Patrol in the UAE. There are 4.0-litre V6 versions and 5.6-litre V8 versions with about 400 hp, with a 7-speed automatic.",
+        "Y63 (the new generation): revealed in Abu Dhabi in September 2024, with a 3.8-litre V6 or a 3.5-litre twin-turbo V6, a 9-speed gearbox and more electronics. Used examples are still few and expensive.",
+      ]],
+      ["p", "The Y62 received styling updates over the years, the last big one in 2020 with a new grille and revised tail lights. Be careful: some older Patrols have been fitted with the newer look (a facelift conversion), so don't judge the year by the looks."],
+      ["tip", "The real model year comes from the VIN and the registration card, not the grille and lights. A converted car should be priced for its original year."],
+      ["cta", { text: "Check the VIN for free and confirm the make and year before the viewing.", href: "/vin-check", label: "Check a VIN" }],
+
+      ["h2", "2. The gearbox: the most important thing to test"],
+      ["p", "The Patrol's gearbox carries a heavy car and a big engine, and our heat is hard on the fluid. On the test drive:"],
+      ["ul", [
+        "Don't settle for a short drive with a cold car. Drive until the engine reaches normal temperature, because some faults only show when the gearbox is hot.",
+        "Watch for hesitation, jerks or harsh shifts, especially at low speed and in traffic.",
+        "Nissan treats the gearbox fluid as lifetime, but some owners noticed odd shifts when towing in hot weather, and some reviews suggest changing it periodically. Ask the seller when the fluid was last changed.",
+        "Try four-wheel drive: Auto, 4H and 4L, and make sure the light changes and the car responds.",
+      ]],
+
+      ["h2", "3. Hydraulic suspension (HBMC)"],
+      ["p", "Most top-spec Y62s have Hydraulic Body Motion Control, which reduces body roll in corners. It is not air suspension, but repairs can be costly compared with conventional suspension. What to do:"],
+      ["ul", [
+        "Look under the car for hydraulic fluid leaks at the shocks or lines.",
+        "Park on level ground and check the car sits straight and doesn't lean to one side.",
+        "On the drive, notice if it bounces a lot over bumps or leans too much in turns.",
+      ]],
+
+      ["h2", "4. Engine, cooling and air conditioning"],
+      ["ul", [
+        "Start the engine cold and listen: any persistent ticking or noise from the timing side needs a specialist's check.",
+        "Look for oil leaks around the valve covers and under the engine, something UAE specialists often mention.",
+        "Check the cooling system: coolant level, radiator and any signs of leaks. Heat and desert driving are hard on cooling.",
+        "Test the air conditioning in every zone, front and rear, and make sure it stays cold at idle.",
+        "Ask for the service history, especially on high-mileage cars.",
+      ]],
+      ["cta", { text: "Take the full step-by-step inspection checklist with you to the viewing.", href: "/blog/used-car-inspection-checklist", label: "Used car inspection checklist" }],
+
+      ["h2", "5. Desert marks and modifications"],
+      ["p", "The Patrol loves the desert, and the desert leaves marks. Get the car on a lift or look underneath at a garage:"],
+      ["ul", [
+        "Dents or scrapes under the chassis, and bent suspension arms.",
+        "The engine oil sump, which is fairly exposed and can be hit by rocks.",
+        "Brakes and tyres: the car is heavy and wears pads, discs and tyres faster, so factor them into the price.",
+        "Modifications: lifts, turbos, exhausts or tuning. It is better to avoid heavily modified cars unless the work was done by an approved shop and you have the papers.",
+      ]],
+
+      ["h2", "6. Fuel and running costs"],
+      ["p", "Be realistic: the 5.6-litre V8 is thirsty, real-world consumption is usually above the official figure, and the tank is large (140 litres). The V6 is easier on the wallet but less powerful. Think about how you'll use it: for mostly city driving the V6 may be enough; for desert trips and towing most people prefer the V8."],
+
+      ["h2", "7. Before you agree on a price"],
+      ["ol", [
+        "Compare with Patrols of the same generation, year, mileage and engine (V6 or V8). The gap between versions is large.",
+        "Ask about the specs: GCC or imported? Has the car been registered in accidents?",
+        "Take the car to an approved inspection centre or a garage that knows the Patrol, and have the check cover the gearbox, suspension and underside.",
+        "Use any fault the inspection finds, such as a leak, worn pads or old tyres, when negotiating the price.",
+      ]],
+      ["h2", "The bottom line"],
+      ["p", "A used Patrol is an excellent choice if you buy it right: confirm the real year by VIN, test the gearbox hot, check the hydraulic suspension and leaks, and look underneath. Don't rush; there are plenty of Patrols on the market."],
+      ["cta", { text: "Browse used Nissan cars on CarsUAE and contact the seller directly.", href: "/used-cars/nissan", label: "Browse used Nissan" }],
+    ],
+  },
   "used-car-scam-signs-uae": {
     title: "Used car scams in the UAE: signs of a fake ad and how to protect yourself",
     description: "Signs of a scam used-car ad in the UAE, the tricks fraudsters use on sellers such as forged cheques and fake transfer receipts, and where to report fraud.",
