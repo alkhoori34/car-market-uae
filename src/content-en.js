@@ -338,6 +338,73 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "used-car-insurance-uae": {
+    title: "Used car insurance in the UAE: comprehensive or third party? A buyer's guide",
+    description: "Bought a used car in the UAE? The difference between comprehensive and third-party insurance, what each covers, agency repair, and what happens to insurance on transfer.",
+    body: [
+      ["p", "The first question after agreeing on a used car is usually: how do I insure it, and do I need comprehensive or is third party enough? The choice makes a big difference to what you pay, and to what happens if you have an accident. This guide explains the difference simply, what to ask the insurer, and how insurance works with an ownership transfer."],
+
+      ["h2", "1. Why insurance is required"],
+      ["p", "In the UAE you cannot register a car or renew its registration without valid insurance. In Dubai, for example, the RTA checks the insurance and technical inspection before renewing a registration, and when a used car changes hands the buyer buys their own insurance through the app before the transfer is completed."],
+      ["p", "So the seller's insurance does not pass to you. You take out a policy in your name, and the seller cancels theirs and claims back whatever share is due."],
+
+      ["h2", "2. Third-party insurance: what it covers and what it doesn't"],
+      ["p", "Third-party liability is the legal minimum and the cheapest option. Its policy wording is unified across insurers under Central Bank of the UAE rules, so the basic cover is the same whichever company you choose."],
+      ["ul", [
+        "Covers: damage your car causes to other people, their cars and their property, and injuries to them.",
+        "Does not cover: any damage to your own car if you caused the accident.",
+        "Does not cover: natural disasters such as floods, under the unified policy.",
+        "Injuries to the driver and passengers are not fully covered unless you add a personal accident endorsement for an extra premium.",
+      ]],
+      ["tip", "Third party suits an older, low-value car that you would repair out of your own pocket anyway. For an expensive car, think carefully before settling for it."],
+
+      ["h2", "3. Comprehensive insurance: when is it worth it?"],
+      ["p", "Comprehensive includes everything in third party and also covers your own car, whether you were at fault or someone hit you. According to the Central Bank of the UAE's guide, the loss and damage cover includes:"],
+      ["ul", [
+        "Accidents, collisions and overturning.",
+        "Fire, explosion and lightning.",
+        "Theft, or deliberate damage by another person.",
+        "Damage while the car is transported, loaded or unloaded.",
+        "Any extra cover you agree with the insurer.",
+      ]],
+      ["p", "Comprehensive is worth it if the car is valuable, if you bought it with bank finance (ask the bank which cover it requires), or if you couldn't afford a big repair yourself."],
+      ["tip", "Floods and rain damage are not guaranteed in every comprehensive policy. Ask the insurer directly whether the policy covers rain, flood and natural-disaster damage, and make sure the answer is written in the policy."],
+      ["cta", { text: "Worried the car you want was flooded before? Read how to spot it before you insure it and pay.", href: "/blog/flood-damaged-used-car-uae", label: "Spot a flood-damaged car" }],
+
+      ["h2", "4. Agency repair or a garage?"],
+      ["p", "This matters a lot for used cars. According to the Central Bank's guide, agency repair with new original parts is generally for cars one year old or less with comprehensive cover, usually for an extra premium. After that the insurer can repair at suitable approved garages and may use non-original parts of the same quality."],
+      ["p", "So if you buy a five-year-old car, don't expect agency repair unless the insurer offers it and writes it into the policy. Ask which garages the insurer works with in your emirate."],
+
+      ["h2", "5. What to ask the insurer before you pay"],
+      ["ol", [
+        "What is the car's insured value? Make sure it is close to its market price, because a total-loss payout depends on it.",
+        "What is the excess (the amount you pay per claim)?",
+        "Is there a replacement car during repairs, and for how many days?",
+        "Are you covered in Oman? If you drive there, ask about Oman cover.",
+        "Is roadside assistance included (towing, battery, flat tyre)?",
+        "Is personal accident cover for the driver and passengers included, or extra?",
+      ]],
+      ["p", "Note: under the unified policy, if repairs after an accident cost more than half the car's value, or the chassis has to be cut and welded, the car is treated as a total loss. That is why the insured value matters."],
+
+      ["h2", "6. The no-claims discount: don't lose it"],
+      ["p", "If you insured a car before without claims, your previous insurer must give you an insurance experience certificate free of charge (on paper or electronically). It helps you get a no-claims discount from the new insurer, and the discount grows with each claim-free year."],
+      ["p", "So if you sell your old car and buy another used one, ask for the certificate before cancelling the old policy and give it to the new insurer."],
+
+      ["h2", "7. Insurance and ownership transfer, step by step"],
+      ["ol", [
+        "Agree the price with the seller and check the car and its VIN.",
+        "Take out your new policy in your name. In Dubai you can buy it through the RTA app during the transfer.",
+        "Complete the transfer at a service centre or in the app.",
+        "The seller asks their insurer to cancel the policy and refund the share due. The refund shrinks the longer the policy has run, and there is none if there is a claim the seller caused.",
+      ]],
+      ["p", "Want the documents and steps for each emirate? We have a full ownership transfer guide."],
+      ["cta", { text: "Read the guide to transferring a used car's ownership in Dubai and the UAE.", href: "/blog/car-ownership-transfer-uae", label: "Ownership transfer guide" }],
+
+      ["h2", "Summary"],
+      ["p", "An old, low-value car? Third party is usually enough. An expensive or financed car? Take comprehensive and read the policy carefully, especially on floods, repairs and the insured value. And above all, choose the right car in the first place."],
+      ["cta", { text: "Browse used cars for sale across the UAE and contact sellers directly.", href: "/used-cars", label: "Browse cars" }],
+    ],
+  },
   "used-nissan-patrol-buying-guide": {
     title: "Used Nissan Patrol in the UAE: buying guide and what to check before you pay",
     description: "Buying a used Nissan Patrol in the UAE? The difference between the Y61, Y62 and Y63, and what to check in the gearbox, hydraulic suspension and engine before paying.",
