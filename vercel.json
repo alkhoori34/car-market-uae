@@ -62,6 +62,14 @@
       "destination": "/api/page?route=/blog/:slug"
     },
     {
+      "source": "/news",
+      "destination": "/api/page?route=/news"
+    },
+    {
+      "source": "/news/:slug",
+      "destination": "/api/page?route=/news/:slug"
+    },
+    {
       "source": "/vin-check",
       "destination": "/api/page?route=/vin-check"
     },

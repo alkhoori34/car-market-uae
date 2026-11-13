@@ -8,6 +8,7 @@
 //   /dealer/<slug>            one dealer's cars
 //   /vin-check                free VIN (رقم الشاصي) check tool
 //   /blog, /blog/<slug>       articles (src/articles.js)
+//   /news, /news/<slug>       car news (table public.news, src/news.js; Arabic only)
 //   /terms /privacy /contact  info pages (src/legal.js)
 //   /                         home page (sent here by middleware.js)
 // Category pages take ?page=2, 3 … so every live car is reachable by links.
@@ -25,6 +26,7 @@ import { articlesIn, articleIn, articleBySlug, formatArticleDate as formatArticl
 import { imgSrc, imgSrcSet } from "../src/img.js";
 import { infoPageIn, CONTACT_EMAIL, LEGAL_UPDATED } from "../src/legal.js";
 import { priceCompare, priceCompareText } from "../src/price-compare.js";
+import { NEWS_FIELDS, NEWS_LIST_FIELDS, NEWS_CATEGORY_CLASS, newsBlocks, formatNewsDate, newsImage } from "../src/news.js";
 import {
   LISTING_FIELDS, queryListings, queryTable, getShell, fillShell as fillShellBase, send, esc, jsonLd, fmt, photo,
 } from "./_lib.js";
@@ -171,6 +173,11 @@ async function handle(req, res) {
     if (route.kind === "vin") return send(res, 200, vinPage(shell));
     if (route.kind === "blog") return send(res, 200, blogPage(shell));
     if (route.kind === "info") return send(res, 200, infoPage(shell, infoPageIn(route.page, EN())));
+    if (route.kind === "news") return send(res, 200, await newsPage(shell));
+    if (route.kind === "newsItem") {
+      const n = await getNewsItem(route.slug);
+      return n ? send(res, 200, await newsItemPage(shell, n)) : send(res, 404, notFound(shell, raw));
+    }
     if (route.kind === "article") {
       const a = articleIn(articleBySlug(route.slug), EN());
       return a ? send(res, 200, articlePage(shell, a)) : send(res, 404, notFound(shell, raw));
@@ -532,6 +539,97 @@ ${siteHeader()}
       author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/` },
       publisher: { "@type": "Organization", name: SITE_NAME, logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` } },
       image: `${SITE_URL}/og-image.png`,
+    }) + jsonLd(breadcrumbLd(crumbs)),
+    body,
+  });
+}
+
+// --- Car news (آخر الأخبار) ------------------------------------------------
+// Rows come from public.news (anyone can read published rows). News is
+// written in Arabic only, so the /en copies are noindex (arOnly).
+
+async function listNews(limit = 60) {
+  return queryTable("news", [["select", NEWS_LIST_FIELDS], ["published", "eq.true"], ["order", "published_at.desc"], ["limit", String(limit)]]);
+}
+
+async function getNewsItem(slug) {
+  const rows = await queryTable("news", [["select", NEWS_FIELDS], ["published", "eq.true"], ["slug", `eq.${slug}`], ["limit", "1"]]);
+  return rows[0] || null;
+}
+
+function newsCardHtml(n) {
+  const img = newsImage(n);
+  return `<li class="cm-card rounded-xl overflow-hidden"><a href="${P.newsItem(n.slug)}" class="block">
+    ${img ? `<img src="${esc(img)}" alt="${esc(n.title)}" width="640" height="360" loading="lazy" decoding="async" class="w-full object-cover cm-aspect-16-9">` : ""}
+    <div class="p-4">
+      <span class="cm-badge ${NEWS_CATEGORY_CLASS[n.category] || "cm-badge-muted"}">${esc(n.category || "أخبار")}</span>
+      <h2 class="font-bold mt-2" style="line-height:1.6">${esc(n.title)}</h2>
+      ${n.excerpt ? `<p class="text-sm cm-text-muted mt-1">${esc(n.excerpt)}</p>` : ""}
+      <p class="text-xs cm-text-muted mt-2">${esc(formatNewsDate(n.published_at))}</p>
+    </div></a></li>`;
+}
+
+async function newsPage(shell) {
+  const items = await listNews();
+  const title = `آخر أخبار السيارات في الإمارات | ${SITE_NAME}`;
+  const description = "آخر أخبار السيارات في الإمارات والخليج: سيارات جديدة وأسعارها، قوانين المرور والمخالفات، أسعار الوقود، والاستدعاءات. تحديث يومي من CarsUAE.";
+  const crumbs = [["الرئيسية", P.home()], ["آخر الأخبار", P.news()]];
+  const body = `
+${siteHeader()}
+<main class="max-w-6xl mx-auto px-4 py-8">
+  ${breadcrumbs(crumbs)}
+  <h1 class="cm-display font-extrabold text-2xl mb-2">آخر أخبار السيارات</h1>
+  <p class="cm-text-muted text-sm mb-6">${esc(description)}</p>
+  <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${items.map(newsCardHtml).join("")}</ul>
+</main>`;
+  return fillShell(shell, {
+    title, description, canonical: SITE_URL + P.news(), arOnly: true,
+    headExtra: jsonLd(breadcrumbLd(crumbs)) + jsonLd({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      itemListElement: items.slice(0, 30).map((n, i) => ({ "@type": "ListItem", position: i + 1, url: SITE_URL + paths.newsItem(n.slug), name: n.title })),
+    }),
+    body,
+  });
+}
+
+async function newsItemPage(shell, n) {
+  const url = SITE_URL + paths.newsItem(n.slug);
+  const img = newsImage(n);
+  const more = (await listNews(8).catch(() => [])).filter((x) => x.slug !== n.slug).slice(0, 6);
+  const crumbs = [["الرئيسية", P.home()], ["آخر الأخبار", P.news()], [n.title, P.newsItem(n.slug)]];
+  const body = `
+${siteHeader()}
+<main class="max-w-3xl mx-auto px-4 py-8">
+  ${breadcrumbs(crumbs)}
+  <article class="cm-article">
+    <span class="cm-badge ${NEWS_CATEGORY_CLASS[n.category] || "cm-badge-muted"}">${esc(n.category || "أخبار")}</span>
+    <h1 class="cm-display font-extrabold text-2xl mt-2 mb-2" style="line-height:1.5">${esc(n.title)}</h1>
+    <p class="text-xs cm-text-muted mb-5">${esc(formatNewsDate(n.published_at))}</p>
+    ${img ? `<figure class="mb-6"><img src="${esc(img)}" alt="${esc(n.title)}" width="960" height="540" class="w-full rounded-xl object-cover cm-aspect-16-9">${n.image_credit ? `<figcaption class="text-xs cm-text-muted mt-1">${esc(n.image_credit)}</figcaption>` : ""}</figure>` : ""}
+    ${blocksHtml(newsBlocks(n.body))}
+    ${n.source_name ? `<p class="text-sm cm-text-muted mt-6">المصدر: ${n.source_url ? `<a class="cm-link" rel="nofollow noopener" target="_blank" href="${esc(n.source_url)}">${esc(n.source_name)}</a>` : esc(n.source_name)}</p>` : ""}
+  </article>
+  ${more.length ? `<h2 class="cm-section-title mt-10 mb-3">أخبار أخرى</h2><ul class="space-y-2">${more.map((x) => `<li><a class="cm-link" href="${P.newsItem(x.slug)}">${esc(x.title)}</a></li>`).join("")}</ul>` : ""}
+  <p class="mt-8"><a class="cm-link font-bold" href="${P.news()}">كل الأخبار</a> · <a class="cm-link font-bold" href="${P.all()}">تصفح السيارات المعروضة</a></p>
+</main>`;
+  return fillShell(shell, {
+    title: `${n.title} | ${SITE_NAME}`,
+    description: n.excerpt || n.title,
+    canonical: url, arOnly: true,
+    image: img || undefined,
+    headExtra: jsonLd({
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      headline: n.title,
+      description: n.excerpt || n.title,
+      datePublished: n.published_at,
+      dateModified: n.published_at,
+      inLanguage: "ar-AE",
+      mainEntityOfPage: url,
+      author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/` },
+      publisher: { "@type": "Organization", name: SITE_NAME, logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` } },
+      image: img || `${SITE_URL}/og-image.png`,
     }) + jsonLd(breadcrumbLd(crumbs)),
     body,
   });

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight, Menu as MenuIcon } from "lucide-react";
+import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight, Newspaper, Menu as MenuIcon } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { langPath, paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy, carTitle } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
 import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
+import { NEWS_FIELDS, NEWS_LIST_FIELDS, NEWS_CATEGORY_CLASS, newsBlocks, formatNewsDate, newsImage } from "./news.js";
 // Admin-only Instagram importer: loaded on demand, not in every visitor's bundle.
 const Importer = React.lazy(() => import("./Importer.jsx"));
 import { priceCompare, priceCompareText } from "./price-compare.js";
@@ -488,13 +489,16 @@ export default function CarMarket() {
   const [view, setView] = useState(
     initialRoute?.kind === "vin" ? "vin"
       : initialRoute?.kind === "blog" || initialRoute?.kind === "article" ? "blog"
+      : initialRoute?.kind === "news" || initialRoute?.kind === "newsItem" ? "news"
       : initialRoute?.kind === "info" ? "info"
       : initialRoute ? "browse" : "home"
-  ); // home | browse | mine | saved | add | vin | blog | info
+  ); // home | browse | mine | saved | add | vin | blog | news | info
   // Which info page is open on the "info" view: terms | privacy | contact.
   const [infoPage, setInfoPage] = useState(initialRoute?.kind === "info" ? initialRoute.page : "terms");
   // Open article on the blog view ("" = the article list).
   const [articleSlug, setArticleSlug] = useState(initialRoute?.kind === "article" ? initialRoute.slug : "");
+  // Open news item on the news view ("" = the news list).
+  const [newsSlug, setNewsSlug] = useState(initialRoute?.kind === "newsItem" ? initialRoute.slug : "");
 
   // Auth (Supabase email/password accounts)
   const [session, setSession] = useState(null);
@@ -740,6 +744,11 @@ export default function CarMarket() {
       window.scrollTo(0, 0);
       return;
     }
+    if (route.kind === "news" || route.kind === "newsItem") {
+      setActive(null); setNewsSlug(route.kind === "newsItem" ? route.slug : ""); setView("news");
+      window.scrollTo(0, 0);
+      return;
+    }
     setActive(null);
     setMakeFilter(["make", "model"].includes(route.kind) ? route.make : "الكل");
     setModelFilter(route.kind === "model" ? route.modelSlug : "");
@@ -828,12 +837,13 @@ export default function CarMarket() {
     const target = view === "browse" ? browsePath()
       : view === "vin" ? paths.vin()
       : view === "blog" ? (articleSlug ? paths.article(articleSlug) : paths.blog())
+      : view === "news" ? (newsSlug ? paths.newsItem(newsSlug) : paths.news())
       : view === "info" ? INFO_PAGES[infoPage].path
       : "/";
     if (target === window.location.pathname) return;
     if (viewChanged) window.history.pushState({}, "", target);
     else window.history.replaceState({}, "", target);
-  }, [view, articleSlug, infoPage, makeFilter, modelFilter, dealerFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
+  }, [view, articleSlug, newsSlug, infoPage, makeFilter, modelFilter, dealerFilter, cityFilter, minPrice, maxPrice, active, pendingCarId]);
 
   // Keep the tab title useful when a listing is open — it's what WhatsApp and
   // browsers show, and what someone sees in their history.
@@ -846,6 +856,8 @@ export default function CarMarket() {
         ? "فحص رقم الشاصي مجانًا | CarsUAE"
         : view === "blog"
         ? (articleBySlug(articleSlug)?.title || "مقالات ونصائح") + " | CarsUAE"
+        : view === "news"
+        ? (newsSlug ? "آخر الأخبار" : "آخر أخبار السيارات") + " | CarsUAE"
         : view === "info"
         ? `${INFO_PAGES[infoPage].title} | CarsUAE`
         : "CarsUAE — سوق السيارات المستعملة في الإمارات";
@@ -1468,7 +1480,7 @@ export default function CarMarket() {
                 onClick={() => setNavOpen((o) => !o)}
                 aria-expanded={navOpen}
                 aria-label="القائمة"
-                className={`text-sm font-bold px-2 sm:px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${["vin", "blog", "info"].includes(view) ? "cm-navbtn-active" : ""}`}
+                className={`text-sm font-bold px-2 sm:px-3 py-2 rounded-lg transition flex items-center gap-1.5 cm-navbtn ${["vin", "blog", "news", "info"].includes(view) ? "cm-navbtn-active" : ""}`}
               >
                 <MenuIcon size={15} /> <span className="hidden sm:inline">القائمة</span>
               </button>
@@ -1480,6 +1492,7 @@ export default function CarMarket() {
                       [<Search size={15} />, "تصفح السيارات", paths.all()],
                       [<Plus size={15} />, "بيع سيارتك", "#sell"],
                       [<ScanLine size={15} />, "فحص رقم الشاصي", paths.vin()],
+                      [<Newspaper size={15} />, "آخر الأخبار", paths.news()],
                       [<BookOpen size={15} />, "المقالات والنصائح", paths.blog()],
                       [<Info size={15} />, "الأسئلة الشائعة", INFO_PAGES.faq.path],
                       [<ShieldCheck size={15} />, "نصائح الأمان", INFO_PAGES.safety.path],
@@ -1669,6 +1682,7 @@ export default function CarMarket() {
       {view === "vin" && <VinCheck onBrowse={() => setView("browse")} />}
 
       {view === "blog" && <Blog slug={articleSlug} goTo={goTo} />}
+      {view === "news" && <News slug={newsSlug} goTo={goTo} />}
 
       {view === "info" && (
         <main className="max-w-3xl mx-auto px-4 py-8">
@@ -2666,7 +2680,7 @@ export default function CarMarket() {
           ))}
         </nav>
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["المقالات", paths.blog()], ...FOOTER_PAGES.map((k) => [INFO_PAGES[k].short, INFO_PAGES[k].path])].map(([label, href]) => (
+          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["آخر الأخبار", paths.news()], ["المقالات", paths.blog()], ...FOOTER_PAGES.map((k) => [INFO_PAGES[k].short, INFO_PAGES[k].path])].map(([label, href]) => (
             <a key={href} href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className="cm-link">{label}</a>
           ))}
           <span className="cm-text-muted mr-auto" dir="ltr">© CarsUAE</span>
@@ -3152,6 +3166,105 @@ function Blog({ slug, goTo }) {
         <p className="text-xs cm-text-muted mb-6">{formatArticleDate(a.date)} · {a.readMinutes} دقائق قراءة</p>
         <ArticleBlocks body={a.body} goTo={goTo} />
       </article>
+    </main>
+  );
+}
+
+// آخر الأخبار: the list at /news, or one item at /news/<slug>. Rows come from
+// public.news (written daily by a scheduled task); the server pages in
+// api/page.js render the same content for search engines. Arabic only.
+function News({ slug, goTo }) {
+  const [list, setList] = useState(null);
+  const [item, setItem] = useState(undefined); // undefined = loading, null = not found
+  const link = (href, children, className) => (
+    <a href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className={className}>{children}</a>
+  );
+
+  useEffect(() => {
+    let off = false;
+    supabase.from("news").select(NEWS_LIST_FIELDS).eq("published", true)
+      .order("published_at", { ascending: false }).limit(60)
+      .then(({ data }) => { if (!off) setList(data || []); });
+    return () => { off = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!slug) return;
+    let off = false;
+    setItem(undefined);
+    supabase.from("news").select(NEWS_FIELDS).eq("published", true).eq("slug", slug).maybeSingle()
+      .then(({ data }) => { if (!off) setItem(data || null); });
+    return () => { off = true; };
+  }, [slug]);
+
+  const badge = (cat) => <span className={`cm-badge ${NEWS_CATEGORY_CLASS[cat] || "cm-badge-muted"}`}>{cat || "أخبار"}</span>;
+
+  if (slug) {
+    if (item === undefined) return <main className="max-w-3xl mx-auto px-4 py-16 text-center"><Loader2 className="animate-spin inline" /></main>;
+    if (!item) return (
+      <main className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <p className="font-bold mb-3">الخبر غير موجود</p>
+        {link(paths.news(), "كل الأخبار", "cm-link font-bold")}
+      </main>
+    );
+    const img = newsImage(item);
+    const more = (list || []).filter((x) => x.slug !== item.slug).slice(0, 6);
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-8" data-no-i18n>
+        {link(paths.news(), <><ArrowRight size={15} /> كل الأخبار</>, "cm-link text-sm font-bold inline-flex items-center gap-1 mb-4")}
+        <article className="cm-article">
+          {badge(item.category)}
+          <h1 className="cm-display font-extrabold text-2xl mt-2 mb-2" style={{ lineHeight: 1.5 }}>{item.title}</h1>
+          <p className="text-xs cm-text-muted mb-5">{formatNewsDate(item.published_at)}</p>
+          {img && (
+            <figure className="mb-6">
+              <img src={img} alt={item.title} className="w-full rounded-xl object-cover cm-aspect-16-9" />
+              {item.image_credit && <figcaption className="text-xs cm-text-muted mt-1">{item.image_credit}</figcaption>}
+            </figure>
+          )}
+          <ArticleBlocks body={newsBlocks(item.body)} goTo={goTo} />
+          {item.source_name && (
+            <p className="text-sm cm-text-muted mt-6">
+              المصدر: {item.source_url ? <a className="cm-link" href={item.source_url} target="_blank" rel="nofollow noopener noreferrer">{item.source_name}</a> : item.source_name}
+            </p>
+          )}
+        </article>
+        {more.length > 0 && (
+          <>
+            <h2 className="cm-section-title mt-10 mb-3">أخبار أخرى</h2>
+            <ul className="space-y-2">{more.map((x) => <li key={x.slug}>{link(paths.newsItem(x.slug), x.title, "cm-link")}</li>)}</ul>
+          </>
+        )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="max-w-6xl mx-auto px-4 py-8" data-no-i18n>
+      <h1 className="cm-display font-extrabold text-2xl mb-2 flex items-center gap-2"><Newspaper size={24} className="cm-text-accent" /> آخر أخبار السيارات</h1>
+      <p className="cm-text-muted text-sm mb-6">سيارات جديدة وأسعارها، قوانين المرور، أسعار الوقود والاستدعاءات في الإمارات. تحديث يومي.</p>
+      {list === null ? (
+        <div className="text-center py-12"><Loader2 className="animate-spin inline" /></div>
+      ) : list.length === 0 ? (
+        <p className="cm-text-muted">لا توجد أخبار حالياً.</p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((n) => {
+            const img = newsImage(n);
+            return <React.Fragment key={n.slug}>{link(paths.newsItem(n.slug), (
+              <>
+                {img && <img src={img} alt={n.title} loading="lazy" className="w-full object-cover cm-aspect-16-9" />}
+                <div className="p-4">
+                  {badge(n.category)}
+                  <h2 className="font-bold mt-2" style={{ lineHeight: 1.6 }}>{n.title}</h2>
+                  {n.excerpt && <p className="text-sm cm-text-muted mt-1">{n.excerpt}</p>}
+                  <p className="text-xs cm-text-muted mt-2">{formatNewsDate(n.published_at)}</p>
+                </div>
+              </>
+            ), "cm-card rounded-xl overflow-hidden block")}</React.Fragment>;
+          })}
+        </div>
+      )}
     </main>
   );
 }

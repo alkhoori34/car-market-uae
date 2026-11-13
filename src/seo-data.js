@@ -80,6 +80,8 @@ export const paths = {
   privacy: () => "/privacy",
   contact: () => "/contact",
   article: (slug) => `/blog/${slug}`,
+  news: () => "/news",
+  newsItem: (slug) => `/news/${slug}`,
 };
 
 // Turns a URL path into what the page shows. Returns null for paths that are
@@ -102,6 +104,8 @@ export function parsePath(pathname) {
   if (p === "/used-cars") return { kind: "all" };
   if (p === "/vin-check") return { kind: "vin" };
   if (p === "/blog") return { kind: "blog" };
+  if (p === "/news") return { kind: "news" };
+  if ((m = p.match(/^\/news\/([a-z0-9-]{2,120})$/))) return { kind: "newsItem", slug: m[1] };
   if (INFO_SLUGS.includes(p.slice(1))) return { kind: "info", page: p.slice(1) };
   if ((m = p.match(/^\/blog\/([a-z0-9-]{2,80})$/))) return { kind: "article", slug: m[1] };
   if ((m = p.match(/^\/used-cars\/in\/([a-z-]+)$/)) && CITY_BY_SLUG[m[1]]) return { kind: "city", city: CITY_BY_SLUG[m[1]] };

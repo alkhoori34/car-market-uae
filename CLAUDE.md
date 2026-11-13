@@ -118,6 +118,13 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   `api/page.js` (Article JSON-LD) and listed in the sitemap. To publish a new
   article, add an entry at the top of `ARTICLES` with an English slug; keep
   facts checked against sources and avoid fees/prices that change often.
+- **News (آخر الأخبار, since 2026-11-14)** at `/news` and `/news/<slug>`
+  (view `news`, `News` in App.jsx; header «القائمة» menu and footer). Rows
+  come from `public.news` (published rows are public), written daily by the
+  scheduled task «CarsUAE آخر الأخبار». The body is light markdown turned
+  into article blocks by `newsBlocks()` in `src/news.js`, shared by React and
+  `api/page.js` (NewsArticle JSON-LD). Arabic only: `/en/news` is noindex and
+  the sitemap lists only the Arabic news URLs.
 - **Info pages** `/sell`, `/faq`, `/safety`, `/dealers`, `/about`, `/contact`,
   `/terms`, `/privacy` (slugs in `INFO_SLUGS` in seo-data.js, content in
   `src/legal.js`, view `info`; same block format as articles plus a `faq`

@@ -14,9 +14,9 @@ import listings from "../api/listings.js";
 // Paths rendered on the server (same list as the vercel.json rewrites).
 const PAGE_EXACT = new Set([
   "/", "/used-cars", "/sell", "/faq", "/safety", "/dealers", "/about", "/terms",
-  "/privacy", "/contact", "/blog", "/vin-check",
+  "/privacy", "/contact", "/blog", "/vin-check", "/news",
 ]);
-const PAGE_PREFIX = ["/used-cars/", "/car/", "/blog/", "/dealer/"];
+const PAGE_PREFIX = ["/used-cars/", "/car/", "/blog/", "/dealer/", "/news/"];
 
 function pageRoute(pathname) {
   let path = pathname;

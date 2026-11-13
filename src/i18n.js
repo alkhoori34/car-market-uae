@@ -28,7 +28,7 @@ const UI = {
   "إعلان": "listing",
   // header & menu
   "الصفحة الرئيسية": "Home", "السيارات": "Cars", "القائمة": "Menu", "تصفح السيارات": "Browse cars", "بيع سيارتك": "Sell your car",
-  "فحص رقم الشاصي": "VIN check", "المقالات والنصائح": "Articles & tips", "الأسئلة الشائعة": "FAQ", "نصائح الأمان": "Safety tips",
+  "فحص رقم الشاصي": "VIN check", "المقالات والنصائح": "Articles & tips", "آخر الأخبار": "Latest news", "الأسئلة الشائعة": "FAQ", "نصائح الأمان": "Safety tips",
   "للمعارض والوسطاء": "For dealers & brokers", "تواصل معنا": "Contact us", "إعلاناتي": "My listings", "المفضلة": "Favourites",
   "حسابي": "My account", "لوحة الإدارة": "Admin panel", "تسجيل الخروج": "Sign out", "تسجيل الدخول": "Sign in",
   "من نحن": "About us", "الشروط والأحكام": "Terms & conditions", "سياسة الخصوصية": "Privacy policy", "المقالات": "Articles",

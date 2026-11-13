@@ -55,6 +55,13 @@ export default async function handler(req, res) {
 
     urls.push(...urls.map((u) => ({ ...u, loc: langPath(u.loc, true), priority: (Number(u.priority) * 0.8).toFixed(1) })));
 
+    // Car news (Arabic only, so no /en copies).
+    const news = await queryTable("news", [["select", "slug,published_at"], ["published", "eq.true"], ["order", "published_at.desc"], ["limit", "1000"]]).catch(() => []);
+    if (news.length) {
+      urls.push({ loc: paths.news(), lastmod: day(news[0].published_at), priority: "0.7" });
+      news.forEach((n) => urls.push({ loc: paths.newsItem(n.slug), lastmod: day(n.published_at), priority: "0.5" }));
+    }
+
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url><loc>${esc(SITE_URL + encodeURI(u.loc))}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}<priority>${u.priority}</priority></url>`).join("\n")}
