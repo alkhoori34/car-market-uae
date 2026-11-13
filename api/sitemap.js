@@ -8,11 +8,21 @@ import { INFO_PAGES } from "../src/legal.js";
 
 export default async function handler(req, res) {
   try {
-    const { rows } = await queryListings([
-      ["select", "id,make,model,city,price,created_at,dealer_id"],
-      ["order", "created_at.desc"],
-      ["limit", "5000"],
-    ]);
+    // Supabase returns at most 1,000 rows per request, so page through
+    // (seen 2026-11-14: the sitemap listed exactly 1,000 of ~1,580 live cars).
+    // Hidden duplicates are left out, like the browse page does.
+    const rows = [];
+    for (let offset = 0; offset < 50000; offset += 1000) {
+      const { rows: page } = await queryListings([
+        ["select", "id,make,model,city,price,created_at,dealer_id"],
+        ["duplicate", "not.is.true"],
+        ["order", "created_at.desc,id.desc"],
+        ["limit", "1000"],
+        ["offset", String(offset)],
+      ]);
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
 
     const day = (ts) => (ts ? new Date(ts).toISOString().slice(0, 10) : undefined);
     const newest = day(rows[0] && rows[0].created_at);
