@@ -357,6 +357,14 @@ goes through Metricool and does not use the Chrome session.
   `src/vin-guide.js`, shown by both `vinPage()` and `VinCheck`. Car pages get
   a summary paragraph (`carSummary` in seo-data.js; English built in
   page.js) plus links to the VIN check and the inspection article.
+  Round 2 (same day): seller descriptions are shown through
+  `displayDescription()` (seo-data.js: drops hashtags, phone numbers and copied
+  broker disclaimers; keeps the credit line and our deposit warning; the row
+  itself is unchanged). Make/model/city pages show a market summary from
+  `categoryIntro()` (typical price, common years, top models/makes, emirates,
+  plus a buying-guide link from `GUIDE_FOR`), server and app, Arabic only.
+  New article `used-car-websites-uae`. Home Organization JSON-LD has `sameAs`
+  (Instagram carsuaenet, TikTok carsuae60, Facebook page 1345503605319704).
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
   record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
   2026-10-10. Model pages and dealer pages are live and in the sitemap.
