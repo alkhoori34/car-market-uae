@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight, Newspaper, Menu as MenuIcon } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import { langPath, paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy, carTitle } from "./seo-data.js";
+import { langPath, paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy, carTitle, carSummary } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
+import { vinGuideIn, VIN_RELATED } from "./vin-guide.js";
 import { imgSrc, imgSrcSet } from "./img.js";
 import { ARTICLES, articleBySlug, formatArticleDate } from "./articles.js";
 import { INFO_PAGES, FOOTER_PAGES, CONTACT_EMAIL, LEGAL_UPDATED } from "./legal.js";
@@ -1679,7 +1680,7 @@ export default function CarMarket() {
         </>
       )}
 
-      {view === "vin" && <VinCheck onBrowse={() => setView("browse")} />}
+      {view === "vin" && <VinCheck onBrowse={() => setView("browse")} goTo={goTo} />}
 
       {view === "blog" && <Blog slug={articleSlug} goTo={goTo} />}
       {view === "news" && <News slug={newsSlug} goTo={goTo} />}
@@ -2462,6 +2463,10 @@ export default function CarMarket() {
                 <Spec icon={<MapPin size={14} />} label="الإمارة" value={active.city} />
               </div>
 
+              {getLang() !== "en" && (
+                <p className="text-sm leading-relaxed mb-4" data-no-i18n>{carSummary(active)}</p>
+              )}
+
               {active.description && (
                 <div className="mb-4">
                   <p className="text-xs font-bold cm-text-muted mb-1">الوصف</p>
@@ -2979,7 +2984,7 @@ function Spec({ icon, label, value }) {
 // American market, factory specs and recalls from NHTSA. We never call a car
 // "خليجي" or "وارد" outright: the VIN alone cannot prove it, so the page gives
 // a hint and tells the buyer how to be sure.
-function VinCheck({ onBrowse }) {
+function VinCheck({ onBrowse, goTo }) {
   const [vin, setVin] = useState(() => {
     if (typeof window === "undefined") return "";
     return cleanVin(new URLSearchParams(window.location.search).get("vin") || "");
@@ -3119,6 +3124,15 @@ function VinCheck({ onBrowse }) {
           <button onClick={onBrowse} className="cm-link font-bold text-sm">تصفح السيارات المعروضة للبيع</button>
         </div>
       )}
+      <section className="cm-article text-sm pt-2" data-no-i18n="">
+        <ArticleBlocks body={vinGuideIn(getLang() === "en")} goTo={goTo} />
+        <h2 className="cm-section-title mt-8 mb-3">{getLang() === "en" ? "Read before you buy" : "مقالات تفيدك قبل الشراء"}</h2>
+        <ul className="cm-article-list">
+          {VIN_RELATED.map((slug) => articleBySlug(slug)).filter(Boolean).map((a) => (
+            <li key={a.slug}><a href={paths.article(a.slug)} onClick={(e) => { e.preventDefault(); goTo(paths.article(a.slug)); }} className="cm-link">{a.title}</a></li>
+          ))}
+        </ul>
+      </section>
     </main>
   );
 }
