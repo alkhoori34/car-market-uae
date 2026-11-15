@@ -347,6 +347,16 @@ goes through Metricool and does not use the Chrome session.
   refusing page fetches): uuae.4, car2uae, star_emirates, lexus.570,
   jabri.cars, sold.ae, smsar_4car, smsar_4car2, saad84.90, u.a.ecars.
 
+- **SEO clean-up (2026-11-15)**, after Search Console showed 11 pages indexed
+  and ~2,560 "Discovered – currently not indexed" (site ~6 weeks old):
+  the sitemap lists English copies only for main pages (no `/en/car`,
+  `/en/used-cars/<make>/<model>`, `/en/dealer`; they stay reachable via
+  hreflang); model pages need `MIN_MODEL_LISTINGS` (3) live cars to be in the
+  sitemap and are `noindex, follow` below that. `/vin-check` (top search term
+  «رقم الشاصي») has a full guide + FAQ (FAQPage JSON-LD) from
+  `src/vin-guide.js`, shown by both `vinPage()` and `VinCheck`. Car pages get
+  a summary paragraph (`carSummary` in seo-data.js; English built in
+  page.js) plus links to the VIN check and the inspection article.
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
   record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
   2026-10-10. Model pages and dealer pages are live and in the sitemap.
