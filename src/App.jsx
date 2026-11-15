@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Car, Plus, Search, MapPin, Gauge, Calendar, Fuel, Settings2, Phone, X, ImagePlus, Trash2, ChevronRight, BadgeCheck, Loader2, Store, Sparkles, ShieldCheck, CheckCircle2, LogIn, LogOut, User, Flag, Heart, Pencil, Share2, MessageCircle, RefreshCw, CircleCheck, Undo2, Eye, Maximize2, ScanLine, AlertTriangle, Info, BookOpen, ArrowRight, Newspaper, Menu as MenuIcon } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
-import { langPath, paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy, carTitle, carSummary } from "./seo-data.js";
+import { langPath, paths, parsePath, makeSlug, citySlug, modelSlug, BUDGET_STEPS, categoryCopy, carTitle, carSummary, displayDescription, categoryIntro } from "./seo-data.js";
 import { cleanVin, isVinFormat } from "./vin.js";
 import { vinGuideIn, VIN_RELATED } from "./vin-guide.js";
 import { imgSrc, imgSrcSet } from "./img.js";
@@ -1985,6 +1985,22 @@ export default function CarMarket() {
       {view === "browse" && (
         <main className="max-w-6xl mx-auto px-4 py-6">
           <h1 className="cm-display font-extrabold text-2xl mb-2">{categoryCopy(sectionRoute).h1}</h1>
+          {getLang() !== "en" && (() => {
+            // Market summary for make / model / city pages (same text as the server page).
+            const r = sectionRoute;
+            if (!["make", "model", "city"].includes(r.kind)) return null;
+            const rows = listings.filter((l) => isLive(l)
+              && (r.kind === "city" ? l.city === r.city : l.make === r.make && (r.kind !== "model" || modelSlug(l.model) === r.modelSlug)));
+            const market = categoryIntro(r, rows);
+            if (!market) return null;
+            const guide = market.guide ? articleBySlug(market.guide) : null;
+            return (
+              <p className="text-sm leading-relaxed mb-4" data-no-i18n>
+                {market.text}
+                {guide && <> <a href={paths.article(guide.slug)} onClick={(e) => { e.preventDefault(); goTo(paths.article(guide.slug)); }} className="cm-link font-bold">{guide.title}</a></>}
+              </p>
+            );
+          })()}
           {currentDealer && (
             <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
               {currentDealer.verified && <Badge tone="mint"><BadgeCheck size={12} /> وسيط معتمد</Badge>}
@@ -2470,7 +2486,7 @@ export default function CarMarket() {
               {active.description && (
                 <div className="mb-4">
                   <p className="text-xs font-bold cm-text-muted mb-1">الوصف</p>
-                  <p className="text-sm leading-relaxed">{active.description}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-line">{displayDescription(active.description)}</p>
                 </div>
               )}
 
