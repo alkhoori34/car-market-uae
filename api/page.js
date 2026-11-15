@@ -19,11 +19,12 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   SITE_URL, SITE_NAME, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS,
-  parsePath, paths, categoryCopy as categoryCopyAr, carCopy as carCopyAr, carTitle as carTitleAr, modelSlug, langPath,
+  parsePath, paths, categoryCopy as categoryCopyAr, carCopy as carCopyAr, carTitle as carTitleAr, carSummary, MIN_MODEL_LISTINGS, modelSlug, langPath,
 } from "../src/seo-data.js";
 import { translate } from "../src/i18n.js";
 import { articlesIn, articleIn, articleBySlug, formatArticleDate as formatArticleDateIn } from "../src/articles.js";
 import { imgSrc, imgSrcSet } from "../src/img.js";
+import { vinGuideIn, VIN_RELATED } from "../src/vin-guide.js";
 import { infoPageIn, CONTACT_EMAIL, LEGAL_UPDATED } from "../src/legal.js";
 import { priceCompare, priceCompareText } from "../src/price-compare.js";
 import { NEWS_FIELDS, NEWS_LIST_FIELDS, NEWS_CATEGORY_CLASS, newsBlocks, formatNewsDate, newsImage } from "../src/news.js";
@@ -201,6 +202,13 @@ async function carPage(shell, route) {
 
   const url = SITE_URL + P.car(l.id);
   const copy = carCopy(l);
+  const enBits = [l.mileage && `${num(l.mileage)} km on the clock`, l.specs && `${translate(l.specs)} specs`,
+    l.trans && `${translate(l.trans).toLowerCase()} transmission`, l.fuel && `${translate(l.fuel).toLowerCase()} engine`].filter(Boolean);
+  const summary = EN()
+    ? `${carTitle(l)} ${l.sold ? "was" : "is"} for sale${l.city ? ` in ${translate(l.city)}` : ""}${l.price ? ` at AED ${num(l.price)}` : ""}${l.negotiable ? " (negotiable)" : ""}.`
+      + (enBits.length ? ` It has ${enBits.join(", ")}.` : "")
+      + " Before you buy, check the VIN for free, match it with the mulkiya, and have the car inspected at an approved centre."
+    : carSummary(l);
   // Other live cars of the same make (same model first), linked from the page.
   const { rows: sameMake } = await queryListings([
     ["select", LISTING_FIELDS], ["make", `eq.${l.make}`], ["id", `neq.${l.id}`],
@@ -272,8 +280,10 @@ ${siteHeader()}
       <dl class="grid grid-cols-2 gap-2 mt-4 text-sm">
         ${facts.map(([k, v]) => `<div class="cm-spec px-3 py-2"><dt class="text-xs cm-text-muted">${esc(k)}</dt><dd class="font-bold">${esc(v)}</dd></div>`).join("")}
       </dl>
+      <p class="text-sm leading-relaxed mt-4">${esc(summary)}</p>
       ${l.description ? `<h2 class="font-bold mt-5 mb-1">${T("الوصف", "Description")}</h2><p class="text-sm leading-relaxed">${esc(l.description)}</p>` : ""}
-      <p class="text-sm cm-text-muted mt-5">${T(`للتواصل مع البائع، افتح الإعلان على ${SITE_NAME} وسجّل الدخول لعرض رقم الجوال.`, `To contact the seller, open the listing on ${SITE_NAME} and sign in to see the phone number.`)}</p>
+      <p class="text-sm cm-text-muted mt-5">${T(`للتواصل مع البائع اضغط «واتساب» أو «اتصال» في الإعلان على ${SITE_NAME}.`, `To contact the seller, press WhatsApp or Call on the listing on ${SITE_NAME}.`)}</p>
+      <p class="text-sm mt-3"><a class="cm-link font-bold" href="${P.vin()}">${T("افحص رقم الشاصي مجانًا", "Check the VIN for free")}</a> · <a class="cm-link" href="${P.article("used-car-inspection-checklist")}">${T("قائمة فحص السيارة المستعملة قبل الشراء", "Used car inspection checklist")}</a></p>
     </div>
   </article>
   ${gallery.length > 1 ? `<div class="grid grid-cols-4 gap-2 mt-3">${gallery.slice(1, 8).map((src, i) => `<img src="${esc(src)}" alt="${esc(`${carTitle(l)} ${T("صورة", "photo")} ${i + 2}`)}" loading="lazy" class="rounded-lg object-cover cm-aspect-4-3">`).join("")}</div>` : ""}
@@ -390,7 +400,8 @@ ${siteHeader()}
     canonical: url,
     image: rows.map(photo).find(Boolean),
     // Empty categories stay reachable but out of Google's index.
-    noindex: total === 0,
+    // Model pages with only one or two cars are too thin to index.
+    noindex: total === 0 || (route.kind === "model" && total < MIN_MODEL_LISTINGS),
     headExtra: jsonLd(breadcrumbLd(crumbs)) + (rows.length ? jsonLd({
       "@context": "https://schema.org",
       "@type": "ItemList",
@@ -638,6 +649,8 @@ ${siteHeader()}
 // --- VIN check tool --------------------------------------------------------
 
 function vinPage(shell) {
+  const guide = vinGuideIn(EN());
+  const related = VIN_RELATED.map((slug) => articleIn(articleBySlug(slug), EN())).filter(Boolean);
   const title = T(`فحص رقم الشاصي مجانًا (VIN) | ${SITE_NAME}`, `Free VIN check (chassis number) | ${SITE_NAME}`);
   const description = T("افحص رقم الشاصي لأي سيارة مجانًا: بلد الصنع، الشركة المصنعة، سنة الموديل، مواصفات المحرك وناقل الحركة، ونداءات الاستدعاء. أداة مجانية من CarsUAE قبل شراء سيارتك المستعملة في الإمارات.",
     "Check any car's VIN for free: country of manufacture, maker, model year, engine and transmission specs, and safety recalls. A free CarsUAE tool before you buy a used car in the UAE.");
@@ -646,8 +659,8 @@ ${siteHeader()}
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="cm-display font-extrabold text-2xl mb-2">${T("فحص رقم الشاصي مجانًا", "Free VIN check")}</h1>
   <p class="cm-text-muted text-sm mb-5">${T("اكتب رقم الشاصي (VIN) المكوّن من 17 حرفًا ورقمًا، واعرف بلد الصنع والشركة المصنعة وسنة الموديل ومواصفات المصنع، قبل ما تشتري السيارة.", "Enter the 17-character VIN (chassis number) to see the country of manufacture, maker, model year and factory specs before you buy the car.")}</p>
-  <h2 class="font-bold mt-6 mb-2">${T("وين ألقى رقم الشاصي؟", "Where do I find the VIN?")}</h2>
-  <p class="text-sm">${T("في ملكية السيارة (الكارت)، أو أسفل الزجاج الأمامي من جهة السائق، أو على باب السائق من الداخل.", "On the car's registration card (mulkiya), at the bottom of the windscreen on the driver's side, or inside the driver's door.")}</p>
+  <div class="cm-article text-sm leading-relaxed">${blocksHtml(guide)}</div>
+  ${related.length ? `<section class="mt-8"><h2 class="font-bold mb-2">${T("مقالات تفيدك قبل الشراء", "Read before you buy")}</h2><ul class="cm-article-list text-sm">${related.map((a) => `<li><a class="cm-link" href="${P.article(a.slug)}">${esc(a.title)}</a></li>`).join("")}</ul></section>` : ""}
   <p class="mt-6"><a class="cm-link font-bold" href="${P.all()}">${T("تصفح السيارات المستعملة للبيع", "Browse used cars for sale")}</a></p>
 </main>`;
   return fillShell(shell, {
@@ -662,7 +675,7 @@ ${siteHeader()}
       applicationCategory: "UtilitiesApplication",
       inLanguage: T("ar-AE", "en-AE"),
       offers: { "@type": "Offer", price: "0", priceCurrency: "AED" },
-    }),
+    }) + faqLd(guide),
     body,
   });
 }
