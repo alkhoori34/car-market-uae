@@ -180,3 +180,27 @@ export function carCopy(l) {
     description: `${carTitle(l)} للبيع${l.price ? ` بسعر ${fmt(l.price)} درهم` : ""}، ${bits.join("، ")}. تواصل مع البائع مباشرة على ${SITE_NAME}.`,
   };
 }
+
+// A short plain-language summary of a listing, shown on the car page under
+// the specs (server page and app). Many imported broker ads have a one-line
+// description, so this gives each car page its own readable text.
+// Arabic only; the English page gets it through translate() of the parts.
+export function carSummary(l) {
+  if (!l || !l.make) return "";
+  const title = carTitle(l);
+  const parts = [
+    l.mileage ? `ممشاها ${fmt(l.mileage)} كم` : null,
+    l.specs ? `بمواصفات ${l.specs}` : null,
+    l.trans ? `وناقل حركة ${l.trans}` : null,
+    l.fuel ? `ونوع الوقود ${l.fuel}` : null,
+  ].filter(Boolean);
+  const first = `${title} ${l.sold ? "كانت معروضة" : "معروضة"} للبيع${l.city ? ` في ${l.city}` : ""}${l.price ? ` بسعر ${fmt(l.price)} درهم` : ""}${l.negotiable ? " قابل للتفاوض" : ""}.`;
+  const second = parts.length ? ` السيارة ${parts.join(" ")}.` : "";
+  const tip = " قبل الشراء افحص رقم الشاصي مجانًا وطابقه مع الملكية، وافحص السيارة في مركز فحص معتمد.";
+  return first + second + tip;
+}
+
+// Model pages with fewer live cars than this are kept out of Google (noindex)
+// and out of the sitemap: a page with one or two cars is too thin for a new
+// site, and Google left ~2,500 such URLs "discovered, not indexed" (Nov 2026).
+export const MIN_MODEL_LISTINGS = 3;
