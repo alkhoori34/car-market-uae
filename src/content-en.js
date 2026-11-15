@@ -338,6 +338,53 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "used-car-websites-uae": {
+    title: "Used car websites in the UAE: how to choose where to sell or buy",
+    description: "Where to sell or buy a used car in the UAE? Listing sites, Instagram brokers and showrooms compared, and what to look for in any site before you post an ad or contact a seller.",
+    body: [
+      ["p", "The UAE used car market is big and there are plenty of options: listing websites, broker accounts on Instagram, showrooms and auctions. Each has its pros and cons. This guide explains the difference, and what to look for in any site before you post an ad or contact a seller."],
+
+      ["h2", "1. Where used cars are bought and sold in the UAE"],
+      ["ul", [
+        "Listing websites and apps: you post your ad with photos and specs, and buyers contact you directly. Best if you want to reach the most buyers.",
+        "Broker accounts on Instagram: they post your ad on their page, usually for a fee, and reach their followers. Fast, but the ad gets buried among posts after a few days.",
+        "Showrooms: you sell the car to them or leave it on display. Quicker and easier, but the price is usually lower than a direct sale because the showroom needs its margin.",
+        "Auctions: suit some cars, but the final price is out of your hands.",
+      ]],
+
+      ["h2", "2. What to look for in a listing website"],
+      ["ul", [
+        "Free listing, or a clear price from the start with no hidden fees.",
+        "Direct contact between seller and buyer, by phone or WhatsApp, with no middleman pushing the price up.",
+        "Clear search filters: make, model, year, mileage, emirate, specs (GCC or imported) and budget.",
+        "Tools that help you decide, such as a price comparison with similar cars and a VIN check.",
+        "A way to report suspicious ads, and clear warnings against scams.",
+        "Works well in Arabic and fast on mobile, since most people browse on their phone.",
+      ]],
+
+      ["h2", "3. Tips for sellers"],
+      ["ul", [
+        "Photograph the car in daylight from every side, the interior, and the odometer.",
+        "List the full specs: year, mileage, GCC or imported, any accidents or repaints. Being upfront saves you pointless calls.",
+        "Price close to the market. Check what similar cars are listed for before you set yours.",
+        "Have your papers ready: the mulkiya, the inspection and any dealer service record.",
+      ]],
+
+      ["h2", "4. Tips for buyers"],
+      ["ul", [
+        "Never transfer a deposit before you have seen and checked the car yourself.",
+        "Check the VIN and match it with the mulkiya, and ask the dealer for the service record.",
+        "Have the car inspected at an approved centre before you pay.",
+        "Compare the price with similar cars of the same year and mileage.",
+        "If the price is far below the market, ask why before you get excited.",
+      ]],
+
+      ["h2", "5. Why CarsUAE?"],
+      ["p", "CarsUAE is an Arabic used car marketplace in the UAE: listing is free and buyers contact the seller directly by phone or WhatsApp. Every listing shows how its price compares with similar cars on the site, and you can check the VIN for free from the same page. We also show ads from approved brokers, credited to the account that posted them, so you know where every car comes from."],
+      ["cta", { text: "Have a car to sell? List it free on CarsUAE and reach buyers directly.", href: "#sell", label: "Sell your car for free" }],
+      ["cta", { text: "Looking for a car? Browse the used cars for sale now.", href: "/used-cars", label: "Browse cars" }],
+    ],
+  },
   "used-car-insurance-uae": {
     title: "Used car insurance in the UAE: comprehensive or third party? A buyer's guide",
     description: "Bought a used car in the UAE? The difference between comprehensive and third-party insurance, what each covers, agency repair, and what happens to insurance on transfer.",
