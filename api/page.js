@@ -19,7 +19,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   SITE_URL, SITE_NAME, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS,
-  parsePath, paths, categoryCopy as categoryCopyAr, carCopy as carCopyAr, carTitle as carTitleAr, carSummary, MIN_MODEL_LISTINGS, modelSlug, langPath,
+  parsePath, paths, categoryCopy as categoryCopyAr, carCopy as carCopyAr, carTitle as carTitleAr, carSummary, displayDescription, categoryIntro, MIN_MODEL_LISTINGS, modelSlug, langPath,
 } from "../src/seo-data.js";
 import { translate } from "../src/i18n.js";
 import { articlesIn, articleIn, articleBySlug, formatArticleDate as formatArticleDateIn } from "../src/articles.js";
@@ -202,6 +202,7 @@ async function carPage(shell, route) {
 
   const url = SITE_URL + P.car(l.id);
   const copy = carCopy(l);
+  const shownDescription = displayDescription(l.description);
   const enBits = [l.mileage && `${num(l.mileage)} km on the clock`, l.specs && `${translate(l.specs)} specs`,
     l.trans && `${translate(l.trans).toLowerCase()} transmission`, l.fuel && `${translate(l.fuel).toLowerCase()} engine`].filter(Boolean);
   const summary = EN()
@@ -254,7 +255,7 @@ async function carPage(shell, route) {
     bodyType: l.body_type || undefined,
     itemCondition: l.condition === "جديدة" ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
     image: gallery.length ? gallery : undefined,
-    description: l.description || copy.description,
+    description: displayDescription(l.description) || copy.description,
     url,
     offers: {
       "@type": "Offer",
@@ -281,7 +282,7 @@ ${siteHeader()}
         ${facts.map(([k, v]) => `<div class="cm-spec px-3 py-2"><dt class="text-xs cm-text-muted">${esc(k)}</dt><dd class="font-bold">${esc(v)}</dd></div>`).join("")}
       </dl>
       <p class="text-sm leading-relaxed mt-4">${esc(summary)}</p>
-      ${l.description ? `<h2 class="font-bold mt-5 mb-1">${T("الوصف", "Description")}</h2><p class="text-sm leading-relaxed">${esc(l.description)}</p>` : ""}
+      ${shownDescription ? `<h2 class="font-bold mt-5 mb-1">${T("الوصف", "Description")}</h2><p class="text-sm leading-relaxed whitespace-pre-line">${esc(shownDescription)}</p>` : ""}
       <p class="text-sm cm-text-muted mt-5">${T(`للتواصل مع البائع اضغط «واتساب» أو «اتصال» في الإعلان على ${SITE_NAME}.`, `To contact the seller, press WhatsApp or Call on the listing on ${SITE_NAME}.`)}</p>
       <p class="text-sm mt-3"><a class="cm-link font-bold" href="${P.vin()}">${T("افحص رقم الشاصي مجانًا", "Check the VIN for free")}</a> · <a class="cm-link" href="${P.article("used-car-inspection-checklist")}">${T("قائمة فحص السيارة المستعملة قبل الشراء", "Used car inspection checklist")}</a></p>
     </div>
@@ -332,13 +333,18 @@ async function categoryPage(shell, route, page = 1) {
   if (route.kind === "city") filters.push(["city", `eq.${route.city}`]);
   if (route.kind === "budget") filters.push(["price", `lte.${route.max}`]);
 
-  const [{ rows, total }, facets] = await Promise.all([
+  const wantsIntro = !EN() && ["make", "model", "city"].includes(route.kind);
+  const [{ rows, total }, facets, { rows: statRows }] = await Promise.all([
     queryListings([
       ["select", LISTING_FIELDS], ...filters,
       ["order", "created_at.desc"], ["limit", String(PAGE_SIZE)], ["offset", String((page - 1) * PAGE_SIZE)],
     ], { count: true }),
     getFacets(),
+    // All live rows of the section (light columns) for the market summary.
+    wantsIntro ? queryListings([["select", "price,year,make,model,city"], ...filters, ["limit", "1000"]]).catch(() => ({ rows: [] })) : { rows: [] },
   ]);
+  const market = wantsIntro && page === 1 ? categoryIntro(route, statRows) : null;
+  const guideArticle = market && market.guide ? articleIn(articleBySlug(market.guide), EN()) : null;
 
   const path = route.kind === "model" ? P.model(route.make, route.model)
     : route.kind === "dealer" ? P.dealer(route.slug)
@@ -388,6 +394,7 @@ ${siteHeader()}
   <h1 class="cm-display font-extrabold text-2xl mb-2">${esc(copy.h1)}</h1>
   <p class="cm-text-muted text-sm mb-5">${esc(route.kind === "dealer" ? intro.replace(directAr, "").replace(directEn, "") : intro)}</p>
   ${dealerIntro}
+  ${market ? `<p class="text-sm leading-relaxed mb-5">${esc(market.text)}${guideArticle ? ` <a class="cm-link font-bold" href="${P.article(guideArticle.slug)}">${esc(guideArticle.title)}</a>` : ""}</p>` : ""}
   ${rows.length ? `<ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${rows.map(card).join("")}</ul>` : ""}
   ${pager(page, pages, pageHref)}
   ${modelChips.length ? `<section class="mt-8 text-sm"><h2 class="font-bold">${esc(T(`موديلات ${route.make}`, `${tr(route.make)} models`))}</h2><ul class="flex flex-wrap gap-2 mt-2">${modelChips.join("")}</ul></section>` : ""}
@@ -440,7 +447,9 @@ ${siteHeader()}
     headExtra: seedScript({ listings: rows }) + (photo(rows[0] || {}) ? preloadImage(photo(rows[0]), [384, 640, 828], "(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw") : "") + jsonLd({
       "@context": "https://schema.org",
       "@graph": [
-        { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: SITE_NAME, url: `${SITE_URL}/`, logo: `${SITE_URL}/icon-512.png`, email: "carsuae@carsuae.net", areaServed: "AE" },
+        { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: SITE_NAME, alternateName: "كارز يو إيه إي", url: `${SITE_URL}/`, logo: `${SITE_URL}/icon-512.png`, email: "carsuae@carsuae.net", areaServed: "AE",
+          // CarsUAE's own social accounts, so Google links them to the site.
+          sameAs: ["https://www.instagram.com/carsuaenet", "https://www.tiktok.com/@carsuae60", "https://www.facebook.com/1345503605319704"] },
         { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: SITE_NAME, alternateName: "كارز يو إيه إي", url: `${SITE_URL}/`, inLanguage: T("ar-AE", "en-AE"), publisher: { "@id": `${SITE_URL}/#org` } },
       ],
     }),
