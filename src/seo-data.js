@@ -204,3 +204,78 @@ export function carSummary(l) {
 // and out of the sitemap: a page with one or two cars is too thin for a new
 // site, and Google left ~2,500 such URLs "discovered, not indexed" (Nov 2026).
 export const MIN_MODEL_LISTINGS = 3;
+
+// Seller descriptions as shown on the site. Broker ads are copied from
+// Instagram captions, so the raw text repeats the same post word for word
+// (hashtags, phone numbers, the broker's own disclaimers). On the page we show
+// the car details only: hashtags, phone numbers (the call/WhatsApp buttons
+// already carry the number) and copied disclaimers are dropped. The broker
+// credit line and our own deposit warning stay. The stored row is unchanged.
+const OUR_WARNING = "⚠️ لا تحوّل أي عربون قبل ما تفحص السيارة وتشوفها بعينك.";
+const PHONE_RE = /(?:\+|00)?971[\s-]?\d(?:[\s-]?\d){7,8}|\b0\d(?:[\s-]?\d){7,8}\b/g;
+const CONTACT_TAIL = /[📞📲📱☎️\s]*(?:رقم التواصل|للتواصل|للاتصال|اتصال(?: و ?واتساب)?|واتساب|للاستفسار)[^\p{L}\p{N}]*(?:مع واتساب|والمعاينة|والاستفسار|و ?واتساب)?[^\p{L}\p{N}]*$/u;
+const DISCLAIMER = /عربون|جهة إعلانية|إعلانية فقط|دون تحمل|أدنى مسؤولية|غير مسؤول|الحرص|نصيحة|تبحث عن نفس|هنا{3,}|التجار الرجاء|المعارض و ?التجار/;
+
+export function displayDescription(text) {
+  if (!text) return "";
+  const out = [];
+  for (const raw of String(text).replace(/[\u200e\u200f\u2066-\u2069]/g, "").split("\n")) {
+    const t = raw.trim();
+    if (t === OUR_WARNING || t.startsWith("📢 الإعلان من حساب")) { out.push(t); continue; }
+    if (DISCLAIMER.test(t)) continue;
+    const line = raw.replace(/#[^\s#]+/g, "").replace(PHONE_RE, "").replace(CONTACT_TAIL, "").trimEnd();
+    if (!/[\p{L}\p{N}]/u.test(line)) { if (t === "") out.push(""); continue; }
+    out.push(line);
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// Buying guides for makes/models that have one (slugs in src/articles.js).
+export const GUIDE_FOR = {
+  "نيسان|باترول": "used-nissan-patrol-buying-guide",
+  "تويوتا|لاند كروزر": "used-land-cruiser-buying-guide",
+};
+
+// A short market summary for make, model and city pages, built from the live
+// listings in that section: typical price, price range, the most common model
+// years, the most listed models (make page) or makes (city page) and emirates.
+// Gives each category page its own useful text instead of a bare list.
+// rows: live listings of the section ({ price, year, make, model, city }).
+export function categoryIntro(route, rows) {
+  if (!route || !["make", "model", "city"].includes(route.kind) || !rows || rows.length < 2) return null;
+  const prices = rows.map((r) => Number(r.price)).filter((p) => p >= 1000).sort((a, b) => a - b);
+  const years = rows.map((r) => Number(r.year)).filter((y) => y > 1950).sort((a, b) => a - b);
+  const top = (key, n) => {
+    const c = {};
+    rows.forEach((r) => { if (r[key]) c[r[key]] = (c[r[key]] || 0) + 1; });
+    return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k]) => k);
+  };
+  const name = route.kind === "city" ? `السيارات المستعملة في ${route.city}`
+    : route.kind === "model" ? `${route.make} ${route.model || ""}`.trim() : route.make;
+  const parts = [];
+  if (prices.length >= 2) {
+    const median = prices[Math.floor(prices.length / 2)];
+    const round = (n) => Math.round(n / 500) * 500;
+    parts.push(`السعر المعتاد ${route.kind === "city" ? "للسيارات المعروضة هنا" : `لسيارات ${name} المعروضة`} حوالي ${fmt(round(median))} درهم، ويختلف حسب السنة والممشى والحالة.`);
+  }
+  if (years.length >= 2) {
+    const mid = years.slice(Math.floor(years.length * 0.25), Math.ceil(years.length * 0.75));
+    const lo = mid[0], hi = mid[mid.length - 1];
+    parts.push(lo === hi ? `أغلب السيارات موديل ${lo}.` : `أغلب السيارات المعروضة من موديلات ${lo} إلى ${hi}.`);
+  }
+  if (route.kind === "make") {
+    const m = top("model", 4);
+    if (m.length > 1) parts.push(`أكثر الموديلات المعروضة: ${m.join("، ")}.`);
+  }
+  if (route.kind === "city") {
+    const m = top("make", 5);
+    if (m.length > 1) parts.push(`أكثر الماركات المعروضة: ${m.join("، ")}.`);
+  } else {
+    const c = top("city", 3);
+    if (c.length > 1) parts.push(`وأغلبها في ${c.join(" و")}.`);
+  }
+  if (!parts.length) return null;
+  const guide = route.kind === "city" ? null : GUIDE_FOR[`${route.make}|${route.model || ""}`]
+    || Object.entries(GUIDE_FOR).find(([k]) => route.kind === "make" && k.startsWith(`${route.make}|`))?.[1] || null;
+  return { text: parts.join(" "), guide };
+}
