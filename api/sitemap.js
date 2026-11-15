@@ -1,7 +1,7 @@
 // /sitemap.xml: every page Google should know about. Category pages are only
 // listed while they have at least one listing.
 
-import { SITE_URL, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS, paths, modelSlug, langPath } from "../src/seo-data.js";
+import { SITE_URL, BUDGET_STEPS, MAKE_SLUGS, CITY_SLUGS, MIN_MODEL_LISTINGS, paths, modelSlug, langPath } from "../src/seo-data.js";
 import { queryListings, queryTable, esc } from "./_lib.js";
 import { ARTICLES } from "../src/articles.js";
 import { INFO_PAGES } from "../src/legal.js";
@@ -46,14 +46,25 @@ export default async function handler(req, res) {
     BUDGET_STEPS.forEach((b) => {
       if (rows.some((r) => Number(r.price) <= b)) urls.push({ loc: paths.budget(b), lastmod: latestFor((r) => Number(r.price) <= b), priority: "0.7" });
     });
+    // Model pages only once they have a few cars (thinner ones are noindex).
     const pairs = new Map();
-    rows.forEach((r) => { if (MAKE_SLUGS[r.make] && modelSlug(r.model)) { const k = paths.model(r.make, r.model); if (!pairs.has(k)) pairs.set(k, r); } });
-    pairs.forEach((r, loc) => urls.push({ loc, lastmod: latestFor((x) => x.make === r.make && x.model === r.model), priority: "0.7" }));
+    rows.forEach((r) => {
+      if (!MAKE_SLUGS[r.make] || !modelSlug(r.model)) return;
+      const k = paths.model(r.make, r.model);
+      const p = pairs.get(k) || { r, n: 0 };
+      p.n += 1;
+      pairs.set(k, p);
+    });
+    pairs.forEach(({ r, n }, loc) => { if (n >= MIN_MODEL_LISTINGS) urls.push({ loc, lastmod: latestFor((x) => x.make === r.make && x.model === r.model), priority: "0.7" }); });
     const dealers = await queryTable("dealers", [["select", "id,slug"]]).catch(() => []);
     dealers.forEach((d) => { if (rows.some((r) => r.dealer_id === d.id)) urls.push({ loc: paths.dealer(d.slug), lastmod: latestFor((r) => r.dealer_id === d.id), priority: "0.6" }); });
+    // English copies: only the main pages (home, browse, makes, cities,
+    // budgets, VIN check, articles, info pages). The /en car, model and dealer
+    // pages stay reachable through hreflang links but are not listed, so the
+    // sitemap of a new site isn't doubled with machine-translated copies.
+    urls.push(...urls.filter((u) => !/^\/(used-cars\/(?!in\/|under\/)[^/]+\/|dealer\/)/.test(u.loc))
+      .map((u) => ({ ...u, loc: langPath(u.loc, true), priority: (Number(u.priority) * 0.8).toFixed(1) })));
     rows.forEach((r) => urls.push({ loc: paths.car(r.id), lastmod: day(r.created_at), priority: "0.6" }));
-
-    urls.push(...urls.map((u) => ({ ...u, loc: langPath(u.loc, true), priority: (Number(u.priority) * 0.8).toFixed(1) })));
 
     // Car news (Arabic only, so no /en copies).
     const news = await queryTable("news", [["select", "slug,published_at"], ["published", "eq.true"], ["order", "published_at.desc"], ["limit", "1000"]]).catch(() => []);
