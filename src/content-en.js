@@ -338,6 +338,62 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "used-hybrid-car-uae": {
+    title: "Buying a used hybrid car in the UAE: worth it or is petrol better? What to check",
+    description: "Thinking of a used hybrid in the UAE? When a hybrid saves you money and when petrol makes more sense, how heat affects the battery, battery warranty, and what to check before you pay.",
+    body: [
+      ["p", "Hybrids are now a common sight on UAE roads: Camry Hybrid, Prius, RAV4, Lexus, and even a Land Cruiser hybrid. With more of them on the used market, buyers keep asking: is a used hybrid worth it, or is petrol simpler? And what about the battery in our heat? This guide gives practical answers and a checklist before you pay."],
+      ["h2", "1. What is a hybrid?"],
+      ["p", "A regular (non plug-in) hybrid has a petrol engine plus an electric motor and a battery. The battery charges itself from the engine and from braking: when you slow down, the system recovers part of the energy and stores it instead of losing it as heat. The electric motor then helps the engine, especially when pulling away and at low speeds."],
+      ["p", "You never plug it in; you fill up with petrol like any car. Plug-in hybrids and full electric cars are a different calculation."],
+      ["h2", "2. When does a hybrid save money, and when not?"],
+      ["p", "A hybrid shows its advantage in traffic and city driving, with lots of stopping and starting. If most of your driving is long highway trips at steady speed, the fuel difference gets smaller."],
+      ["ul", [
+        "A hybrid suits you if you drive daily in city traffic, cover a lot of kilometres a year, or use the car for work or deliveries.",
+        "Petrol may suit you better if you drive little, mostly on highways, or find a petrol version much cheaper. The price gap has to pay back through fuel savings.",
+        "Do the maths yourself: compare both prices, your monthly kilometres and each car's official consumption. Don't rely on the seller's figures.",
+      ]],
+      ["h2", "3. Heat and the battery"],
+      ["p", "High temperatures speed up battery ageing over the years; that is well known from battery research. It doesn't mean hybrids don't suit the UAE. Batteries have a cooling system, and many models have a battery air vent inside the cabin, often near the rear seat. If it is blocked by bags or dust, the battery runs hotter."],
+      ["ul", [
+        "Ask where the car was parked: covered parking is better than full sun all day.",
+        "Find the battery air vent (the owner's manual shows where) and check it is clean and not blocked.",
+        "Listen to the battery cooling fan: if it is unusually loud or runs all the time, have it checked.",
+      ]],
+      ["tip", "Heat affects the battery, but neglect affects it more. A regularly serviced hybrid kept under shade is often better than a lower-mileage one that was neglected."],
+      ["h2", "4. Battery warranty: check it with the VIN"],
+      ["p", "According to Toyota UAE's official warranty page, the hybrid battery is covered for 8 years or 160,000 km, whichever comes first, and the page says the warranty transfers to the next owner. The warranty depends on servicing to the factory schedule at the dealer's approved centres. Other brands have their own terms, so don't assume the same for every car."],
+      ["ol", [
+        "Get the VIN from the seller.",
+        "Call the dealer and ask whether battery warranty remains and when it ends.",
+        "Ask for the service history and any notes on the hybrid system.",
+        "If the car is imported, the local dealer warranty usually doesn't cover it. Confirm before paying.",
+      ]],
+      ["cta", { text: "Check the VIN for free and confirm the model year and country of manufacture before calling the dealer.", href: "/vin-check", label: "VIN check" }],
+      ["h2", "5. What to check on a used hybrid"],
+      ["p", "Do the full normal used-car inspection, plus these hybrid points:"],
+      ["ul", [
+        "Start the car: the Ready light should come on with no hybrid system warning lights.",
+        "Drive slowly: most hybrids move on electric power for a bit before the petrol engine starts. Note if the engine starts and stops oddly or far too often.",
+        "Watch the battery gauge on the screen: if it swings up and down very quickly in normal driving, tell the inspector.",
+        "Ask for a hybrid system check at the dealer or a centre with hybrid diagnostic equipment, not just a standard mechanical check.",
+        "Ask if the battery was ever replaced, when and where, and ask for the invoice.",
+        "Brakes on hybrids often wear more slowly thanks to energy recovery, but still check them.",
+      ]],
+      ["h2", "6. Accidents and flooding matter more on a hybrid"],
+      ["p", "Hybrids have high-voltage cables and parts, usually orange. A heavy impact near the battery or water getting into the car can cause costly electrical problems. Check the accident report and ask the inspector to look at the battery area and cables. If you suspect the car was in rain or a flood, read the signs of a flooded car first."],
+      ["cta", { text: "Read how to spot a car damaged by flooding and rain.", href: "/blog/flood-damaged-used-car-uae", label: "Flooded car signs" }],
+      ["h2", "Summary"],
+      ["ul", [
+        "A used hybrid is a good choice if you drive a lot in the city.",
+        "Heat affects the battery, so check where it was parked and that the air vent is clean.",
+        "Confirm battery warranty and service history with the dealer using the VIN.",
+        "Have the hybrid system checked with proper equipment.",
+        "Compare the price with the petrol version and see if the difference really pays back.",
+      ]],
+      ["cta", { text: "Looking for a used hybrid? Browse Toyota cars for sale now and compare prices.", href: "/used-cars/toyota", label: "Toyota cars" }],
+    ],
+  },
   "used-car-websites-uae": {
     title: "Used car websites in the UAE: how to choose where to sell or buy",
     description: "Where to sell or buy a used car in the UAE? Listing sites, Instagram brokers and showrooms compared, and what to look for in any site before you post an ad or contact a seller.",
