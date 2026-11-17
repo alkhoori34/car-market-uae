@@ -183,6 +183,23 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   «⭐ تمييز 7 أيام» / «إلغاء التمييز» (`FEATURE_DAYS`); the trigger
   `listings_check_featured` stops non-admins from setting it
   (`listings-featured.sql`).
+- **Paid featuring (تمييز بالدفع, built 2026-11-17, still in test):** owner's
+  prices: 20 AED for 14 days, 30 AED for 30 days (`FEATURE_PLANS` in App.jsx =
+  `PLANS` in `supabase/functions/feature-pay`). The «⭐ ميّز الإعلان» button on
+  a car (owner of the listing or admin) or the link `/car/<id>?feature=1`
+  opens the plan dialog; the edge function `feature-pay` creates a Ziina
+  payment intent (docs.ziina.com) and redirects to Ziina's page; Ziina returns
+  to `/car/<id>?paid=<intent id>`, the app calls `confirm`, and the function
+  re-reads the intent from Ziina and runs `apply_feature_payment()` (once
+  only; adds the days after any remaining featured time and keeps the listing
+  from expiring earlier). Table `feature_payments` (service role only, SQL in
+  `listings-feature-payments.sql`). Secrets on Supabase: `ZIINA_API_KEY`
+  (from ziina.com/business/connect, shown once), `ZIINA_LIVE=true` for real
+  money (otherwise Ziina test mode, and only admins can start a payment),
+  optional `ZIINA_WEBHOOK_SECRET`. To launch: set `ZIINA_LIVE`, set
+  `FEATURE_PAY_PUBLIC = true` in App.jsx, register the webhook
+  (`POST /webhook` with the function URL) and add Ziina to the privacy page.
+  The owner's Ziina business account is under his cleaning business (901).
 - WhatsApp button on every listing (`waNumber` normalises UAE numbers).
 - Phone OTP is wired to Supabase phone auth (Twilio) but switched off with
   `REQUIRE_PHONE_VERIFICATION = false` until the Twilio compliance profile is

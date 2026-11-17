@@ -14,6 +14,12 @@ const makeEnglish = (slug) =>
 
 // Interface phrases (Arabic -> English).
 const UI = {
+  "⭐ ميّز إعلانك": "⭐ Feature your listing", "⭐ ميّز الإعلان": "⭐ Feature listing", "أسبوعين": "Two weeks", "شهر": "One month",
+  "الإعلان المميز يظهر أول القائمة وعليه علامة «⭐ مميز».": "A featured listing is shown first with a “⭐ Featured” tag.",
+  "الدفع بالبطاقة عبر صفحة دفع آمنة من Ziina. المبلغ غير مسترد بعد تفعيل التمييز.": "Card payment on a secure Ziina page. Non-refundable once the listing is featured.",
+  "تم الدفع ✅ إعلانك صار مميز": "Payment received ✅ your listing is now featured", "لم تتم عملية الدفع": "The payment did not go through", "تم إلغاء الدفع": "Payment cancelled",
+  "الدفع غير متاح حاليًا. حاول لاحقًا.": "Payment is not available right now. Try again later.", "هذا الإعلان غير متاح للتمييز": "This listing cannot be featured",
+  "تعذر فتح صفحة الدفع. حاول مرة ثانية.": "Could not open the payment page. Try again.", "الدفع قيد المراجعة، وسيظهر التمييز خلال دقائق": "Payment is being checked; the listing will be featured within minutes",
   // cities
   "دبي": "Dubai", "أبوظبي": "Abu Dhabi", "الشارقة": "Sharjah", "عجمان": "Ajman", "رأس الخيمة": "Ras Al Khaimah",
   "الفجيرة": "Fujairah", "أم القيوين": "Umm Al Quwain", "العين": "Al Ain", "الإمارات": "UAE",

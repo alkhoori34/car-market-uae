@@ -40,6 +40,14 @@ const isExpired = (l) => Boolean(l.expires_at) && Date.parse(l.expires_at) <= Da
 const isLive = (l) => !l.sold && !isExpired(l);
 // Featured (مميز): set by an admin for FEATURE_DAYS; shown first with a tag.
 const FEATURE_DAYS = 7;
+// Paid featuring through Ziina (edge function feature-pay). Prices in AED;
+// keep in sync with PLANS in supabase/functions/feature-pay/index.ts.
+const FEATURE_PLANS = [
+  { id: "14d", days: 14, price: 20, label: "أسبوعين" },
+  { id: "30d", days: 30, price: 30, label: "شهر" },
+];
+// false = still being tested: the «ميّز إعلانك» button shows to admins only.
+const FEATURE_PAY_PUBLIC = false;
 const isFeatured = (l) => Boolean(l.featured_until) && Date.parse(l.featured_until) > Date.now();
 const featuredFirst = (a, b) => Number(isFeatured(b)) - Number(isFeatured(a));
 const daysLeft = (l) => (l.expires_at ? Math.ceil((Date.parse(l.expires_at) - Date.now()) / 86400000) : null);
@@ -527,6 +535,9 @@ export default function CarMarket() {
   }, [active]);
   const [checking, setChecking] = useState(false);
   const [toast, setToast] = useState(null);
+  // Paid featuring: the plan dialog for the open car, and a payment in progress.
+  const [featureOpen, setFeatureOpen] = useState(() => new URLSearchParams(window.location.search).get("feature") === "1");
+  const [paying, setPaying] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [q, setQ] = useState("");
@@ -876,6 +887,55 @@ export default function CarMarket() {
     setToast({ msg, tone });
     setTimeout(() => setToast(null), 2600);
   }
+
+  // Paid featuring. startFeaturePay sends the visitor to Ziina's payment page;
+  // Ziina returns them to /car/<id>?paid=<payment id>, checked once on load.
+  async function featurePayCall(body) {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/feature-pay`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session?.access_token || SUPABASE_ANON_KEY}` },
+      body: JSON.stringify(body),
+    });
+    return { ok: res.ok, data: await res.json().catch(() => ({})) };
+  }
+  async function startFeaturePay(l, planId) {
+    if (paying) return;
+    setPaying(planId);
+    try {
+      const { ok, data } = await featurePayCall({ action: "create", listing_id: l.id, plan: planId, lang: window.location.pathname.startsWith("/en") ? "en" : "ar" });
+      if (ok && data.redirect_url) { window.location.href = data.redirect_url; return; }
+      showToast(data.error === "not_configured" || data.error === "not_open" ? "الدفع غير متاح حاليًا. حاول لاحقًا." : data.error === "listing_not_live" ? "هذا الإعلان غير متاح للتمييز" : "تعذر فتح صفحة الدفع. حاول مرة ثانية.", "red");
+    } catch { showToast("تعذر فتح صفحة الدفع. حاول مرة ثانية.", "red"); }
+    setPaying("");
+  }
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const paid = q.get("paid"), pay = q.get("pay");
+    if (!paid && !pay) return;
+    q.delete("paid"); q.delete("pay");
+    window.history.replaceState({}, "", window.location.pathname + (q.toString() ? `?${q}` : ""));
+    if (pay) { showToast(pay === "failed" ? "لم تتم عملية الدفع" : "تم إلغاء الدفع", "muted"); return; }
+    let tries = 0;
+    const check = async () => {
+      tries += 1;
+      try {
+        const { data } = await featurePayCall({ action: "confirm", id: paid });
+        if (data.status === "completed") {
+          showToast("تم الدفع ✅ إعلانك صار مميز");
+          if (data.featured_until && data.listing_id) {
+            const patch = (x) => (x && x.id === data.listing_id ? { ...x, featured_until: data.featured_until } : x);
+            setListings((cur) => cur.map(patch));
+            setActive(patch);
+          }
+          return;
+        }
+        if (data.status === "failed") { showToast("لم تتم عملية الدفع", "red"); return; }
+      } catch {}
+      if (tries < 5) setTimeout(check, 3000);
+      else showToast("الدفع قيد المراجعة، وسيظهر التمييز خلال دقائق", "muted");
+    };
+    check();
+  }, []);
 
   function requireAuth(next) {
     if (!session) { setAuthOpen(true); return false; }
@@ -2547,6 +2607,11 @@ export default function CarMarket() {
                   )}
                   {session && (active.seller_id === session.user.id || isAdmin) ? (
                     <>
+                      {!active.sold && (FEATURE_PAY_PUBLIC || isAdmin) && (
+                        <button onClick={() => setFeatureOpen(true)} className="flex items-center gap-1 cm-btn-ghost text-sm font-bold px-3 py-2 rounded-lg">
+                          ⭐ ميّز الإعلان
+                        </button>
+                      )}
                       <button onClick={() => markSold(active, !active.sold)} title={active.sold ? "إرجاع للبيع" : "تم البيع"} className="flex items-center gap-1 cm-btn-ghost text-sm font-bold px-3 py-2 rounded-lg">
                         {active.sold ? <><Undo2 size={15} /> إرجاع للبيع</> : <><CircleCheck size={15} /> تم البيع</>}
                       </button>
@@ -2576,6 +2641,29 @@ export default function CarMarket() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Paid featuring: choose a plan, then pay on Ziina's page */}
+      {featureOpen && active && !active.sold && (
+        <div className="cm-modal-backdrop flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => !paying && setFeatureOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="cm-card-solid rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="cm-display font-extrabold text-lg">⭐ ميّز إعلانك</h3>
+              <button onClick={() => !paying && setFeatureOpen(false)} className="cm-icon-empty"><X size={20} /></button>
+            </div>
+            <p className="text-sm cm-text-muted mb-1" data-no-i18n>{carTitle(active)}</p>
+            <p className="text-sm cm-text-muted mb-4">الإعلان المميز يظهر أول القائمة وعليه علامة «⭐ مميز».</p>
+            <div className="flex flex-col gap-2">
+              {FEATURE_PLANS.map((p) => (
+                <button key={p.id} disabled={Boolean(paying)} onClick={() => startFeaturePay(active, p.id)} className="cm-btn-primary font-bold text-sm px-4 py-3 rounded-lg flex items-center justify-between">
+                  <span>{p.label}</span>
+                  <span className="flex items-center gap-2">{paying === p.id && <Loader2 size={15} className="animate-spin" />}<span className="cm-tabular">{p.price}</span> درهم</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs cm-text-muted mt-3">الدفع بالبطاقة عبر صفحة دفع آمنة من Ziina. المبلغ غير مسترد بعد تفعيل التمييز.</p>
           </div>
         </div>
       )}
