@@ -196,9 +196,14 @@ async function handle(req, res) {
 async function carPage(shell, route) {
   // Listing ids are UUIDs; anything else cannot match, so skip the query.
   if (!/^[0-9a-f-]{8,40}$/i.test(route.id)) return [404, notFound(shell, P.car(route.id))];
-  const { rows } = await queryListings([["select", LISTING_FIELDS], ["id", `eq.${route.id}`], ["limit", "1"]], { live: false });
+  const { rows } = await queryListings([["select", LISTING_FIELDS + ",expires_at,duplicate"], ["id", `eq.${route.id}`], ["limit", "1"]], { live: false });
   const l = rows[0];
   if (!l) return [404, notFound(shell, P.car(route.id))];
+  // Sold, expired and duplicate listings still open for visitors, but are kept
+  // out of Google: they are not in the sitemap and would only add thin or
+  // repeated pages to the index (SEO clean-up 2026-11-17).
+  const notLive = !!(l.sold || l.duplicate || (l.expires_at && new Date(l.expires_at) <= new Date()));
+  delete l.expires_at; delete l.duplicate;
 
   const url = SITE_URL + P.car(l.id);
   const copy = carCopy(l);
@@ -301,6 +306,7 @@ ${siteHeader()}
     description: copy.description,
     canonical: url,
     image: gallery[0],
+    noindex: notLive,
     headExtra: jsonLd(structured) + jsonLd(breadcrumbLd(crumbs))
       + (gallery[0] ? preloadImage(gallery[0], [640, 1080], "(min-width: 640px) 512px, 100vw") : "")
       + seedScript({ car: l }),
