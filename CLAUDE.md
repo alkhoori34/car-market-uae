@@ -382,6 +382,16 @@ goes through Metricool and does not use the Chrome session.
   plus a buying-guide link from `GUIDE_FOR`), server and app, Arabic only.
   New article `used-car-websites-uae`. Home Organization JSON-LD has `sameAs`
   (Instagram carsuaenet, TikTok carsuae60, Facebook page 1345503605319704).
+- **IndexNow (since 2026-11-19, no computer needed):** `indexnow_submit(hours)`
+  in Supabase (SQL in `indexnow.sql`) posts live car pages and news to
+  api.indexnow.org (Bing/Yandex; Google ignores IndexNow) through pg_net;
+  pg_cron job `indexnow-daily` runs it at 03:17 Dubai for the last 26 h.
+  Key file `public/27f263a090f418336e799365678c8097.txt`. Runs log to
+  `ops_runs` (task 'indexnow'); replies in `net._http_response`. Google
+  «طلب الفهرسة» has no allowed API (the Indexing API is for jobs/livestreams
+  only, owner chose not to use it): do it by hand in Search Console, ~10/day.
+  On 2026-11-19, 9 pages were requested; brand pages and Abu Dhabi/Al Ain/
+  Dubai/Sharjah city pages were already indexed.
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
   record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
   2026-10-10. Model pages and dealer pages are live and in the sitemap.
