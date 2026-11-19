@@ -131,6 +131,7 @@
 /* WhatsApp contact button */
 .cm-btn-wa { background:#16a34a; color:#fff; border:none; }
 .cm-btn-wa:hover { background:#15803d; }
+.cm-contact-bar { position:sticky; bottom:0; z-index:5; background:var(--cm-bg); border-top:1px solid var(--cm-border); padding-bottom:max(0.75rem, env(safe-area-inset-bottom)); }
 
 /* Admin */
 .cm-stat { background:#fff; border:1px solid var(--cm-border); border-radius:0.75rem; padding:0.75rem 0.9rem; }

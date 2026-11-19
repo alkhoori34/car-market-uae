@@ -2579,19 +2579,6 @@ export default function CarMarket() {
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   {!active.sold && (
-                    <a
-                      href={`https://wa.me/${waNumber(active.phone)}?text=${encodeURIComponent(getLang() === "en"
-                        ? `Hello, I saw your ${[translate(`${active.make} ${active.model}`), active.year].filter(Boolean).join(" ")} on CarsUAE and would like to ask about it: ${listingUrl(active.id)}`
-                        : `السلام عليكم، شفت إعلان ${carTitle(active)} على CarsUAE وأبي أستفسر عنها: ${listingUrl(active.id)}`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => trackContact(supabase, active.id, "whatsapp")}
-                      className="flex items-center gap-1.5 cm-btn-wa font-bold text-sm px-4 py-2 rounded-lg"
-                    >
-                      <MessageCircle size={15} /> واتساب
-                    </a>
-                  )}
-                  {!active.sold && (
                     <button
                       onClick={() => { openedInApp.current = false; setActive(null); setView("vin"); }}
                       className="flex items-center gap-1.5 cm-btn-ghost font-bold text-sm px-3 py-2 rounded-lg"
@@ -2599,11 +2586,6 @@ export default function CarMarket() {
                     >
                       <ScanLine size={15} /> افحص الشاصي
                     </button>
-                  )}
-                  {!active.sold && (
-                    <a href={`tel:${active.phone}`} onClick={() => trackContact(supabase, active.id, "call")} className="flex items-center gap-1.5 cm-btn-primary font-bold text-sm px-4 py-2 rounded-lg">
-                      <Phone size={15} /> اتصال
-                    </a>
                   )}
                   {session && (active.seller_id === session.user.id || isAdmin) ? (
                     <>
@@ -2641,6 +2623,29 @@ export default function CarMarket() {
                 </div>
               </div>
             </div>
+            {/* Contact bar: stays at the bottom of the car window while scrolling */}
+            {!active.sold && !isExpired(active) && active.phone && (
+              <div className="cm-contact-bar flex gap-2 p-3">
+                <a
+                  href={`https://wa.me/${waNumber(active.phone)}?text=${encodeURIComponent(getLang() === "en"
+                    ? `Hello, I saw your ${[translate(`${active.make} ${active.model}`), active.year].filter(Boolean).join(" ")} on CarsUAE and would like to ask about it: ${listingUrl(active.id)}`
+                    : `السلام عليكم، شفت إعلان ${carTitle(active)} على CarsUAE وأبي أستفسر عنها: ${listingUrl(active.id)}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackContact(supabase, active.id, "whatsapp")}
+                  className="flex-1 flex items-center justify-center gap-2 cm-btn-wa font-bold text-base py-3 rounded-lg"
+                >
+                  <MessageCircle size={18} /> واتساب
+                </a>
+                <a
+                  href={`tel:${active.phone}`}
+                  onClick={() => trackContact(supabase, active.id, "call")}
+                  className="flex-1 flex items-center justify-center gap-2 cm-btn-primary font-bold text-base py-3 rounded-lg"
+                >
+                  <Phone size={18} /> اتصال
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
