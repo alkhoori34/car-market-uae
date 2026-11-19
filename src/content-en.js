@@ -338,6 +338,73 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "used-toyota-camry-buying-guide": {
+    title: "Used Toyota Camry in the UAE: which generation to choose and what to check",
+    description: "Buying a used Camry in the UAE? The generations from 2012 to today, petrol vs hybrid vs V6, what to check before you pay, and how to confirm recalls.",
+    body: [
+      ["p", "The Camry is one of the most common cars on UAE roads, and on the used market you'll find one in almost every budget. It's practical, parts are easy to find and it's easy to resell. But because there are so many, there are good ones and tired ones, and the difference doesn't show in photos. This guide covers the generations you'll find, the engine options and a checklist before you pay."],
+      ["h2", "1. Which generation will you find?"],
+      ["p", "Most used Camrys for sale today come from three generations:"],
+      ["ul", [
+        "7th generation (2012 to 2017 models): a 2.5-litre four-cylinder, a 3.5-litre V6 and a hybrid, all automatic. The cheapest option, but most cars now have high mileage.",
+        "8th generation (2018 to 2024 models): reached the GCC in 2017 on the new TNGA platform. A 2.5-litre four-cylinder or 3.5-litre V6 with an 8-speed automatic; the 2.5 hybrid uses an e-CVT and launched in the UAE in June 2018.",
+        "9th generation (2025 models on): in the UAE it comes as a 2.5 petrol with an 8-speed automatic or a 2.5 hybrid with a CVT. The V6 was dropped. In the US the new Camry is hybrid-only.",
+      ]],
+      ["tip", "A 2025-or-newer Camry with a petrol-only engine is most likely GCC spec. If it's a hybrid said to be a US import, confirm the specs with the VIN before comparing prices."],
+      ["h2", "2. 2.5 petrol, V6 or hybrid?"],
+      ["ul", [
+        "2.5 petrol: the most common and easiest to maintain. Suits most people's daily driving.",
+        "3.5 V6: stronger and smoother but uses more fuel. Only in the 7th and 8th generations, so look at 2024 and older.",
+        "Hybrid: saves fuel, especially in city traffic. Have the hybrid system and battery checked with proper equipment and ask the dealer about the battery warranty.",
+      ]],
+      ["p", "According to Toyota UAE's official warranty page, the hybrid battery is covered for 8 years or 160,000 km, whichever comes first, subject to servicing on the factory schedule at the dealer. Imported cars are usually not covered by the local dealer warranty, so check before you buy."],
+      ["cta", { text: "Torn between hybrid and petrol? Read our guide to used hybrids in UAE heat.", href: "/blog/used-hybrid-car-uae", label: "Hybrid or petrol?" }],
+      ["h2", "3. GCC or imported?"],
+      ["p", "Imported Camrys (US, Canadian or others) are usually cheaper than GCC ones. Some imports had accidents or flood damage before shipping, and GCC cars have cooling and air conditioning designed for our climate. An import isn't always bad, but you need to know its history."],
+      ["ol", [
+        "Ask the seller for the VIN before you go to see the car.",
+        "Check the VIN for country of manufacture and model year, and compare with what the seller says.",
+        "For a US import, get a vehicle history report from a known provider and look for accidents, flood or mileage changes.",
+        "For a GCC car, call the dealer and ask about the service history.",
+      ]],
+      ["cta", { text: "Check a VIN for free: model year, country of manufacture and recalls.", href: "/vin-check", label: "VIN check" }],
+      ["h2", "4. Recalls: don't miss them"],
+      ["p", "Like any popular car, some Camry model years have recalls. For example, in the US a fuel pump recall covered some 2018 and 2019 Camrys. A recall means the maker fixes the fault for free, so what matters is that it was done."],
+      ["ul", [
+        "Ask a Toyota dealer with the VIN whether any campaigns are open on the car.",
+        "For a US import, the VIN check on our site shows recalls registered with the US road safety agency.",
+        "An open recall isn't a reason to walk away, but have the seller fix it or factor it into the price and time.",
+      ]],
+      ["h2", "5. What to check on a used Camry"],
+      ["p", "Do the full standard used-car inspection, plus these Camry points:"],
+      ["ul", [
+        "Previous use: Camrys are widely used for work, delivery and rental. Ask the seller directly, and see whether the mileage is high for the age or the seats and steering wheel are more worn than the odometer suggests.",
+        "Gearbox: shifts should be smooth with no jolts or delay. A hybrid has no felt shifts, so listen for any noise or hesitation when accelerating.",
+        "Air conditioning: run it at full and leave it a while. It should cool well even while parked.",
+        "Paint and body: UAE sun affects paint and plastics. Colour differences between panels or uneven gaps around doors suggest repainting or repairs.",
+        "Tyres and brakes: check the tyre date code (four digits on the sidewall) and wear, and listen for brake noise.",
+        "Screen and buttons: test the camera, Bluetooth and every button, as electrical repairs are costly.",
+        "Service history: a Camry with regular servicing at the dealer or a known garage is worth paying a bit more for.",
+      ]],
+      ["tip", "Don't rely on your eyes alone. Have the car inspected at an approved centre before you transfer any money, including the gearbox and accident report."],
+      ["cta", { text: "Take our full step-by-step checklist with you before viewing the car.", href: "/blog/used-car-inspection-checklist", label: "Used car inspection checklist" }],
+      ["h2", "6. Before agreeing on a price"],
+      ["ul", [
+        "Compare the same generation, trim and engine. A GLE hybrid is not an E petrol, even in the same year.",
+        "A GCC car with service history costs more than an import, which is normal.",
+        "If the price is far below the market, ask why before celebrating.",
+        "Don't pay a deposit before you've seen and inspected the car.",
+      ]],
+      ["h2", "Summary"],
+      ["ul", [
+        "The 8th generation (2018 to 2024) is the most common, with petrol, V6 and hybrid.",
+        "In the UAE the 9th generation comes in petrol and hybrid only, no V6.",
+        "Check the VIN to confirm specs and recalls.",
+        "Ask about previous use and service history, and inspect at an approved centre.",
+      ]],
+      ["cta", { text: "Looking for a used Camry? Browse Toyota cars for sale now and compare prices.", href: "/used-cars/toyota", label: "Toyota cars" }],
+    ],
+  },
   "used-hybrid-car-uae": {
     title: "Buying a used hybrid car in the UAE: worth it or is petrol better? What to check",
     description: "Thinking of a used hybrid in the UAE? When a hybrid saves you money and when petrol makes more sense, how heat affects the battery, battery warranty, and what to check before you pay.",
