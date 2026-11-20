@@ -400,7 +400,7 @@ goes through Metricool and does not use the Chrome session.
   URL Inspection API into `public.gsc_index_status` (skips pages indexed and
   checked in the last 7 days). Logs to `ops_runs` task 'gsc-daily'. The submit
   needs the service account gsc-reader@sapient-hub-514620-e9 to be a FULL user
-  in Search Console (was «مقيّد» on 2026-11-21 → 403). First run: 19 of 90 key
+  in Search Console (set to «كامل» by the owner on 2026-11-21; submit then returned 204). First run: 19 of 90 key
   pages indexed; many make/model pages "unknown to Google", so home/browse/
   city/budget pages now link every make plus «موديلات مطلوبة» (models with
   ≥3 cars), and car pages carry the same link block (`relatedLinks`).
