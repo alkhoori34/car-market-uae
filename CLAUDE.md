@@ -404,6 +404,13 @@ goes through Metricool and does not use the Chrome session.
   pages indexed; many make/model pages "unknown to Google", so home/browse/
   city/budget pages now link every make plus «موديلات مطلوبة» (models with
   ≥3 cars), and car pages carry the same link block (`relatedLinks`).
+- **2026-11-21 (owner):** articles task now 3 a week (Mon/Wed/Sat 09:53,
+  mostly model buying guides for the most-listed models, with real CarsUAE
+  prices); news task must publish exactly 2 a day (fallbacks: GCC story,
+  current UAE rule/season reminder, or a CarsUAE price snapshot from SQL) and
+  logs `ops_runs` task 'news'. Edge function `ig-broker-fetch` v10 skips
+  motors_uae, souq_uae, smsar2rak (personal accounts, pulled by hand in
+  Chrome) and smsar_fujairah (inactive since 2020).
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
   record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
   2026-10-10. Model pages and dealer pages are live and in the sitemap.
