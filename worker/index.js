@@ -197,7 +197,7 @@ export default {
       return res;
     }
 
-    if (url.pathname === "/sitemap.xml") return cached(request, ctx, () => runNode(sitemap, request, q), env);
+    if (url.pathname === "/sitemap.xml" || url.pathname === "/sitemap-latest.xml") return cached(request, ctx, () => runNode(sitemap, request, q), env);
     if (url.pathname === "/api/listings") return cached(request, ctx, () => runNode(listings, request, q), env);
     if (url.pathname === "/api/vin") return runNode(vin, request, q);
     if (url.pathname === "/api/page") return cached(request, ctx, () => runNode(page, request, q), env);

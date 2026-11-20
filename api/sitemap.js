@@ -73,9 +73,19 @@ export default async function handler(req, res) {
       news.forEach((n) => urls.push({ loc: paths.newsItem(n.slug), lastmod: day(n.published_at), priority: "0.5" }));
     }
 
+    // /sitemap-latest.xml (submitted to Search Console every day by the
+    // Supabase function gsc-daily): the main pages plus anything new or
+    // changed in the last 3 days, so Google gets a short, fresh list.
+    let list = urls;
+    if (/sitemap-latest/.test(req.url || "")) {
+      const since = day(new Date(Date.now() - 3 * 86400e3));
+      const core = /^\/(|used-cars|vin-check|blog|news|dealers|used-cars\/(in\/)?[^/]+)$/;
+      list = urls.filter((u) => !/^\/en(\/|$)/.test(u.loc) && (core.test(u.loc) || (u.lastmod && u.lastmod >= since)));
+    }
+
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${esc(SITE_URL + encodeURI(u.loc))}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}<priority>${u.priority}</priority></url>`).join("\n")}
+${list.map((u) => `  <url><loc>${esc(SITE_URL + encodeURI(u.loc))}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}<priority>${u.priority}</priority></url>`).join("\n")}
 </urlset>
 `;
     res.statusCode = 200;

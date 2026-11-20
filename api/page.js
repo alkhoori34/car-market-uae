@@ -237,7 +237,7 @@ async function carPage(shell, route) {
     [T("جهة المقود", "Steering"), l.steering],
     [T("الحالة", "Condition"), l.condition],
     [T("الإمارة", "Emirate"), l.city],
-  ].map(([k, v]) => [k, v || "-"]);
+  ].filter(([, v]) => v); // empty facts are left out instead of showing "-"
 
   const crumbs = [
     [T("الرئيسية", "Home"), P.home()],
