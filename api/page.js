@@ -135,7 +135,14 @@ const PAGE_SIZE = 48;
 let facetsCache = { at: 0, makes: [], cities: [] };
 async function getFacets() {
   if (Date.now() - facetsCache.at < 5 * 60 * 1000) return facetsCache;
-  const { rows } = await queryListings([["select", "make,city"], ["limit", "5000"]]);
+  // Supabase returns at most 1,000 rows per request, so page through (the old
+  // single "limit 5000" read only the newest 1,000 cars and missed makes).
+  const rows = [];
+  for (let offset = 0; offset < 20000; offset += 1000) {
+    const { rows: part } = await queryListings([["select", "make,model,city"], ["duplicate", "not.is.true"], ["order", "id"], ["limit", "1000"], ["offset", String(offset)]]);
+    rows.push(...part);
+    if (part.length < 1000) break;
+  }
   const tally = (key) => {
     const counts = {};
     rows.forEach((r) => { if (r[key]) counts[r[key]] = (counts[r[key]] || 0) + 1; });
@@ -145,6 +152,13 @@ async function getFacets() {
     at: Date.now(),
     makes: tally("make").filter(([m]) => MAKE_SLUGS[m]),
     cities: tally("city").filter(([c]) => CITY_SLUGS[c]),
+    // Model pages with enough cars to be indexed, most cars first.
+    models: Object.values(rows.reduce((acc, r) => {
+      if (!MAKE_SLUGS[r.make] || !r.model || !modelSlug(r.model)) return acc;
+      const k = `${r.make}|${r.model}`;
+      (acc[k] = acc[k] || { make: r.make, model: r.model, n: 0 }).n += 1;
+      return acc;
+    }, {})).filter((x) => x.n >= MIN_MODEL_LISTINGS).sort((a, b) => b.n - a.n),
   };
   return facetsCache;
 }
@@ -272,6 +286,7 @@ async function carPage(shell, route) {
     },
   };
 
+  const facets = await getFacets().catch(() => null);
   const body = `
 ${siteHeader()}
 <main class="max-w-6xl mx-auto px-4 py-6">
@@ -299,6 +314,7 @@ ${siteHeader()}
     ${CITY_SLUGS[l.city] ? `<a class="cm-link" href="${P.city(l.city)}">${esc(T(`سيارات مستعملة في ${l.city}`, `Used cars in ${tr(l.city)}`))}</a> · ` : ""}
     <a class="cm-link" href="${P.all()}">${T("كل السيارات المستعملة", "All used cars")}</a>
   </nav>
+  ${facets ? relatedLinks(facets, { kind: "car" }) : ""}
 </main>`;
 
   return [200, fillShell(shell, {
@@ -755,13 +771,20 @@ function pager(page, pages, href) {
 }
 
 function relatedLinks(facets, route) {
-  const makes = facets.makes.filter(([m]) => !(route.kind === "make" && route.make === m)).slice(0, 20);
+  // Home, browse, city and budget pages link every make (Google left many make
+  // pages "unknown" in Nov 2026 because only the top 20 were linked); other
+  // pages keep the top 20.
+  const wide = ["home", "all", "city", "budget"].includes(route.kind);
+  const makes = facets.makes.filter(([m]) => !(route.kind === "make" && route.make === m)).slice(0, wide ? 200 : 20);
+  const models = (facets.models || []).filter((x) => !(route.kind === "model" && x.make === route.make && x.model === route.model)
+    && !(route.kind === "make" && x.make === route.make)).slice(0, wide ? 40 : 16);
   const cities = facets.cities.filter(([c]) => !(route.kind === "city" && route.city === c));
   const budgets = BUDGET_STEPS.filter((b) => !(route.kind === "budget" && route.max === b));
   const list = (items) => `<ul class="flex flex-wrap gap-2 mt-2">${items.join("")}</ul>`;
   const chip = (href, text) => `<li><a class="cm-chip" href="${href}">${esc(text)}</a></li>`;
   return `<section class="mt-10 space-y-5 text-sm">
     ${makes.length ? `<div><h2 class="font-bold">${T("حسب الماركة", "By make")}</h2>${list(makes.map(([m, n]) => chip(P.make(m), `${m} (${fmt(n)})`)))}</div>` : ""}
+    ${models.length ? `<div><h2 class="font-bold">${T("موديلات مطلوبة", "Popular models")}</h2>${list(models.map((x) => chip(P.model(x.make, x.model), `${tr(`${x.make} ${x.model}`)} (${fmt(x.n)})`)))}</div>` : ""}
     ${cities.length ? `<div><h2 class="font-bold">${T("حسب الإمارة", "By emirate")}</h2>${list(cities.map(([c, n]) => chip(P.city(c), `${c} (${fmt(n)})`)))}</div>` : ""}
     <div><h2 class="font-bold">${T("حسب الميزانية", "By budget")}</h2>${list(budgets.map((b) => chip(P.budget(b), T(`تحت ${fmt(b)} درهم`, `Under AED ${num(b)}`))))}</div>
   </section>`;
