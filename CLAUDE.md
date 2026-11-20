@@ -392,6 +392,18 @@ goes through Metricool and does not use the Chrome session.
   only, owner chose not to use it): do it by hand in Search Console, ~10/day.
   On 2026-11-19, 9 pages were requested; brand pages and Abu Dhabi/Al Ain/
   Dubai/Sharjah city pages were already indexed.
+- **Google daily, no computer (since 2026-11-21):** Supabase function
+  `gsc-daily` (source in `supabase/functions/gsc-daily`), pg_cron job
+  `gsc-daily` at 07:37 Dubai via `run_gsc_daily()`. It re-submits
+  `/sitemap-latest.xml` (main pages + anything from the last 3 days, served by
+  api/sitemap.js) and `/sitemap.xml`, then inspects up to 90 key pages with the
+  URL Inspection API into `public.gsc_index_status` (skips pages indexed and
+  checked in the last 7 days). Logs to `ops_runs` task 'gsc-daily'. The submit
+  needs the service account gsc-reader@sapient-hub-514620-e9 to be a FULL user
+  in Search Console (was «مقيّد» on 2026-11-21 → 403). First run: 19 of 90 key
+  pages indexed; many make/model pages "unknown to Google", so home/browse/
+  city/budget pages now link every make plus «موديلات مطلوبة» (models with
+  ≥3 cars), and car pages carry the same link block (`relatedLinks`).
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
   record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
   2026-10-10. Model pages and dealer pages are live and in the sitemap.
