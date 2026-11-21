@@ -234,6 +234,7 @@ export function displayDescription(text) {
 export const GUIDE_FOR = {
   "نيسان|باترول": "used-nissan-patrol-buying-guide",
   "تويوتا|لاند كروزر": "used-land-cruiser-buying-guide",
+  "لكزس|LX": "used-lexus-lx-buying-guide",
 };
 
 // A short market summary for make, model and city pages, built from the live
