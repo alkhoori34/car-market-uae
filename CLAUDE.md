@@ -417,7 +417,13 @@ goes through Metricool and does not use the Chrome session.
   noindex), linked from the footer and from the used make page. Prices ONLY
   from the brand's official UAE site, with the date checked: BYD
   (byduae.ae, embedded JSON `Price_From`), Chery (cheryuae.com model pages),
-  MG (mg-uae.com model pages), all checked 2026-11-21. Jetour, Geely and
+  MG (mg-uae.com model pages), Toyota (toyota.ae/en/new-cars/) and Lexus
+  (lexus.ae/en/new-cars/), both Al-Futtaim with the same `Price_From` JSON as BYD,
+  Nissan (en.nissan-dubai.com model pages + `Retail with VAT` JSON; Dubai
+  prices), Chevrolet (chevroletarabia.com/ae-en), GMC (gmcarabia.com/ae-en),
+  Mazda (mazda-uae.com), all checked 2026-11-21. Kia, Hyundai, Honda,
+  Mitsubishi, Ford: no prices found on their sites. Monthly refresh: scheduled
+  task «CarsUAE تحديث أسعار السيارات الجديدة». Jetour, Geely and
   Changan official sites show no prices (quote request only), so they are
   not listed; other marketplaces disagree by tens of thousands of dirhams.
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
