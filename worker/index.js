@@ -200,6 +200,25 @@ export default {
     if (url.pathname === "/sitemap.xml" || url.pathname === "/sitemap-latest.xml") return cached(request, ctx, () => runNode(sitemap, request, q), env);
     if (url.pathname === "/api/listings") return cached(request, ctx, () => runNode(listings, request, q), env);
     if (url.pathname === "/api/vin") return runNode(vin, request, q);
+    // Buyer contact clicks (WhatsApp / call / number copied), sent by the app
+    // with navigator.sendBeacon: same origin, so the beacon survives the page
+    // leaving for wa.me / tel: (cross-origin supabase-js calls were cancelled).
+    if (url.pathname === "/api/contact" && request.method === "POST") {
+      let b = {};
+      try { b = JSON.parse(await request.text()); } catch { /* ignore */ }
+      const id = String(b.listing || "");
+      const kind = String(b.kind || "");
+      if (/^[0-9a-f-]{36}$/i.test(id) && ["whatsapp", "call", "show_number"].includes(kind)) {
+        const base = env.SUPABASE_URL || process.env.SUPABASE_URL;
+        const key = env.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+        ctx.waitUntil(fetch(`${base}/rest/v1/rpc/track_contact`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: key, Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ p_listing: id, p_kind: kind, p_source: String(b.source || "direct").slice(0, 40) }),
+        }).catch(() => {}));
+      }
+      return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+    }
     if (url.pathname === "/api/page") return cached(request, ctx, () => runNode(page, request, q), env);
     if (url.pathname === "/api/sitemap") return cached(request, ctx, () => runNode(sitemap, request, q), env);
 

@@ -107,7 +107,17 @@ function trackContact(client, listingId, kind) {
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
   } catch { /* storage blocked: still count */ }
-  client.rpc("track_contact", { p_listing: listingId, p_kind: kind, p_source: firstSource }).then(() => {}, () => {});
+  // A WhatsApp/call tap leaves the page at once (wa.me / tel:), which
+  // cancelled the old supabase-js request (2026-11-21: 862 car-page views in
+  // 30 days, one click recorded). sendBeacon to our own /api/contact (worker)
+  // is delivered even after the page is gone.
+  const body = JSON.stringify({ listing: listingId, kind, source: firstSource });
+  try {
+    if (navigator.sendBeacon && navigator.sendBeacon("/api/contact", new Blob([body], { type: "application/json" }))) return;
+  } catch { /* fall through */ }
+  fetch("/api/contact", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body }).catch(() => {
+    client.rpc("track_contact", { p_listing: listingId, p_kind: kind, p_source: firstSource }).then(() => {}, () => {});
+  });
 }
 
 // Twilio blocks SMS to unverified UAE numbers until the account has an approved
@@ -2575,7 +2585,17 @@ export default function CarMarket() {
                       </span>
                     )}
                   </p>
-                  <p className="text-sm font-bold cm-tabular" dir="ltr">{active.phone}</p>
+                  {active.phone && (
+                    <a
+                      href={`tel:${active.phone}`}
+                      onClick={() => trackContact(supabase, active.id, "call")}
+                      onCopy={() => trackContact(supabase, active.id, "show_number")}
+                      className="text-sm font-bold cm-tabular cm-link"
+                      dir="ltr"
+                    >
+                      {active.phone}
+                    </a>
+                  )}
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   {!active.sold && (

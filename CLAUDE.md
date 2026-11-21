@@ -96,6 +96,11 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   «التواصل مع البايعين» reads RPC `contact_stats(days)` (totals, per broker,
   top cars). This is the number to show brokers/dealers (e.g. VIP CAR MOTORS).
   SQL in `listings-contacts.sql`.
+  Since 2026-11-21 the app sends clicks with `navigator.sendBeacon` to the
+  worker route `POST /api/contact` (same origin), which calls the RPC: the old
+  direct supabase-js call was cancelled when wa.me / tel: left the page (862
+  car-page views in 30 days, 1 click recorded). The seller number in the car
+  window is a tel: link (call) and copying it counts as `show_number`.
 - **Dealers (brokers):** `dealers` table, `listings.dealer_id`; verified
   dealers get a "وسيط معتمد" badge and a `/dealer/<slug>` page. Imported
   broker ads keep the car owner's phone number.
