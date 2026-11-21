@@ -27,6 +27,7 @@ import { imgSrc, imgSrcSet } from "../src/img.js";
 import { vinGuideIn, VIN_RELATED } from "../src/vin-guide.js";
 import { infoPageIn, CONTACT_EMAIL, LEGAL_UPDATED } from "../src/legal.js";
 import { priceCompare, priceCompareText } from "../src/price-compare.js";
+import { newCarPathForMake } from "../src/new-cars.js";
 import { NEWS_FIELDS, NEWS_LIST_FIELDS, NEWS_CATEGORY_CLASS, newsBlocks, formatNewsDate, newsImage } from "../src/news.js";
 import {
   LISTING_FIELDS, queryListings, queryTable, getShell, fillShell as fillShellBase, send, esc, jsonLd, fmt, photo,
@@ -416,6 +417,7 @@ ${siteHeader()}
   <h1 class="cm-display font-extrabold text-2xl mb-2">${esc(copy.h1)}</h1>
   <p class="cm-text-muted text-sm mb-5">${esc(route.kind === "dealer" ? intro.replace(directAr, "").replace(directEn, "") : intro)}</p>
   ${dealerIntro}
+  ${route.kind === "make" && !EN() && newCarPathForMake(route.make) ? `<p class="text-sm mb-4"><a class="cm-link font-bold" href="${newCarPathForMake(route.make)}">${esc(`أسعار ${route.make} الجديدة من الوكيل`)}</a></p>` : ""}
   ${market ? `<p class="text-sm leading-relaxed mb-5">${esc(market.text)}${guideArticle ? ` <a class="cm-link font-bold" href="${P.article(guideArticle.slug)}">${esc(guideArticle.title)}</a>` : ""}</p>` : ""}
   ${rows.length ? `<ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">${rows.map(card).join("")}</ul>` : ""}
   ${pager(page, pages, pageHref)}
@@ -512,6 +514,7 @@ ${siteHeader()}
     description: pg.description,
     canonical: SITE_URL + langPath(pg.path, EN()),
     headExtra: jsonLd(breadcrumbLd(crumbs)) + faqLd(pg.body),
+    arOnly: !!pg.arOnly,
     body,
   });
 }

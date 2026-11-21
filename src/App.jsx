@@ -2794,7 +2794,7 @@ export default function CarMarket() {
           ))}
         </nav>
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["آخر الأخبار", paths.news()], ["المقالات", paths.blog()], ...FOOTER_PAGES.map((k) => [INFO_PAGES[k].short, INFO_PAGES[k].path])].map(([label, href]) => (
+          {[["تصفح السيارات", paths.all()], ["فحص رقم الشاصي", paths.vin()], ["آخر الأخبار", paths.news()], ["المقالات", paths.blog()], ...(INFO_PAGES["new-cars"] ? [["أسعار السيارات الجديدة", "/new-cars"]] : []), ...FOOTER_PAGES.map((k) => [INFO_PAGES[k].short, INFO_PAGES[k].path])].map(([label, href]) => (
             <a key={href} href={href} onClick={(e) => { e.preventDefault(); goTo(href); }} className="cm-link">{label}</a>
           ))}
           <span className="cm-text-muted mr-auto" dir="ltr">© CarsUAE</span>

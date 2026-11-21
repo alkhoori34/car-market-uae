@@ -11,6 +11,7 @@ export const FOOTER_PAGES = ["sell", "faq", "safety", "dealers", "about", "conta
 
 import { INFO_PAGES_EN } from "./content-en.js";
 import { isEnPath } from "./seo-data.js";
+import { newCarInfoPages } from "./new-cars.js";
 
 const INFO_PAGES_AR = {
   sell: {
@@ -362,6 +363,9 @@ const INFO_PAGES_AR = {
     ],
   },
 };
+
+// New-car price pages (Arabic only) join the info pages.
+Object.assign(INFO_PAGES_AR, newCarInfoPages());
 
 // One page in a language (English text from src/content-en.js when there is one).
 export const infoPageIn = (key, en) => (en && INFO_PAGES_EN[key] ? { ...INFO_PAGES_AR[key], ...INFO_PAGES_EN[key] } : INFO_PAGES_AR[key]);

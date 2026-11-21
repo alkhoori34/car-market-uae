@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     // budgets, VIN check, articles, info pages). The /en car, model and dealer
     // pages stay reachable through hreflang links but are not listed, so the
     // sitemap of a new site isn't doubled with machine-translated copies.
-    urls.push(...urls.filter((u) => !/^\/(used-cars\/(?!in\/|under\/)[^/]+\/|dealer\/)/.test(u.loc))
+    urls.push(...urls.filter((u) => !/^\/(used-cars\/(?!in\/|under\/)[^/]+\/|dealer\/|new-cars)/.test(u.loc))
       .map((u) => ({ ...u, loc: langPath(u.loc, true), priority: (Number(u.priority) * 0.8).toFixed(1) })));
     rows.forEach((r) => urls.push({ loc: paths.car(r.id), lastmod: day(r.created_at), priority: "0.6" }));
 
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
     let list = urls;
     if (/sitemap-latest/.test(req.url || "")) {
       const since = day(new Date(Date.now() - 3 * 86400e3));
-      const core = /^\/(|used-cars|vin-check|blog|news|dealers|used-cars\/(in\/)?[^/]+)$/;
+      const core = /^\/(|used-cars|vin-check|blog|news|dealers|new-cars(\/[a-z0-9-]+)?|used-cars\/(in\/)?[^/]+)$/;
       list = urls.filter((u) => !/^\/en(\/|$)/.test(u.loc) && (core.test(u.loc) || (u.lastmod && u.lastmod >= since)));
     }
 
