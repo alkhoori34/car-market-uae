@@ -12,12 +12,58 @@ const fmt = (n) => new Intl.NumberFormat("ar-AE").format(n);
 
 // make = Arabic name exactly as in MODELS (App.jsx); usedSlug = MAKE_SLUGS slug.
 export const NEW_CAR_BRANDS = [
-  // {
-  //   make: "جيتور", slug: "jetour", usedSlug: "jetour", en: "Jetour",
-  //   distributor: "ذا إيليت كارز (The Elite Cars)", site: "https://jetouruae.com",
-  //   checked: "2026-11-21", vat: true,
-  //   models: [{ name: "T2", from: 146000, note: "2.0 تيربو، دفع رباعي" }],
-  // },
+  {
+    make: "بي واي دي", slug: "byd", usedSlug: "byd", en: "BYD",
+    distributor: "الفطيم للتنقل الكهربائي (Al-Futtaim Electric Mobility)", site: "https://www.byduae.ae",
+    checked: "2026-11-21", priceNote: "شاملة ضريبة القيمة المضافة، وتضاف لها رسوم الشحن والتجهيز حسب الوكيل",
+    models: [
+      { name: "Sealion 5", from: 89900, note: "سوبر هايبرد" },
+      { name: "Seal 6", from: 92900, note: "سوبر هايبرد" },
+      { name: "Seal 7", from: 115900, note: "سوبر هايبرد" },
+      { name: "Song Plus", from: 125900, note: "سوبر هايبرد" },
+      { name: "Seal", from: 149900, note: "كهربائية بالكامل" },
+      { name: "Ti 7", from: 157900, note: "سوبر هايبرد، 7 مقاعد" },
+      { name: "Sealion 7", from: 158900, note: "كهربائية بالكامل" },
+      { name: "Atto 8", from: 166900, note: "سوبر هايبرد" },
+      { name: "Shark 6", from: 167900, note: "سوبر هايبرد" },
+    ],
+  },
+  {
+    make: "شيري", slug: "chery", usedSlug: "chery", en: "Chery",
+    distributor: "عبدالواحد الرستماني للسيارات (AW Rostamani Automotive)", site: "https://www.cheryuae.com",
+    checked: "2026-11-21", priceNote: "",
+    models: [
+      { name: "Arrizo 5", from: 57900 },
+      { name: "Tiggo 4", from: 69900 },
+      { name: "Tiggo 7 Champion", from: 74500 },
+      { name: "Arrizo 8 Plug-in Hybrid", from: 79900, note: "هايبرد قابل للشحن" },
+      { name: "Himava", from: 79900, note: "بيك أب" },
+      { name: "Tiggo 7", from: 94900 },
+      { name: "Tiggo 8", from: 94900 },
+      { name: "Tiggo 7 Super Hybrid", from: 105000, note: "سوبر هايبرد" },
+      { name: "Tiggo 8 Super Hybrid", from: 119900, note: "سوبر هايبرد" },
+      { name: "Tiggo 9 Super Hybrid", from: 135000, note: "سوبر هايبرد" },
+      { name: "Tiggo 9", from: 142900 },
+    ],
+  },
+  {
+    make: "إم جي", slug: "mg", usedSlug: "mg", en: "MG",
+    distributor: "", site: "https://www.mg-uae.com",
+    checked: "2026-11-21", priceNote: "",
+    models: [
+      { name: "MG3", from: 45893, note: "هاتشباك" },
+      { name: "MG5", from: 51126 },
+      { name: "MG ZS", from: 59453 },
+      { name: "MG GT", from: 68448 },
+      { name: "MG ONE", from: 70309 },
+      { name: "MG HS", from: 91950 },
+      { name: "MG HS Hybrid+", from: 92027, note: "هايبرد" },
+      { name: "MG7", from: 98547 },
+      { name: "MG Rakan", from: 110662 },
+      { name: "MG RX9", from: 115530 },
+      { name: "MG Cyberster", from: 237803 },
+    ],
+  },
 ];
 
 const live = () => NEW_CAR_BRANDS.filter((b) => b.models && b.models.length);
@@ -28,6 +74,7 @@ export const newCarPathForMake = (make) => { const b = live().find((x) => x.make
 const dateAr = (d) => new Intl.DateTimeFormat("ar-AE", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dubai" }).format(new Date(d));
 
 function brandPage(b) {
+  const label = (m) => (m.name.toUpperCase().startsWith(b.en.toUpperCase()) ? m.name : `${b.make} ${m.name}`);
   const ms = [...b.models].sort((a, c) => a.from - c.from);
   const cheapest = ms[0];
   const top = ms[ms.length - 1];
@@ -40,16 +87,16 @@ function brandPage(b) {
     arOnly: true,
     description: `أسعار ${b.make} الجديدة في الإمارات من الوكيل الرسمي: ${ms.length} موديل تبدأ من ${fmt(cheapest.from)} درهم. قارن مع أسعار ${b.make} المستعملة على CarsUAE.`,
     body: [
-      ["p", `هذي أسعار سيارات ${b.make} الجديدة في الإمارات كما يعرضها الوكيل الرسمي ${b.distributor}. أرخص موديل ${b.make} ${cheapest.name} يبدأ من ${fmt(cheapest.from)} درهم، وأغلى موديل ${b.make} ${top.name} يبدأ من ${fmt(top.from)} درهم.`],
+      ["p", `هذي أسعار سيارات ${b.make} الجديدة في الإمارات كما يعرضها ${b.distributor ? `الوكيل الرسمي ${b.distributor}` : "الموقع الرسمي للماركة في الإمارات"}. أرخص موديل ${label(cheapest)} يبدأ من ${fmt(cheapest.from)} درهم، وأغلى موديل ${label(top)} يبدأ من ${fmt(top.from)} درهم.`],
       ["h2", `قائمة أسعار ${b.make} الجديدة`],
-      ["ul", ms.map((m) => `${b.make} ${m.name}: يبدأ من ${fmt(m.from)} درهم${m.note ? ` (${m.note})` : ""}`)],
-      ["tip", `الأسعار من الموقع الرسمي للوكيل بتاريخ ${dateAr(b.checked)}${b.vat ? "، شاملة ضريبة القيمة المضافة" : ""}. الأسعار والعروض تتغير، فتأكد من السعر النهائي مع الوكيل قبل الشراء.`],
+      ["ul", ms.map((m) => `${label(m)}: يبدأ من ${fmt(m.from)} درهم${m.note ? ` (${m.note})` : ""}`)],
+      ["tip", `الأسعار «تبدأ من» كما في الموقع الرسمي (${b.site.replace("https://", "")}) بتاريخ ${dateAr(b.checked)}${b.priceNote ? `، ${b.priceNote}` : ""}. الأسعار والعروض تتغير، فتأكد من السعر النهائي مع الوكيل قبل الشراء.`],
       ["h2", `تبي ${b.make} مستعملة بسعر أقل؟`],
       ["p", `السيارة الجديدة تخسر جزء كبير من قيمتها في أول سنتين. شوف سيارات ${b.make} المستعملة المعروضة الحين في الإمارات، وقارن سعرها بسعر الوكالة فوق.`],
       ["cta", { text: `سيارات ${b.make} المستعملة للبيع في الإمارات.`, href: `/used-cars/${b.usedSlug}`, label: `تصفح ${b.make} المستعملة` }],
       ["faq", [
-        [`كم سعر أرخص ${b.make} جديدة في الإمارات؟`, `${b.make} ${cheapest.name} يبدأ من ${fmt(cheapest.from)} درهم حسب الوكيل الرسمي بتاريخ ${dateAr(b.checked)}.`],
-        [`من وكيل ${b.make} في الإمارات؟`, `الوكيل الرسمي لـ ${b.make} في الإمارات هو ${b.distributor}. الموقع: ${b.site}`],
+        [`كم سعر أرخص ${b.make} جديدة في الإمارات؟`, `${label(cheapest)} يبدأ من ${fmt(cheapest.from)} درهم حسب الموقع الرسمي بتاريخ ${dateAr(b.checked)}.`],
+        ...(b.distributor ? [[`من وكيل ${b.make} في الإمارات؟`, `الوكيل الرسمي لـ ${b.make} في الإمارات هو ${b.distributor}. الموقع: ${b.site}`]] : []),
         [`هل أشتري ${b.make} جديدة ولا مستعملة؟`, `الجديدة تجي بضمان الوكيل كامل، والمستعملة أرخص بكثير. إذا اشتريت مستعملة افحص رقم الشاصي وتأكد إن الضمان باقي ويتحول لك.`],
       ]],
       ["cta", { text: "قبل ما تشتري مستعملة، افحص رقم الشاصي مجانًا.", href: "/vin-check", label: "فحص رقم الشاصي" }],

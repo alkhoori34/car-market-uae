@@ -411,6 +411,15 @@ goes through Metricool and does not use the Chrome session.
   logs `ops_runs` task 'news'. Edge function `ig-broker-fetch` v10 skips
   motors_uae, souq_uae, smsar2rak (personal accounts, pulled by hand in
   Chrome) and smsar_fujairah (inactive since 2020).
+- **New-car prices (since 2026-11-21, owner):** `/new-cars` and
+  `/new-cars/<slug>` from `src/new-cars.js` (`NEW_CAR_BRANDS`), built as
+  Arabic-only info pages (`newCarInfoPages()` merged into INFO_PAGES; /en is
+  noindex), linked from the footer and from the used make page. Prices ONLY
+  from the brand's official UAE site, with the date checked: BYD
+  (byduae.ae, embedded JSON `Price_From`), Chery (cheryuae.com model pages),
+  MG (mg-uae.com model pages), all checked 2026-11-21. Jetour, Geely and
+  Changan official sites show no prices (quote request only), so they are
+  not listed; other marketplaces disagree by tens of thousands of dirhams.
 - SEO: carsuae.net is verified in Google Search Console (Domain property, TXT
   record in Namecheap) and `https://carsuae.net/sitemap.xml` was submitted on
   2026-10-10. Model pages and dealer pages are live and in the sitemap.
