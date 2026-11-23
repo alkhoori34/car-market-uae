@@ -238,6 +238,7 @@ export function displayDescription(text) {
 // Buying guides for makes/models that have one (slugs in src/articles.js).
 export const GUIDE_FOR = {
   "نيسان|باترول": "used-nissan-patrol-buying-guide",
+  "نيسان|التيما": "used-nissan-altima-buying-guide",
   "تويوتا|لاند كروزر": "used-land-cruiser-buying-guide",
   "لكزس|LX": "used-lexus-lx-buying-guide",
 };
