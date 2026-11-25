@@ -87,8 +87,12 @@ helpers at the bottom: `ListingCard`, `ChipRow`, `Chip`, `ComboBox`, `Field`,
   listing_id)` once per page per tab (admins skipped via localStorage
   `cm_admin`); it inserts into `visits` and bumps `listings.views`. Admin
   numbers come from RPC `visit_stats(days)`.
-- **Seller phone is shown to everyone** (owner's choice, 2026-10-28): no
-  sign-in needed to see the number or press «اتصال».
+- **Seller phone is hidden behind «إظهار الرقم»** (owner, 2026-11-25; before
+  that it was shown openly): no sign-in needed. The car window shows a masked
+  teaser (`maskPhone`, e.g. «050 XXX XXXX»); tapping reveals the tel: link and
+  records `show_number`. The WhatsApp/«اتصال» bar is unchanged. Since then
+  `contact_stats` counts show_number in every total and skips `source =
+  'selftest'` rows.
 - **Contact clicks (since 2026-10-28):** the listing's WhatsApp and call
   buttons call RPC `track_contact(listing, kind, source)` once per
   listing/kind per tab (`trackContact` in App.jsx; admins and bots skipped).

@@ -73,7 +73,7 @@ const UI = {
   "خصم": "off", "مواصفات": "specs", "دفعة أولى 20%، 5 سنوات، فائدة ثابتة 3% سنويًا. للاسترشاد فقط.": "20% down payment, 5 years, 3% flat rate a year. For guidance only.",
   "قسط تقريبي من": "Approx. monthly payment from", "شهريًا": "a month", "الوقود": "Fuel", "الوصف": "Description", "الإعلان من حساب": "Listing from",
   "تم تأكيد رقم البائع": "Seller's number verified", "رقم موثّق": "Verified number", "اطلب رقم الشاصي من البائع وافحصه مجانًا": "Ask the seller for the VIN and check it for free",
-  "افحص الشاصي": "Check VIN", "اتصال": "Call", "عرض الرقم": "Show number", "حذف الإعلان": "Delete listing", "إبلاغ عن الإعلان": "Report listing",
+  "افحص الشاصي": "Check VIN", "اتصال": "Call", "عرض الرقم": "Show number", "إظهار الرقم": "Show number", "حذف الإعلان": "Delete listing", "إبلاغ عن الإعلان": "Report listing",
   "مشاركة الإعلان": "Share listing", "إزالة من المفضلة": "Remove from favourites", "إضافة إلى المفضلة": "Add to favourites",
   "إغلاق": "Close", "السابقة": "Previous", "التالية": "Next", "اضغط مرتين أو باصبعين للتكبير": "Double-tap or pinch to zoom",
   "واتساب": "WhatsApp", "سنة الموديل": "Model year",

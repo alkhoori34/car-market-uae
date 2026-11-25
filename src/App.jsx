@@ -98,6 +98,12 @@ function trackVisit(client, path, listingId = null) {
 }
 // Buyer contact clicks (whatsapp / call), once per listing and
 // kind per tab; admins and bots are not counted. Feeds the admin "التواصل" box.
+// "+971 50 123 4567" -> "050 XXX XXXX" teaser shown before «إظهار الرقم».
+function maskPhone(phone) {
+  const d = String(phone || "").replace(/\D/g, "");
+  const local = d.startsWith("971") ? "0" + d.slice(3) : d;
+  return local.length >= 5 ? `${local.slice(0, 3)} XXX XXXX` : "XXX XXXX";
+}
 function trackContact(client, listingId, kind) {
   if (!listingId) return;
   try {
@@ -532,6 +538,7 @@ export default function CarMarket() {
   const [pendingEmail, setPendingEmail] = useState("");
   const [resendWait, setResendWait] = useState(0);
   const [active, setActive] = useState(null);
+  const [shownPhone, setShownPhone] = useState(null); // listing id whose number was revealed
   const [photoIdx, setPhotoIdx] = useState(0);
   // Full-screen photo viewer (tap a listing photo to open, pinch / double-tap to zoom).
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -2585,17 +2592,26 @@ export default function CarMarket() {
                       </span>
                     )}
                   </p>
-                  {active.phone && (
+                  {active.phone && (shownPhone === active.id ? (
                     <a
                       href={`tel:${active.phone}`}
                       onClick={() => trackContact(supabase, active.id, "call")}
-                      onCopy={() => trackContact(supabase, active.id, "show_number")}
                       className="text-sm font-bold cm-tabular cm-link"
                       dir="ltr"
                     >
                       {active.phone}
                     </a>
-                  )}
+                  ) : (
+                    // Number hidden until tapped (owner, 2026-11-25) so every
+                    // buyer who takes the number is counted as show_number.
+                    <button
+                      type="button"
+                      onClick={() => { setShownPhone(active.id); trackContact(supabase, active.id, "show_number"); }}
+                      className="flex items-center gap-1 text-sm font-bold cm-link"
+                    >
+                      <Phone size={14} /> إظهار الرقم <span className="cm-tabular" dir="ltr">{maskPhone(active.phone)}</span>
+                    </button>
+                  ))}
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   {!active.sold && (
