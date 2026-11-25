@@ -241,6 +241,7 @@ export const GUIDE_FOR = {
   "نيسان|التيما": "used-nissan-altima-buying-guide",
   "تويوتا|لاند كروزر": "used-land-cruiser-buying-guide",
   "لكزس|LX": "used-lexus-lx-buying-guide",
+  "لاند روفر|رينج روفر": "used-range-rover-buying-guide",
 };
 
 // A short market summary for make, model and city pages, built from the live
