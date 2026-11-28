@@ -338,6 +338,58 @@ export const INFO_PAGES_EN = {
 };
 
 export const ARTICLES_EN = {
+  "used-mercedes-s-class-buying-guide": {
+    title: "Used Mercedes S-Class for sale in the UAE: buying guide and prices, 2007 to 2025",
+    description: "Buying a used Mercedes S-Class in the UAE? The W221, W222 and W223 generations, air suspension and electrical issues, what to check, and S-Class prices on CarsUAE now.",
+    body: [
+      ["p", "The Mercedes S-Class is the classic luxury car for many people in the UAE: comfort, quiet and technology ahead of its time. The good news is that used ones lose value quickly, so you can find an S-Class for the price of an ordinary new car. That is exactly the catch: cheap to buy, expensive to fix. This guide covers the generations you will find, what to check before you pay and current prices on CarsUAE."],
+      ["h2", "1. Which generation will you find?"],
+      ["ul", [
+        "W221 (roughly 2007 to 2013 models): the cheapest on the market. Best known as the S350 and S500 (S550 in the US), plus the V12 S600 and the S63 and S65 AMG. From around the 2010 model there was also the S400 Hybrid, the first hybrid S-Class.",
+        "W222 (2014 to 2020 models): the most listed generation on our site. Newer styling, a rich cabin and big screens. It was updated around 2017, and from the 2018 model the engines changed: the S450 with a turbo V6 and the S560 with a 4.0 turbo V8 replaced the older S550/S500.",
+        "W223 (from the 2021 model): the current generation, with larger screens, more driver assistance and mild-hybrid engines such as the S500 and S580, plus plug-in hybrid versions.",
+      ]],
+      ["tip", "Don't judge the year by the looks. Some owners fit newer bumpers and lights, or a Maybach look, to an older car. The real model year is on the registration and in the VIN."],
+      ["h2", "2. Air suspension: check it first"],
+      ["p", "Most S-Classes ride on air suspension (Airmatic), which gives them their smoothness. On the W221 in particular, the best-known complaint is leaking air struts or a tired compressor. In our heat the compressor works harder, so this check matters."],
+      ["ul", [
+        "Look at the car parked on level ground: if one side sits lower, there is probably a leak.",
+        "If you can, see it in the morning after it has stood overnight. A car that sinks overnight has a problem.",
+        "Raise the car with the button and see whether it lifts quickly with no warning message.",
+        "Listen to the compressor: long, loud runs are a sign of wear or a leak.",
+      ]],
+      ["p", "Some versions have a more complex active suspension (ABC on older generations and some V12s, Magic Body Control on some W222s). These ride even better but cost more to repair, so ask the seller which suspension the car has."],
+      ["h2", "3. Engine, gearbox and electrics"],
+      ["ul", [
+        "Engine: start it cold and listen to the first seconds. A rattle at start-up can point to the timing chain, a known issue on some W221 V8 engines.",
+        "Gearbox: on the test drive, check that shifts are smooth. Harsh or late upshifts are a known complaint on some early W221s.",
+        "Electrics: the S-Class is full of electronics. Try everything: the screen, cameras, seats and massage, soft-close doors, blinds, rear climate and the power boot. Electrical repairs on this car take time and money.",
+        "Underneath: look for oil leaks around the engine and gearbox, and listen for knocks over bumps.",
+        "Service history: records from the dealer or a Mercedes specialist make a big difference. A car with no history deserves a lower price.",
+      ]],
+      ["tip", "Before paying any deposit, take the car to a garage that knows Mercedes and have them read the computer with a diagnostic tool and check the suspension. The inspection costs far less than the first repair."],
+      ["h2", "4. Recalls and the VIN"],
+      ["p", "Mercedes has issued recalls on some S-Class models, including the 2018 and 2019 S560 and some W223 cars. The easiest way to check: take the VIN and ask a Mercedes dealer in the UAE whether any campaigns are open on the car and whether they were done. If the car came from the US, you can see recalls in our VIN check."],
+      ["cta", { text: "Have the VIN? Check it for free and see the model year, country of manufacture and recalls where available.", href: "/vin-check", label: "VIN check" }],
+      ["h2", "5. GCC or imported?"],
+      ["p", "About half the S-Classes listed with us are GCC spec: 20 of 39, with most of the rest imported from the US (7) or Japan (6). A GCC car is built for our climate and its history is usually with the local dealer. An import can be cheaper, but check its history abroad: accidents, flooding or a rolled-back odometer. And ask why it costs less than a GCC car."],
+      ["cta", { text: "Want the full difference and how to confirm the specs?", href: "/blog/gcc-vs-american-specs", label: "GCC or imported?" }],
+      ["h2", "6. Mercedes S-Class prices on CarsUAE now"],
+      ["p", "These are real figures from 39 S-Class listings on our site today with a clear price. They are asking prices, not final sale prices:"],
+      ["ul", [
+        "The median across all listings is about AED 67,000, and half the cars sit between AED 48,500 and 92,500.",
+        "2013 and older (W221): 5 cars, AED 19,500 to 36,000, median about 28,000.",
+        "2014 to 2017 (W222 before the update): 23 cars, mostly AED 49,000 to 76,500, median about 60,000.",
+        "2018 to 2020 (updated W222): 6 cars, AED 90,000 to 195,000, median about 92,500.",
+        "2021 and newer (W223): 5 cars, AED 215,000 to 485,000, median about 220,000.",
+      ]],
+      ["p", "Note the jump between generations: a W223 asks more than twice the price of an updated W222. If you want S-Class luxury on a sensible budget, the W222 is the middle choice; keep part of your budget for maintenance."],
+      ["tip", "If an S-Class is far cheaper than others of the same year and mileage, ask why before sending any deposit. A very low price on a luxury car usually means a repair is waiting for you."],
+      ["cta", { text: "Browse every Mercedes S-Class listed now and contact the seller directly.", href: "/used-cars/mercedes-benz/الفئة-s", label: "Mercedes S-Class for sale" }],
+      ["h2", "Summary"],
+      ["p", "With around 30 thousand, a W221 gives you luxury for the price of a small car, but it is an old car that needs a careful check of the suspension and engine. If you can reach 50 to 75 thousand, a 2014 to 2017 W222 is the most common choice on the market. 2018 and later cars are newer with new engines. Either way: service history, a long test drive and an inspection at a specialist before you pay."],
+    ],
+  },
   "used-range-rover-buying-guide": {
     title: "Used Range Rover for sale in the UAE: buying guide and prices, 2013 to 2025",
     description: "Buying a used Range Rover in the UAE? The L322, L405 and L460 generations, air suspension and engine issues, what to check, and Range Rover prices listed on CarsUAE now.",
